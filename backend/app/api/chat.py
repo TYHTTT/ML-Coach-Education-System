@@ -1,10 +1,9 @@
 from fastapi import APIRouter, Header, HTTPException, Request
 
-from app.api.dependencies import build_rag_pipeline, student_id_from_authorization
+from app.api.dependencies import agent_from_request, student_id_from_authorization
 from app.core.exceptions import CourseTopicMismatchError
 from app.prompts.learning import get_learning_prompt
 from app.services.learning_grounding import LearningGroundingService
-from app.rag.pipeline import STRICT_FALLBACK_ANSWER
 from app.schemas.chat import ChatRequest, ChatResponse
 
 
@@ -28,7 +27,7 @@ async def chat(
             status_code=422,
             detail=f"history 最多包含 {settings.max_history_messages} 条消息",
         )
-    history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]]
+    history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]] if settings.max_history_messages else []
     retrieval_query: str | None = None
     system_prompt: str | None = None
     repository = request.app.state.learning_repository
@@ -51,27 +50,18 @@ async def chat(
             system_prompt = get_learning_prompt(payload.course, payload.learning_mode)
         if student_id is not None and payload.learning_mode != "free_qa":
             repository.create_learning_session(
-            student_id=student_id,
+                student_id=student_id,
                 course=payload.course,
                 topic_id=payload.topic_id,
                 state=payload.learning_mode,
             )
-    # In strict mode an empty course collection cannot support an answer. Check
-    # it before constructing external clients so a fresh deployment can return
-    # the deterministic fallback without Embedding or LLM credentials.
-    if settings.rag_strict_mode and request.app.state.vector_store.count(payload.course) == 0:
-        return ChatResponse(
-            answer=STRICT_FALLBACK_ANSWER,
-            course=payload.course,
-            sources=[],
-            retrieval_count=0,
-        )
-    pipeline = build_rag_pipeline(request)
-    result = await pipeline.answer(
+    agent = agent_from_request(request)
+    result = await agent.answer(
         course=payload.course,
-        question=payload.message,
+        question=(retrieval_query or payload.message),
         history=history,
-        retrieval_query=retrieval_query,
         system_prompt=system_prompt,
+        topic_id=payload.topic_id,
+        user=student_id,
     )
     return ChatResponse.model_validate(result)

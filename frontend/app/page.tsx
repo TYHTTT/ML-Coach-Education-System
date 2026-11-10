@@ -13,7 +13,6 @@ import {
   TrashIcon,
 } from "@/components/Icons";
 import SourcePanel from "@/components/SourcePanel";
-import ModelSelector from "@/components/ModelSelector";
 import { sendChat } from "@/lib/api";
 import {
   createConversation,
@@ -319,9 +318,8 @@ export default function HomePage() {
                   <h2 className="truncate text-sm font-semibold text-slate-900 sm:text-base">
                     {COURSE_META[currentCourse].label}
                   </h2>
-                  <ModelSelector feature="free_qa" label="问答模型" />
                   <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-medium text-emerald-700 sm:inline-flex">
-                    RAG Tutor
+                    AI Tutor
                   </span>
                 </div>
                 <p className="truncate text-[11px] text-slate-400">{activeConversation?.title ?? "新对话"}</p>

@@ -1,10 +1,6 @@
-"""Course Content & Assessment MVP, version 1.
+"""Versioned project-authored lessons and worked examples.
 
-All material is explicitly project-authored teaching material, not recovered
-textbook content and not a claim of human review. Numeric answers are checked
-using a finite catalogue of trusted arithmetic functions; conceptual choices
-are cross-checked against the separately authored CHOICE_CATALOGUE. No eval,
-student-code execution, model call, database write, or external citation occurs.
+Example arithmetic is checked with a finite catalogue of trusted calculations.
 """
 
 from __future__ import annotations
@@ -131,19 +127,6 @@ def calculate(kind: str, a: list[Any]) -> Any:
     raise ValueError(f"Unregistered trusted calculation: {kind}")
 
 
-def N(family: str, stem: str, answer: float, kind: str, args: list[Any],
-      solution: str, dimension: str = "calculation", difficulty: str = "medium") -> dict:
-    return dict(family=family, stem=stem, answer=answer, kind=kind, args=args,
-                solution=solution, dimension=dimension, difficulty=difficulty, type="numeric")
-
-
-def M(family: str, stem: str, options: list[str], answer: str, explanation: str,
-      dimension: str = "concept", difficulty: str = "medium") -> dict:
-    return dict(family=family, stem=stem, options=options, answer=answer,
-                solution=explanation, dimension=dimension, difficulty=difficulty,
-                type="multiple_choice")
-
-
 def E(name: str, family: str, title: str, problem: str, givens: dict,
       target: str, steps: list[tuple[str, str, str, str, str]],
       answer: str, checks: list[tuple[str, list[Any], Any]], mistakes: list[str]) -> dict:
@@ -154,12 +137,10 @@ def E(name: str, family: str, title: str, problem: str, givens: dict,
 
 def T(title: str, objectives: list[str], prerequisites: str, problem: str,
       concepts: list[str], formulas: list[tuple[str, str, str]], summary: str,
-      examples: list[dict], practice: list[dict], checkpoint: list[dict],
-      prerequisite_test: list[dict], subjective: tuple[str, str, str]) -> dict:
+      examples: list[dict]) -> dict:
     return dict(title=title, objectives=objectives, prerequisites=prerequisites,
                 problem=problem, concepts=concepts, formulas=formulas, summary=summary,
-                examples=examples, practice=practice, checkpoint=checkpoint,
-                prerequisite_test=prerequisite_test, subjective=subjective)
+                examples=examples)
 
 
 TOPICS: dict[str, dict] = {
@@ -181,20 +162,7 @@ TOPICS: dict[str, dict] = {
            [("确定换算因子","1 m=100 cm","两个分量均乘 100","缩放系数为 100","同一单位换算应用到每一个分量。"),
             ("分别计算","100v=(100v₁,100v₂)","(100×0.5,100×(-1.2))","(50,-120)","负号表示方向，换单位不改变方向。"),
             ("检验量纲","v_cm/100=v_m","(50/100,-120/100)","(0.5,-1.2) m","换回米后与原数据一致。")],
-           "(50,-120) cm。", [("product",[100,0.5],50),("product",[100,-1.2],-120)], ["只缩放第一个分量", "将负方向误改为正方向"])],
-        [N("vector.component-addition","u=(1,4)，v=(3,-2)，u+v 的第二分量是多少？",2,"sum",[4,-2],"对应第二个分量相加：4+(-2)=2。"),
-         N("vector.scalar-scaling","v=(2,-3)，3v 的第一分量是多少？",6,"product",[3,2],"标量乘法逐分量进行，3×2=6。"),
-         M("vector.feature-order","同一个样本从 (身高,体重) 改为 (体重,身高)，怎样使用原线性模型？",["直接使用，顺序无关","同时调整模型权重的对应顺序","只改变向量长度"],"B","每个权重必须继续对应原来的特征。"),
-         M("vector.shape-description","12 个样本，每个有 3 个特征，按行放样本的矩阵形状是？",["12×3","3×12","12×12"],"A","样本数决定行数，特征数决定列数。","application")],
-        [N("vector.centroid-as-representation","三个二维点为 (0,0)、(3,6)、(6,3)。用各坐标均值表示中心，中心第一坐标是多少？",3,"mean",[0,3,6],"中心第一坐标为 (0+3+6)/3=3。"),
-         N("vector.feature-index-code","固定 Python 列表 x=[8,3,5]，执行 len(x) 得到多少？",3,"length",[[8,3,5]],"len 统计三个元素，而不是计算元素和。","concept"),
-         M("vector.semantic-compatibility","向量 (身高厘米,年龄岁) 与 (体重公斤,温度摄氏度) 同为二维，能直接相加作为有意义的样本特征吗？",["能，因为形状相同","不能，特征语义和单位不同","只有分量为正才可以"],"B","同形状只是数学条件；应用中还要保证对应量的语义一致。","application"),
-         M("vector.transpose-orientation","列向量 x 的形状是 4×1，xᵀ 的形状是？",["4×4","4×1","1×4"],"C","转置交换行数和列数。"),
-         M("vector.zero-representation","二维零向量的正确描述是？",["没有任何维度","有两个分量且每个分量为 0","只有一个分量 0"],"B","零描述分量值，不改变向量所处空间的维数。")],
-        [N("vector.coordinate-selection","样本 x=(7,2,9)，第三个特征的值是多少？",9,"at",[[7,2,9],2],"按题目约定的一基序号选择第三个分量 9。"),
-         M("vector.same-dimension-rule","u∈R²，v∈R³，通常能直接求 u+v 吗？",["不能，分量无法一一对应","可以，缺少项当 1","可以，只取前两项"],"A","常规定义下向量相加要求同维。","theorem_condition"),
-         M("vector.scalar-vector-distinction","下列哪个对象是包含两个特征的向量？",["单个温度 20","有序对 (20,60)","符号 x 不带定义"],"B","有序对保留两个分量的顺序。")],
-        ("concept_explanation","说明为什么‘3 个分量的向量’不等于‘长度为 3 的位移’，举一个反例。","区分维数与欧氏范数；例如 (0,0,0) 有 3 个分量但范数为 0。")),
+           "(50,-120) cm。", [("product",[100,0.5],50),("product",[100,-1.2],-120)], ["只缩放第一个分量", "将负方向误改为正方向"])]),
     "la.dot_product": T(
         "向量内积与线性模型分数",
         ["逐项相乘并求和计算内积", "区分内积标量与逐分量乘积", "将内积、偏置和 Sigmoid 串成一次预测"],
@@ -214,20 +182,7 @@ TOPICS: dict[str, dict] = {
            [("检查形状","u,v∈R²","两个分量分别对应","可以计算内积","同维是内积定义的前提。"),
             ("求内积","uᵀv=1×2+2×(-1)","2-2","0","正负乘积在求和时相互抵消。"),
             ("应用正交条件","uᵀv=0","u、v 均非零","两向量夹角为 90°","欧氏内积下非零向量内积为零意味着正交。")],
-           "uᵀv=0，两非零向量正交。", [("dot",[[1,2],[2,-1]],0)], ["把逐分量乘积 (2,-2) 当最终内积", "忽略欧氏内积和非零向量条件"])],
-        [N("dot.orthogonality-calculation","u=(2,-1,3)，v=(1,4,2)，求 uᵀv。",4,"dot",[[2,-1,3],[1,4,2]],"2×1+(-1)×4+3×2=4。"),
-         N("prediction.dot-bias-sigmoid","x=(1,2)，w=(2,-0.5)，b=1，求线性得分 z（不做 Sigmoid）。",2,"sum",[2,-1,1],"内积 2×1-0.5×2=1，加偏置后 z=2。","application"),
-         M("dot.output-shape","两个 5×1 列向量 u、v，uᵀv 的形状是？",["5×5","1×1","5×1"],"B","(1×5)(5×1) 得到标量。"),
-         M("dot.orthogonality-calculation","在通常的欧氏内积下，两个非零向量内积为 0 意味着？",["相互正交","它们相等","一个必为零"],"A","非零向量夹角为直角时余弦为零。")],
-        [N("dot.distributive-inference","已知 aᵀb=3，aᵀc=-1，求 aᵀ(2b+c)。",5,"sum",[6,-1],"利用线性性，2(aᵀb)+aᵀc=6-1=5。"),
-         N("dot.missing-weight","模型 z=2w₁+3w₂，已知 z=7、w₂=1，求 w₁。",2,"ratio",[4,2],"2w₁+3=7，所以 w₁=(7-3)/2=2。","application"),
-         M("dot.joint-permutation","同时用同一个排列重排 x 和 w 的分量，内积如何变化？",["不变","变成相反数","必须重新训练才可计算"],"A","配对乘积不变，仅求和顺序改变。"),
-         M("dot.zero-inner-not-equal","aᵀb=0 能推出 a=b 吗？",["总能","不能，例如两个不同坐标轴方向","仅在二维时能"],"B","正交不等于相等。","theorem_condition"),
-         M("dot.model-contribution","线性得分中某特征 xⱼ 增大 Δ，其他不变且 wⱼ<0，得分变化方向是？",["增大","不变","减小"],"C","变化为 wⱼΔ，Δ>0 时为负。","application")],
-        [N("dot.self-product","u=(3,4)，求 uᵀu。",25,"dot",[[3,4],[3,4]],"平方和为 9+16=25。"),
-         M("dot.dimension-condition","x 有 4 个分量，w 有 3 个分量，wᵀx 是否按通常定义成立？",["不成立","成立且等于 0","只舍弃最后一项即可"],"A","特征数必须与权重数相等。","theorem_condition"),
-         M("dot.operation-order","求内积应如何操作？",["先求两向量各自和再相乘","对应分量相乘再求和","对应分量相加再求积"],"B","对应乘积求和保留权重与特征的配对。")],
-        ("error_correction","某同学把 (1,2)·(3,4) 写成 (1+2)(3+4)=21，请指出错误并更正。","应为 1×3+2×4=11；先求和再相乘多出交叉项。")),
+           "uᵀv=0，两非零向量正交。", [("dot",[[1,2],[2,-1]],0)], ["把逐分量乘积 (2,-2) 当最终内积", "忽略欧氏内积和非零向量条件"])]),
     "math.functions": T(
         "函数与变量：从输入得到唯一输出",
         ["区分自变量、参数和输出", "代入一次函数完成预测", "根据运算限制确定定义域"],
@@ -246,133 +201,31 @@ TOPICS: dict[str, dict] = {
            [("先算内层","g(2)=2+1","2+1","3","括号表示 g 的结果先产生。"),
             ("再算外层","f(g(2))=f(3)","3²","9","把内层输出整体作为外层输入。"),
             ("对照逆序","g(f(2))=g(4)","4+1","5，与 9 不同","函数复合通常不满足交换律。")],
-           "f(g(2))=9；逆序 g(f(2))=5。", [("power",[3,2],9),("linear",[1,4,1],5)], ["把 f(g(x)) 当成 f(x)g(x)", "交换函数执行顺序"])],
-        [N("function.affine-evaluation","f(x)=2x-1，求 f(3)。",5,"linear",[2,3,-1],"代入 x=3，2×3-1=5。"),
-         N("function.composition-evaluation","g(x)=2x，f(t)=t+3，求 f(g(4))。",11,"linear",[2,4,3],"先 g(4)=8，再 f(8)=11。"),
-         M("function.input-parameter","在固定模型 y=wx+b 中预测一个新样本时，通常哪个量是样本输入？",["x","w","b"],"A","w、b 是已确定参数，x 随样本变化。"),
-         M("function.reciprocal-domain","实数函数 f(x)=1/(x-2) 必须排除哪个输入？",["0","2","-2"],"B","x=2 会使分母为零。","theorem_condition")],
-        [N("function.inverse-input","费用 y=4x+6，已知费用为 30，求里程 x。",6,"ratio",[24,4],"解 4x=30-6=24，得 x=6。","application"),
-         N("function.constant-output","常数函数 f(x)=7，求 f(100)-f(-3)。",0,"sum",[7,-7],"两个输入都映射为 7，差为 0。"),
-         M("function.uniqueness","哪种关系不符合单值函数定义？",["两个不同输入输出相同","同一输入对应两个不同输出","所有输入输出都为 0"],"B","函数要求每一个合法输入只有一个输出。"),
-         M("function.square-root-domain","实数函数 f(x)=√(x-1) 的定义域是？",["x≥1","x≠1","所有实数"],"A","被开方数 x-1 需非负。","theorem_condition"),
-         M("function.noninjective","f(x)=x² 在实数上，f(2)=f(-2)，说明什么？",["它不是函数","它的值域是全部实数","函数不一定一一对应"],"C","每个输入仍只有一个输出，只是两个输入共享输出。")],
-        [N("function.table-read","函数表给出 f(0)=2、f(1)=5、f(2)=8。只根据表，f(1) 是多少？",5,"sum",[5],"读取输入 1 对应的输出 5，无需猜测表外函数。"),
-         M("function.fixed-variable","f(x;a)=ax² 中研究 x 的变化时，‘a 固定’意味着？",["a 在本次讨论中当作参数","a 必须为 0","x 也必须固定"],"A","固定参数不等于参数取零。"),
-         M("function.allowed-input","计算一个函数值前最先需要确认什么？",["结果一定为正","输入属于函数定义域","函数一定可逆"],"B","非法输入可能使表达式无意义。","theorem_condition")],
-        ("concept_explanation","给出一个不同输入对应相同输出的函数，并解释为什么仍符合函数定义。","例如 f(x)=x²，f(1)=f(-1)=1；每一个输入仍有唯一输出。")),
+           "f(g(2))=9；逆序 g(f(2))=5。", [("power",[3,2],9),("linear",[1,4,1],5)], ["把 f(g(x)) 当成 f(x)g(x)", "交换函数执行顺序"])]),
 }
 
-
-# Independent concept-key catalogue: order is the authored multiple-choice
-# order within each usage, excluding numeric items. It is deliberately not
-# inferred from question answer_key fields during verification.
-CHOICE_CATALOGUE = {
-    "la.vectors": {"practice":"BA", "checkpoint":"BCB", "prerequisite_test":"AB"},
-    "la.dot_product": {"practice":"BA", "checkpoint":"ABC", "prerequisite_test":"AB"},
-    "math.functions": {"practice":"AB", "checkpoint":"BAC", "prerequisite_test":"AB"},
-}
 
 from .machine_learning import authored as _machine_learning
 from .calculus import authored as _calculus
 from .probability import authored as _probability
 from .algebra import authored as _algebra
 
-_topics, _choices = _machine_learning(T, N, M, E)
-TOPICS.update(_topics)
-CHOICE_CATALOGUE.update(_choices)
-
-# Keep similar examples/practice in the same conservative family. These
-# aliases are data corrections before the first published v1 seed, not a
-# migration of existing student records or a way to label variants independent.
-_family_corrections = {
-    "optimization.generic-update":"optimization.quadratic-one-step",
-    "crossentropy.negative-label-evaluation":"crossentropy.batch-average",
-    "partial.quadratic-coordinate":"calculus.quadratic-partial-gradient",
-    "gradient.coordinate-extraction":"calculus.quadratic-partial-gradient",
-    "gradient.axis-direction":"calculus.quadratic-partial-gradient",
-    "moments.population-variance":"moments.affine-transform",
-    "bernoulli.label-zero-probability":"bernoulli.single-moments",
-}
-
-# Additional modules below are merged before applying the shared aliases.
-_topics, _choices = _calculus(T, N, M, E)
-TOPICS.update(_topics)
-CHOICE_CATALOGUE.update(_choices)
-_topics, _choices = _probability(T, N, M, E)
-TOPICS.update(_topics)
-CHOICE_CATALOGUE.update(_choices)
-_topics, _choices = _algebra(T, N, M, E)
-TOPICS.update(_topics)
-CHOICE_CATALOGUE.update(_choices)
-
-for _spec in TOPICS.values():
-    for _question_spec in _spec["practice"]:
-        _question_spec["family"] = _family_corrections.get(_question_spec["family"], _question_spec["family"])
-
-from .independent_practice import authored as _independent_practice
-
-_additions, _additional_choices = _independent_practice(N, M)
-for _topic_id, _additional_questions in _additions.items():
-    TOPICS[_topic_id]["practice"].extend(_additional_questions)
-    CHOICE_CATALOGUE[_topic_id]["practice"] += _additional_choices[_topic_id]
-
-from .independent_prerequisites import authored as _independent_prerequisites
-
-_prerequisite_aliases, _prerequisite_additions = _independent_prerequisites(N)
-for _spec in TOPICS.values():
-    for _question_spec in _spec["prerequisite_test"]:
-        _question_spec["family"] = _prerequisite_aliases.get(_question_spec["family"], _question_spec["family"])
-for _topic_id, _question_spec in _prerequisite_additions.items():
-    TOPICS[_topic_id]["prerequisite_test"].append(_question_spec)
-
-
-def owner_course(topic_id: str) -> str:
-    return {"ml":"machine_learning", "math":"advanced_mathematics",
-            "la":"linear_algebra", "prob":"probability_statistics"}[topic_id.split(".")[0]]
-
-
-def _question(topic_id: str, usage: str, position: int, spec: dict) -> dict:
-    question_id = f"bank.{topic_id}.{usage}.{position:02d}"
-    dimension = spec["dimension"]
-    if topic_id.startswith("ml."):
-        dimension = {"calculation":"mathematics", "theorem_condition":"mechanism"}.get(dimension, dimension)
-    result = dict(id=question_id, version=1, topic_ids=[topic_id],
-                  primary_course=owner_course(topic_id), title=spec["stem"].split("。")[0][:90],
-                  question_type=spec["type"], difficulty=spec["difficulty"], stem=spec["stem"],
-                  options=None, answer_key={"canonical_answer":str(spec["answer"]),
-                    "key_points":[spec["solution"]], "accepted_variants":[]},
-                  accepted_variants=[], solution_steps=[part for part in spec["solution"].split("；") if part],
-                  rubric=[{"criterion":"答案与指定计算或概念条件一致", "points":100}],
-                  tested_competencies=[topic_id+".foundation"], dimensions={dimension:1.0},
-                  estimated_minutes=3 if spec["type"] == "numeric" else 2,
-                  usage=[usage], family_id=spec["family"], source_refs=[], source_snapshot=[],
-                  content_origin=ORIGIN,
-                  validation_status="deterministic_checks_passed", publication_status="published")
-    if spec["type"] == "numeric":
-        result["answer_key"].update(numeric_answer=spec["answer"], tolerance=1e-6)
-        result["verification"] = {"kind":"trusted_numeric_fixture", "operation":spec["kind"],
-                                  "arguments":deepcopy(spec["args"]), "expected":spec["answer"]}
-    else:
-        result["options"] = [{"option_id":chr(65+i),"text":s} for i,s in enumerate(spec["options"])]
-        result["answer_key"]["correct_option"] = spec["answer"]
-        result["verification"] = {"kind":"independent_concept_catalogue", "catalogue_key":question_id,
-                                  "expected":spec["answer"]}
-    return result
+for authored in (_machine_learning, _calculus, _probability, _algebra):
+    TOPICS.update(authored(T, E))
 
 
 def build_content() -> dict[str, list[dict]]:
     """Return fresh content objects; repeated calls have identical output."""
-    lessons, examples, questions = [], [], []
+    lessons, examples = [], []
     for topic_id, spec in TOPICS.items():
         example_ids = [f"example.{topic_id}.{e['name']}" for e in spec["examples"]]
-        practice_ids = [f"bank.{topic_id}.practice.{i:02d}" for i in range(1, len(spec["practice"])+1)]
         lessons.append(dict(id="lesson."+topic_id, topic_id=topic_id, title=spec["title"],
             learning_objectives=deepcopy(spec["objectives"]), prerequisite_summary=spec["prerequisites"],
             motivating_problem=spec["problem"], key_concepts=deepcopy(spec["concepts"]),
             formulas=[{"expression":f,"symbols":s,"conditions":c} for f,s,c in spec["formulas"]],
-            worked_example_ids=example_ids, practice_recommendations=practice_ids,
+            worked_example_ids=example_ids, practice_recommendations=[],
             summary=spec["summary"], source_refs=[], content_origin=ORIGIN,
-            version=1, status="published"))
+            version=2, status="published"))
         for example_id, e in zip(example_ids, spec["examples"], strict=True):
             steps = [{"step_id":f"step-{i}","title":title,"formula":formula,
                       "substitution":substitution,"result":result,"explanation":explanation,
@@ -383,23 +236,10 @@ def build_content() -> dict[str, list[dict]]:
                 solution_outline=" → ".join(s["title"] for s in steps), steps=steps,
                 final_answer=e["answer"], verification={"kind":"trusted_numeric_fixture",
                     "checks":[{"operation":k,"arguments":deepcopy(a),"expected":v} for k,a,v in e["checks"]]},
-                common_mistakes=deepcopy(e["mistakes"]), followup_practice_ids=practice_ids[:2],
-                source_refs=[], content_origin=ORIGIN, version=1,
+                common_mistakes=deepcopy(e["mistakes"]), followup_practice_ids=[],
+                source_refs=[], content_origin=ORIGIN, version=2,
                 status="published", family_id=e["family"]))
-        for usage in ("practice", "checkpoint", "prerequisite_test"):
-            for i,q in enumerate(spec[usage],1):
-                questions.append(_question(topic_id,usage,i,q))
-        qtype, stem, solution = spec["subjective"]
-        questions.append(dict(id=f"bank.{topic_id}.subjective.01",version=1,topic_ids=[topic_id],
-            primary_course=owner_course(topic_id),title="待审核开放练习："+spec["title"],
-            question_type=qtype,difficulty="medium",stem=stem,options=None,
-            answer_key={"canonical_answer":solution,"key_points":[solution],"accepted_variants":[]},
-            accepted_variants=[],solution_steps=[solution],rubric=[{"criterion":"概念准确且论证完整", "points":100}],
-            tested_competencies=[topic_id+".foundation"],dimensions={"concept":1.0},estimated_minutes=5,
-            usage=["practice"],family_id=f"{topic_id}.open-explanation",source_refs=[],source_snapshot=[],
-            content_origin=ORIGIN,validation_status="needs_review",
-            publication_status="draft",verification={"kind":"requires_content_review"}))
-    return {"lessons":lessons,"examples":examples,"questions":questions}
+    return {"lessons":lessons,"examples":examples}
 
 
 def _close(actual: Any, expected: Any) -> bool:
@@ -410,18 +250,9 @@ def _close(actual: Any, expected: Any) -> bool:
 
 
 def verify_content(content: dict | None = None) -> list[str]:
-    """Check saved answers against trusted calculations and separate key data."""
+    """Check worked examples against trusted calculations."""
     content = build_content() if content is None else content
     errors: list[str] = []
-    expected_choices = {}
-    for topic_id, spec in TOPICS.items():
-        for usage in ("practice","checkpoint","prerequisite_test"):
-            answers = iter(CHOICE_CATALOGUE[topic_id][usage])
-            for position,q in enumerate(spec[usage],1):
-                if q["type"]=="multiple_choice":
-                    expected_choices[f"bank.{topic_id}.{usage}.{position:02d}"] = next(answers)
-            if next(answers,None) is not None:
-                errors.append(f"{topic_id}: unused conceptual catalogue answer")
     all_ids = set()
     for group in content.values():
         for item in group:
@@ -436,18 +267,4 @@ def verify_content(content: dict | None = None) -> list[str]:
                 errors.append(e["id"]+": worked calculation mismatch")
         if len(e["steps"])<3 or any(not all(s.values()) for s in e["steps"]):
             errors.append(e["id"]+": missing intermediate teaching steps")
-    for q in content["questions"]:
-        if q["question_type"]=="numeric":
-            v=q["verification"]
-            if not _close(calculate(v["operation"],v["arguments"]),q["answer_key"]["numeric_answer"]):
-                errors.append(q["id"]+": numeric answer mismatch")
-        elif q["question_type"]=="multiple_choice":
-            if q["answer_key"]["correct_option"]!=expected_choices.get(q["id"]):
-                errors.append(q["id"]+": conceptual key mismatch")
-            if len({o["text"] for o in q["options"]}) != len(q["options"]):
-                errors.append(q["id"]+": duplicate options")
-        elif q["publication_status"]!="draft" or q["validation_status"]!="needs_review":
-            errors.append(q["id"]+": subjective content requires review")
-        if sum(r["points"] for r in q["rubric"])!=100:
-            errors.append(q["id"]+": rubric does not sum to 100")
     return errors

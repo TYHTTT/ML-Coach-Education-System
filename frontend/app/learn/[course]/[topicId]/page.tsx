@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
-import { useCourseOutline, contentState } from "@/components/CourseLayout";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useCourseOutline } from "@/components/CourseLayout";
 import { LoadingBlock, MasteryBar, TopicStatusBadge } from "@/components/LearningWidgets";
 import LessonContent, { WorkedExample } from "@/components/LessonContent";
 import TopicPrerequisiteCard from "@/components/TopicPrerequisiteCard";
 import PracticePanel from "@/components/PracticePanel";
 import TopicTutor from "@/components/TopicTutor";
+import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from "@/components/Icons";
 import { useStudent } from "@/components/StudentProvider";
 import { ApiError, getLearningHistory, getTopic, isStudentNotFound, startTopic } from "@/lib/api";
 import { getExamples, getLesson, getPrerequisites } from "@/lib/api-content";
@@ -33,9 +34,16 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [contentError, setContentError] = useState("");
-  const [starting, setStarting] = useState(false);
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [formalActive, setFormalActive] = useState(false);
+  const [panel, setPanel] = useState<"info" | "practice" | "history" | null>(null);
+  const [conversation, setConversation] = useState(0);
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (panel && dialog && !dialog.open) dialog.showModal();
+    else if (!panel && dialog?.open) dialog.close();
+  }, [panel]);
   const load = useCallback(async () => {
     setError("");
     setPrerequisites(null);
@@ -68,42 +76,66 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
   }, [topicId, ownerCourse, withStudent]);
   useEffect(() => { if (status !== "ready") return; const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, [status, load]);
   const onLearningUpdated = useCallback(async () => { await Promise.all([load(), refresh()]); }, [load, refresh]);
-  async function begin() {
-    setStarting(true);
-    try { await withStudent((id) => startTopic(topicId, id)); await onLearningUpdated(); document.getElementById("lesson")?.scrollIntoView({ behavior: "smooth" }); }
-    catch (cause) { setError(cause instanceof Error ? cause.message : "暂时无法记录开始学习。你仍可阅读课程内容。"); }
-    finally { setStarting(false); }
+  async function recordLearning() {
+    if (topic?.status !== "not_started") return;
+    try { await withStudent((id) => startTopic(topicId, id)); await onLearningUpdated(); }
+    catch { setError("学习状态暂时未能保存，可以继续对话，稍后重试。"); }
   }
   if (!COURSES.includes(ownerCourse)) return <div className="p-8"><h1>课程地址无效</h1><Link href="/learn" className="text-indigo-700">返回课程列表</Link></div>;
-  if (loading) return <div className="p-5 sm:p-8"><LoadingBlock label="正在读取课程正文与学习状态…" /></div>;
+  if (loading) return <div className="p-5 sm:p-8"><LoadingBlock label="正在准备课程对话…" /></div>;
   if (!topic) return <div role="alert" className="m-5 rounded-2xl bg-rose-50 p-6 text-rose-800"><h1 className="font-bold">知识点无法加载</h1><p className="mt-2 text-sm">{error}</p><button type="button" onClick={() => void load()} className="mt-4 underline">重新加载</button></div>;
   const ordered = outline?.groups.flatMap((group) => group.topics) ?? [];
   const position = ordered.findIndex((item) => item.topic_id === topicId);
   const previous = position > 0 ? ordered[position - 1] : null;
   const next = position >= 0 ? ordered[position + 1] : null;
-  const placed = ordered[position];
-  const currentGroup = outline?.groups.find((group) => group.topics.some((item) => item.topic_id === topicId));
   const returnTopic = searchParams.get("return_topic");
-  return <div className="space-y-6 px-4 py-6 sm:px-7 lg:px-8">
-    {course && course !== ownerCourse && <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-3 text-xs text-indigo-800"><span>从{COURSE_META[course].label}补学 · 当前知识点归属于{COURSE_META[ownerCourse].label}，学习状态共用。</span><Link href={returnTopic ? `/learn/${course}/${encodeURIComponent(returnTopic)}` : `/learn/${course}`} className="font-bold">{returnTopic ? "返回原机器学习知识点" : "返回原课程"} →</Link></div>}
-    <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500"><Link href={`/learn/${course || ownerCourse}`} className="hover:text-indigo-700">{COURSE_META[course || ownerCourse].label}</Link><span>/</span><span>{currentGroup?.title || topic.stage_title}</span><TopicStatusBadge status={topic.status} />{placed && placed.content_status !== "ready" && <span className="rounded-full bg-slate-100 px-3 py-1">□ {contentState(placed).label}</span>}</div>
-      <h1 className="mt-4 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">{topic.title}</h1>
-      {placed?.content_status === "missing" && placed.readiness_reason && <p className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-6 text-slate-500">{placed.has_learning_content ? "已有讲解可读；" : ""}{placed.readiness_reason}</p>}
-      <h2 className="mt-5 text-sm font-bold text-slate-900">为什么学它</h2><p className="mt-2 text-sm leading-7 text-slate-600">{topic.description}</p>
-      <h2 className="mt-5 text-sm font-bold text-slate-900">学习目标</h2><ul className="mt-3 grid gap-2 xl:grid-cols-2">{topic.learning_objectives.map((objective) => <li key={objective} className="rounded-xl bg-slate-50 px-3 py-2 text-sm leading-6 text-slate-600">✓ {objective}</li>)}</ul>
-      <div className="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 pt-4"><button type="button" disabled={starting} onClick={() => void begin()} className="rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-50">{starting ? "正在记录…" : topic.status === "not_started" ? "开始学习" : "继续学习"}</button><div className="flex flex-wrap gap-4 text-xs font-semibold text-indigo-700">{previous && <Link href={topicHref(previous)} prefetch={false}>← 上一个：{previous.title}</Link>}{next && <Link href={topicHref(next)} prefetch={false}>下一个：{next.title} →</Link>}</div></div>
-    </section>
-    {error && <div role="alert" className="rounded-xl bg-amber-50 p-4 text-sm text-amber-900">{error}<button type="button" onClick={() => void load()} className="ml-3 font-semibold underline">重试</button></div>}
-    <nav aria-label="知识点内容分区" className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white p-3">{[["lesson", "1 知识讲解"], ["examples", "2 分步例题"], ["practice", "3 练习与测试"], ["history", "4 学习记录"]].map(([id, label]) => <a key={id} href={`#${id}`} className="rounded-lg px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">{label}</a>)}</nav>
-    {prerequisites && <TopicPrerequisiteCard data={prerequisites} onAssessment={setAssessment} />}
-    {contentError && <div role="alert" className="rounded-xl bg-rose-50 p-4 text-sm text-rose-800">{contentError}<button type="button" onClick={() => void load()} className="ml-3 underline">重新加载内容</button></div>}
-    {lesson ? <LessonContent lesson={lesson} /> : <section id="lesson" className="rounded-3xl border border-dashed border-slate-300 bg-white p-7"><h2 className="text-lg font-bold text-slate-700">□ 固定课程正文待补充</h2><p className="mt-3 text-sm leading-7 text-slate-500">这个知识点尚无已发布的固定课程正文，但仍可根据已有课程资料进行 AI 讲解、分步例题与动态练习。不需要等固定内容补齐后才开始学习。</p><a href="#topic-tutor" className="mt-4 inline-block text-sm font-semibold text-indigo-700">使用 AI 讲解与例题 ↓</a></section>}
-    <section id="examples" className="space-y-4 scroll-mt-24"><h2 className="text-xl font-bold text-slate-900">分步例题</h2>{examples.length > 0 ? examples.map((example) => <WorkedExample key={`${example.id}:${example.version}`} example={example} askDisabled={formalActive} />) : <p className="rounded-2xl border border-dashed border-slate-300 p-5 text-sm leading-7 text-slate-500">暂无固定例题。点击下方“AI 讲例题”，按本知识点课程资料讲解 2 道具体例题及其步骤。</p>}
-      {formalActive ? <section id="topic-tutor" className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">正式测试进行中，AI 例题、课程答疑与例题步骤提问暂时关闭。提交后可继续使用辅助学习。</section> : <TopicTutor course={ownerCourse} topicId={topic.id} topicTitle={topic.title} />}
-    </section>
-    <PracticePanel topic={topic} checkpointAllowed={prerequisites?.can_checkpoint ?? false} checkpointBlockedReason={!prerequisites ? "前置能力状态尚未确认，请点击上方重试检查。仍可阅读讲解和进行辅助练习，正式测试暂不开放。" : prerequisites.unmet.length ? "先补齐必需前置能力，或通过前置小测证明对应技能。仍可继续阅读和辅助练习。" : "前置已满足；请先完成无提示练习，积累现有 Mastery Gate 所需的有效证据，再参加正式测试。"} initialAssessment={assessment} onLearningUpdated={onLearningUpdated} onActiveCheckpoint={setFormalActive} />
-    <section id="history" className="scroll-mt-24 rounded-3xl border border-slate-200 bg-white p-5 sm:p-7"><h2 className="text-lg font-bold">学习记录</h2><div className="mt-4 max-w-md"><MasteryBar value={hasValidTopicEvidence(topic) ? topic.mastery : null} /></div>{history.length ? <ul className="mt-5 divide-y divide-slate-100">{history.map((event, index) => <li key={event.id || event.attempt_id || index} className="flex flex-wrap justify-between gap-2 py-3 text-sm text-slate-600"><span>{event.mode === "checkpoint" ? "正式测试" : "练习"} · {scoreLabel(event.score)}</span><time className="text-xs text-slate-400">{new Date(event.created_at).toLocaleString("zh-CN")}</time></li>)}</ul> : <p className="mt-4 text-sm text-slate-500">还没有本知识点的作答记录。阅读例题不会自动成为正式通过证据。</p>}</section>
-    {prerequisites && prerequisites.successors.length > 0 && <section className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-7"><h2 className="text-lg font-bold">学完以后可以学什么</h2><div className="mt-4 grid gap-3 xl:grid-cols-2">{prerequisites.successors.map((item) => <Link key={item.id} href={topicHref({ topic_id: item.id, owner_course: item.course })} className="rounded-xl bg-slate-50 p-4"><p className="text-sm font-semibold text-indigo-700">{item.title} →</p><p className="mt-2 text-xs leading-6 text-slate-500">{item.reason}</p></Link>)}</div></section>}
+  const panelTitle = panel === "info" ? "知识点资料" : panel === "practice" ? "练习与测试" : "学习记录";
+  return <div className="flex h-[calc(100dvh-120px)] min-h-0 flex-col bg-white lg:h-[calc(100dvh-65px)]">
+    <header className="shrink-0 border-b border-slate-100 px-4 py-3 sm:px-6">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-[11px] text-slate-400">{COURSE_META[ownerCourse].label}{course && course !== ownerCourse ? ` · 从${COURSE_META[course].label}补学` : ""}</p>
+          <div className="mt-1 flex min-w-0 items-center gap-3"><h1 className="truncate text-base font-semibold text-slate-900">{topic.title}</h1><span className="hidden shrink-0 sm:inline"><TopicStatusBadge status={topic.status} /></span></div>
+        </div>
+        <button type="button" onClick={() => setConversation((value) => value + 1)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"><PlusIcon className="size-4" />新对话</button>
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+        <nav aria-label="学习工具" className="flex items-center gap-1">
+          {([["info", "知识点资料"], ["practice", "练习与测试"], ["history", "学习记录"]] as const).map(([id, label]) => <button key={id} type="button" onClick={() => setPanel(id)} className="rounded-lg px-2 py-1.5 text-xs text-slate-500 transition hover:bg-slate-50 hover:text-indigo-600">{label}{id === "practice" && formalActive && <span className="ml-1.5 inline-block size-1.5 rounded-full bg-amber-500" />}</button>)}
+        </nav>
+        <div className="flex items-center gap-1">
+          {course && course !== ownerCourse && <Link href={returnTopic ? `/learn/${course}/${encodeURIComponent(returnTopic)}` : `/learn/${course}`} className="mr-2 text-xs text-indigo-600">返回原课程</Link>}
+          {previous && <Link href={topicHref(previous)} prefetch={false} aria-label={`上一个：${previous.title}`} title={`上一个：${previous.title}`} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"><ArrowLeftIcon className="size-4" /></Link>}
+          {next && <Link href={topicHref(next)} prefetch={false} aria-label={`下一个：${next.title}`} title={`下一个：${next.title}`} className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700"><ArrowRightIcon className="size-4" /></Link>}
+        </div>
+      </div>
+    </header>
+    {error && <div role="alert" className="flex shrink-0 items-start gap-3 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-800"><span className="flex-1">{error}</span><button type="button" onClick={() => void load()} className="shrink-0 underline">重试</button></div>}
+    <TopicTutor key={`${topic.id}:${conversation}`} course={ownerCourse} topicId={topic.id} topicTitle={topic.title} disabled={formalActive} onLearningStarted={() => void recordLearning()} />
+
+    <dialog ref={dialogRef} onCancel={(event) => { event.preventDefault(); setPanel(null); }} aria-label={panelTitle} className="fixed inset-y-0 left-auto right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/30"
+      onClick={(event) => { if (event.target instanceof Element && event.target.closest('a[href="#practice"]')) { event.preventDefault(); setPanel("practice"); return; } if (event.target !== event.currentTarget) return; const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) setPanel(null); }}>
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-200 px-5 py-4"><h2 className="text-base font-semibold">{panelTitle}</h2><button type="button" onClick={() => setPanel(null)} aria-label="关闭学习工具" className="rounded-lg px-3 py-1 text-lg text-slate-500 hover:bg-slate-100">×</button></div>
+        <div className="chat-scrollbar min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 sm:p-6">
+          <div hidden={panel !== "info"} className="space-y-5">
+            <section><h3 className="text-sm font-semibold">{topic.title}</h3><p className="mt-2 text-sm leading-7 text-slate-500">{topic.description}</p><h3 className="mt-5 text-sm font-semibold">学习目标</h3><ul className="mt-2 list-disc space-y-2 pl-5 text-sm leading-6 text-slate-600">{topic.learning_objectives.map((objective) => <li key={objective}>{objective}</li>)}</ul></section>
+            {contentError && <p role="alert" className="text-sm text-rose-700">{contentError}<button type="button" onClick={() => void load()} className="ml-2 underline">重试</button></p>}
+            {prerequisites && <TopicPrerequisiteCard data={prerequisites} onAssessment={(value) => { setAssessment(value); setPanel("practice"); }} />}
+            {lesson && <LessonContent lesson={lesson} />}
+            {examples.map((example) => <WorkedExample key={`${example.id}:${example.version}`} example={example} askDisabled={formalActive} />)}
+            {prerequisites && prerequisites.successors.length > 0 && <section><h3 className="text-sm font-semibold">后续知识点</h3><div className="mt-3 flex flex-wrap gap-3">{prerequisites.successors.map((item) => <Link key={item.id} href={topicHref({ topic_id: item.id, owner_course: item.course })} className="text-sm text-indigo-600">{item.title} →</Link>)}</div></section>}
+          </div>
+          <div hidden={panel !== "practice"} className="space-y-5">
+            {prerequisites && prerequisites.unmet.length > 0 && <button type="button" onClick={() => setPanel("info")} className="text-sm font-semibold text-indigo-600">查看前置学习与前置小测 →</button>}
+            <PracticePanel topic={topic} checkpointAllowed={prerequisites?.can_checkpoint ?? false} checkpointBlockedReason={!prerequisites ? "前置能力状态尚未确认，请重试检查。" : prerequisites.unmet.length ? "请先完成前置学习，或通过前置小测。" : "先完成练习并积累学习证据，再参加综合验收。"} initialAssessment={assessment} onLearningUpdated={onLearningUpdated} onActiveCheckpoint={setFormalActive} />
+          </div>
+          <div hidden={panel !== "history"}>
+            <div className="max-w-md"><MasteryBar value={hasValidTopicEvidence(topic) ? topic.mastery : null} /></div>
+            {history.length ? <ul className="mt-5 divide-y divide-slate-100">{history.map((event, index) => <li key={event.id || event.attempt_id || index} className="flex flex-wrap justify-between gap-2 py-4 text-sm text-slate-600"><span>{event.mode === "checkpoint" ? "综合验收" : "练习"} · {scoreLabel(event.score)}</span><time className="text-xs text-slate-400">{new Date(event.created_at).toLocaleString("zh-CN")}</time></li>)}</ul> : <p className="mt-6 text-sm text-slate-400">完成练习后，可以在这里查看成绩与学习记录。</p>}
+          </div>
+        </div>
+      </div>
+    </dialog>
   </div>;
 }

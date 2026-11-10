@@ -1,8 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createAssessment, getAssessment, getAssessmentHint, getAssessmentSolution, submitAssessment } from "@/lib/api-content";
+import { getAssessment } from "@/lib/api-content";
 import type { Assessment } from "@/lib/types-content";
 import {
   AlertIcon,
@@ -86,21 +85,17 @@ function masteryValue(value: number | null): string {
 export default function PracticePanel({
   topic,
   onLearningUpdated,
-  bankMode = false,
   checkpointAllowed = true,
   initialAssessment = null,
   onActiveCheckpoint,
   checkpointBlockedReason,
-  practiceOnly = false,
 }: {
   topic: CurriculumTopic;
   onLearningUpdated: () => void | Promise<void>;
-  bankMode?: boolean;
   checkpointAllowed?: boolean;
   initialAssessment?: Assessment | null;
   onActiveCheckpoint?: (active: boolean) => void;
   checkpointBlockedReason?: string;
-  practiceOnly?: boolean;
 }) {
   const { withStudent, studentId } = useStudent();
   const [practiceSet, setPracticeSet] = useState<PublicPracticeSet | null>(null);
@@ -115,12 +110,7 @@ export default function PracticePanel({
   const [remediation, setRemediation] = useState<RemediationResponse | null>(null);
   const [remediating, setRemediating] = useState(false);
   const practiceRef = useRef<HTMLDivElement | null>(null);
-  const [help, setHelp] = useState<Record<string, string>>({});
-  const [helpBusy, setHelpBusy] = useState("");
   const [assessmentPurpose, setAssessmentPurpose] = useState<string>("practice");
-  // Creation defaults and the active instance are separate: old bank tests still submit
-  // to assessment endpoints after course pages switch back to AI generation.
-  const [activeEngine, setActiveEngine] = useState<"dynamic" | "assessment">("dynamic");
   const restoreKey = studentId ? `course-coach:assessment:${studentId}:${topic.id}` : null;
 
   const weakPoints = useMemo(() => {
@@ -139,16 +129,14 @@ export default function PracticePanel({
       ?? null
     : null;
 
-  const installPracticeSet = useCallback((nextSet: PublicPracticeSet, engine: "dynamic" | "assessment", shouldScroll = true) => {
+  const installPracticeSet = useCallback((nextSet: PublicPracticeSet, shouldScroll = true) => {
     setPracticeSet(nextSet);
-    setActiveEngine(engine);
     setAnswers(Object.fromEntries(nextSet.questions.map((question) => [question.question_id, ""])));
     setResult((nextSet as Assessment).result ?? null);
     setSubmissionId(null);
     setHadEvidenceBeforeSubmission(null);
     setRemediation(null);
     setValidationError(null);
-    setHelp({});
     setAssessmentPurpose((nextSet as Assessment).purpose === "prerequisite_test" ? "prerequisite_test" : nextSet.mode);
     if (shouldScroll) window.setTimeout(() => practiceRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
   }, []);
@@ -157,12 +145,12 @@ export default function PracticePanel({
     if (!restoreKey || initialAssessment) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
-      let saved: { id?: string; answers?: Record<string, string>; submissionId?: string; engine?: string } = {};
+      let saved: { id?: string; answers?: Record<string, string>; submissionId?: string } = {};
       try { saved = JSON.parse(window.localStorage.getItem(restoreKey) || "{}"); } catch { return; }
       if (!saved.id) return;
       void withStudent((id) => getAssessment(saved.id!, id)).then((assessment) => {
         if (cancelled) return;
-        installPracticeSet(assessment, saved.engine === "dynamic" ? "dynamic" : "assessment", false);
+        installPracticeSet(assessment, false);
         const allowedIds = new Set(assessment.questions.map((question) => question.question_id));
         setAnswers(Object.fromEntries(Object.entries(saved.answers ?? {}).filter(([id, answer]) => allowedIds.has(id) && typeof answer === "string")));
         setSubmissionId(saved.submissionId ?? null);
@@ -174,7 +162,7 @@ export default function PracticePanel({
   useEffect(() => {
     if (!initialAssessment) return;
     const timer = window.setTimeout(() => {
-      installPracticeSet(initialAssessment, "assessment");
+      installPracticeSet(initialAssessment);
       if (!restoreKey) return;
       try {
         const saved = JSON.parse(window.localStorage.getItem(restoreKey) || "{}");
@@ -188,24 +176,9 @@ export default function PracticePanel({
   }, [initialAssessment, installPracticeSet, restoreKey]);
   useEffect(() => {
     if (!restoreKey || !practiceSet) return;
-    try { window.localStorage.setItem(restoreKey, JSON.stringify({ id: practiceSet.practice_set_id, engine: activeEngine, answers, submissionId })); } catch { /* Server instance survives; only local answer drafts may be unavailable. */ }
-  }, [activeEngine, restoreKey, practiceSet, answers, submissionId]);
+    try { window.localStorage.setItem(restoreKey, JSON.stringify({ id: practiceSet.practice_set_id, answers, submissionId })); } catch { /* Server instance survives; only local answer drafts may be unavailable. */ }
+  }, [restoreKey, practiceSet, answers, submissionId]);
   useEffect(() => { onActiveCheckpoint?.(Boolean(practiceSet && (practiceSet.mode === "checkpoint" || assessmentPurpose === "prerequisite_test") && !result)); }, [onActiveCheckpoint, practiceSet, result, assessmentPurpose]);
-
-  async function requestHelp(questionId: string, reveal: boolean) {
-    if (!practiceSet || activeEngine !== "assessment" || helpBusy || assessmentPurpose !== "practice") return;
-    if (reveal && !answers[questionId]?.trim()) { setValidationError("先写下你的尝试，再查看解法。"); return; }
-    setHelpBusy(questionId); setError("");
-    try {
-      const text = await withStudent(async (id) => {
-        if (!reveal) return (await getAssessmentHint(practiceSet.practice_set_id, questionId, id)).hint;
-        const value = await getAssessmentSolution(practiceSet.practice_set_id, questionId, answers[questionId].trim(), id);
-        return [...value.solution_steps, `参考答案：${value.answer}`].join("\n\n");
-      });
-      setHelp((current) => ({ ...current, [questionId]: text }));
-    } catch (cause) { setError(cause instanceof Error ? cause.message : "辅助内容暂不可用，请重试。"); }
-    finally { setHelpBusy(""); }
-  }
 
   async function generate(mode: LearningMode) {
     if (generatingMode || submitting || (mode === "checkpoint" && !checkpointAllowed)) return;
@@ -214,7 +187,7 @@ export default function PracticePanel({
     setValidationError(null);
     try {
       const nextSet = await withStudent((studentId) =>
-        bankMode ? createAssessment({ topic_ids: [topic.id], purpose: mode, question_count: mode === "checkpoint" ? 5 : 4, exclude_seen: true, exclude_exposed_families: true }, studentId) : createPracticeSet(
+        createPracticeSet(
           {
             topic_id: topic.id,
             mode,
@@ -224,7 +197,7 @@ export default function PracticePanel({
           studentId,
         ),
       );
-      installPracticeSet(nextSet, bankMode ? "assessment" : "dynamic");
+      installPracticeSet(nextSet);
     } catch (cause) {
       if (cause instanceof ApiError && cause.code === "KNOWLEDGE_INSUFFICIENT") {
         setError(cause.message);
@@ -257,7 +230,7 @@ export default function PracticePanel({
     }
     try {
       const nextResult = await withStudent((studentId) =>
-        (activeEngine === "assessment" ? submitAssessment : submitPracticeSet)(
+        submitPracticeSet(
           practiceSet.practice_set_id,
           {
             client_submission_id: currentSubmissionId,
@@ -283,7 +256,7 @@ export default function PracticePanel({
     setError(null);
     try {
       const nextSet = await withStudent((studentId) => getPracticeSet(practiceSetId, studentId));
-      installPracticeSet(nextSet, "dynamic");
+      installPracticeSet(nextSet);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "专项练习加载失败。");
     } finally {
@@ -313,9 +286,8 @@ export default function PracticePanel({
         <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
           <div className="max-w-xl">
             <div className="flex items-center gap-2 text-xs font-semibold text-indigo-600"><TargetIcon className="size-4" />主动检验理解</div>
-            <h2 className="mt-2 text-lg font-bold text-slate-900">{bankMode ? "自己练习与知识点测试" : "AI 按课程资料动态出题"}</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-500">{bankMode ? practiceOnly ? "当前为自选辅助练习，可以重复作答、请求提示或尝试后查看解法。已曝光解法的重答不算新的独立证据；也可在下方另抽未见练习。" : "每次从已发布题库抽取 4 道未见、未曝光同源解法的练习，题库总量以覆盖报告为准。使用提示或查看解法会转为辅助学习；正式测试提交前不提供答案，刷新可继续原测试。" : "点击后由 AI 检索当前知识点的课程资料，按原有多题型和薄弱维度生成新题，不从固定题库抽题。普通练习 3 题，综合验收 5 题；答案提交后显示，刷新可继续原题。资料不足时会明确提示。"}</p>
-            <Link href="/question-bank" className="mt-3 inline-block text-xs font-semibold text-indigo-700">浏览保留的题库，自选辅助练习 →</Link>
+            <h2 className="mt-2 text-lg font-bold text-slate-900">AI 按课程资料动态出题</h2>
+            <p className="mt-2 text-sm leading-6 text-slate-500">由 AI 根据当前知识点的课程资料和薄弱维度生成新题。普通练习 3 题，综合验收 5 题；提交后显示评价，刷新可继续原题。资料不足时会明确提示。</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row">
             <button
@@ -325,26 +297,26 @@ export default function PracticePanel({
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-45"
             >
               {generatingMode === "practice" ? <RefreshIcon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
-              {bankMode ? "抽取 4 道未见练习" : "AI 生成 3 道练习"}
+              AI 生成 3 道练习
             </button>
-            {!practiceOnly && <button
+            <button
               type="button"
               onClick={() => void generate("checkpoint")}
               disabled={Boolean(generatingMode) || submitting || !checkpointAllowed}
               className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 disabled:cursor-not-allowed disabled:opacity-45"
             >
               {generatingMode === "checkpoint" ? <RefreshIcon className="size-4 animate-spin" /> : <TrophyIcon className="size-4" />}
-              {bankMode ? "开始 5 道独立测试" : "AI 生成 5 道综合验收"}
-            </button>}
+              AI 生成 5 道综合验收
+            </button>
           </div>
         </div>
-        {!practiceOnly && !checkpointAllowed && <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">{checkpointBlockedReason || "正式测试前需满足前置能力与学习证据要求。可以先完成无提示练习，并查看知识点页的下一步建议。"}</p>}
+        {!checkpointAllowed && <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">{checkpointBlockedReason || "正式测试前需满足前置能力与学习证据要求。可以先完成无提示练习，并查看知识点页的下一步建议。"}</p>}
       </div>
 
       {error && (
         <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
           <AlertIcon className="mt-0.5 size-4 shrink-0" />
-          <span className="flex-1">{error}{bankMode && <span className="mt-2 block text-xs leading-6">未见题量或能力覆盖不足时，可继续阅读例题，或<Link href="/question-bank" className="font-semibold underline">去题库自选辅助练习</Link>；要获得新的独立证据，请由管理员补充已发布题目。已看过解法的重答不会算成新的独立通过。</span>}</span>
+          <span className="flex-1">{error}</span>
           <button type="button" onClick={() => setError(null)} className="text-xs font-semibold">关闭</button>
         </div>
       )}
@@ -425,7 +397,6 @@ export default function PracticePanel({
                     </div>
                   )}
 
-                  {activeEngine === "assessment" && assessmentPurpose === "practice" && !result && <div className="mt-4 border-t border-slate-100 pt-3"><div className="flex flex-wrap gap-3"><button type="button" disabled={Boolean(helpBusy)} onClick={() => void requestHelp(question.question_id, false)} className="rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700">请求提示</button><button type="button" disabled={Boolean(helpBusy)} onClick={() => void requestHelp(question.question_id, true)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">已尝试，查看解法</button></div>{help[question.question_id] && <div className="mt-3 rounded-xl bg-amber-50 p-4"><p className="mb-2 text-xs text-amber-900">辅助学习已记录；本次回答不会作为独立正式证据。</p><MarkdownRenderer content={help[question.question_id]} /></div>}</div>}
 
                   {evaluation && (
                     <div className={`mt-5 rounded-2xl border p-4 ${evaluation.score >= 80 ? "border-emerald-200 bg-emerald-50" : evaluation.score >= 60 ? "border-amber-200 bg-amber-50" : "border-rose-200 bg-rose-50"}`}>
@@ -572,7 +543,7 @@ export default function PracticePanel({
                   <RefreshIcon className="size-4" /> 保留答案，重新评价
                 </button>
               )}
-              {attemptIdentifier && !result.gate.passed && !evaluationUncertain && activeEngine === "dynamic" && (
+              {attemptIdentifier && !result.gate.passed && !evaluationUncertain && assessmentPurpose !== "prerequisite_test" && (
                 <button type="button" onClick={() => void remediate()} disabled={remediating} className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-800 transition hover:bg-amber-100 disabled:cursor-wait disabled:opacity-60">
                   {remediating ? <RefreshIcon className="size-4 animate-spin" /> : <SparklesIcon className="size-4" />}
                   生成针对性补救

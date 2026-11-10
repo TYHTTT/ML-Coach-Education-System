@@ -6,10 +6,8 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core.types import Course
 from app.services.learning_service import LearningService
-from app.api.dependencies import build_rag_pipeline, student_id_from_authorization
+from app.api.dependencies import agent_from_request, student_id_from_authorization
 from app.schemas.chat import ChatResponse
-from app.rag.pipeline import STRICT_FALLBACK_ANSWER
-from app.services.content_repository import ContentRepository
 
 router = APIRouter(prefix="/api/v1", tags=["course-content"])
 
@@ -90,8 +88,6 @@ def outline(course: Course, request: Request, authorization: str | None = Header
         row["dependent_topic_id"] = topic_id
         row["required_competencies"] = repository._load_json(row.pop("required_competencies_json"), [])
         prerequisites.setdefault(topic_id, []).append(row)
-    coverage={row["topic_id"]:row for row in ContentRepository(repository).coverage()["topics"]}
-    ready={topic_id for topic_id,row in coverage.items() if row["full_flow_ready"]}
     groups: dict[str, dict] = {}
     if any(item["is_reference"] for item in placements):
         groups["math-preparation"] = {"id":"math-preparation","title":"数学准备","parent_group_id":None,"order_index":0,"topics":[]}
@@ -124,11 +120,8 @@ def outline(course: Course, request: Request, authorization: str | None = Header
             "title":topic["title"],"description":topic["description"],"learning_objectives":topic["learning_objectives"],
             "order_index":placement["order_index"],"is_reference":bool(placement["is_reference"]),"status":status,
             "mastery":float(state["mastery"]) if state and state["evidence_count"] else None,
-            "prerequisite_gap":[{"id":edge["id"],"title":edge["title"],"reason":edge["reason"]} for edge in unmet],
-            "content_status":"ready" if topic_id in ready else "missing",
-            "has_learning_content":coverage.get(topic_id,{}).get("has_learning_content",False),
-            "readiness_reason":"；".join(coverage.get(topic_id,{}).get("readiness_gaps",[]))})
-        if recommended is None and topic_id in ready and status!="mastered" and not unmet:
+            "prerequisite_gap":[{"id":edge["id"],"title":edge["title"],"reason":edge["reason"]} for edge in unmet]})
+        if recommended is None and status!="mastered" and not unmet:
             recommended = topic_id
     return {"course":course.value,"title":course.display_name,"groups":list(groups.values()),"recommended_topic_id":recommended}
 
@@ -164,9 +157,7 @@ async def ask_prerequisite(topic_id: str, prerequisite_id: str, payload: Supplem
         raise HTTPException(403, detail={"code":"RETRIEVAL_SCOPE_FORBIDDEN","message":"该知识点未声明这一补学范围，请从前置知识卡片进入。"})
     topic = repository.require_topic(prerequisite_id)
     course = Course(topic["course"])
-    if request.app.state.vector_store.count(course) == 0:
-        return ChatResponse(answer=STRICT_FALLBACK_ANSWER,course=course,sources=[],retrieval_count=0)
-    pipeline = build_rag_pipeline(request)
-    return ChatResponse.model_validate(await pipeline.answer(
-        course=course,question=payload.message,history=[],topic_ids=[prerequisite_id],
-        retrieval_query=f"知识点：{topic['title']}\n检索用途：prerequisite_supplement\n{payload.message}"))
+    agent = agent_from_request(request)
+    return ChatResponse.model_validate(await agent.answer(
+        course=course, question=payload.message, history=[], topic_id=prerequisite_id,
+        system_prompt=f"只回答前置知识点：{topic['title']}。"))

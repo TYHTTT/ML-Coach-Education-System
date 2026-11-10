@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import json
-from types import SimpleNamespace
 from uuid import uuid4
 
 import pytest
@@ -32,7 +31,7 @@ class RecordingGrounding:
 
     async def retrieve(self, **kwargs):
         self.calls.append(kwargs)
-        return GroundingResult(query="mock course query", candidates=[], source_snapshot=self.sources)
+        return GroundingResult(query="mock course query", source_snapshot=self.sources)
 
 
 @pytest.fixture
@@ -42,20 +41,23 @@ def dynamic_app(settings):
     })
     llm = QueueLLM([])
     grounding = RecordingGrounding()
-    app = create_app(configured, llm_client=llm, embedding_client=object(),
-                     vector_store=SimpleNamespace(ready=True))
+    app = create_app(configured, llm_client=llm)
     app.dependency_overrides[learning_grounding_from_request] = lambda: grounding
     app.dependency_overrides[prerequisite_generator] = lambda: PracticeService(
         settings=configured, repository=app.state.learning_repository,
         grounding=grounding, llm_client=llm,
     )
     with TestClient(app) as client:
-        sid = client.post("/api/v1/students/anonymous").json()["student_id"]
+        account = app.state.learning_repository.register_student(username="dynamic_test", display_name="测试学生", password="test-password")
+        sid = account["id"]; _tokens[sid] = account["access_token"]
         yield client, app.state.learning_repository, llm, grounding, sid
 
 
+_tokens = {}
+
+
 def headers(sid):
-    return {"X-Student-ID": sid}
+    return {"Authorization": "Bearer " + _tokens[sid]}
 
 
 def generated(prefix, *, competency=None, checkpoint=False):
@@ -90,7 +92,7 @@ def submit(client, sid, value, *, prefix="/api/v1/practice/sets", answer="42", s
     })
 
 
-def test_default_checkpoint_regenerates_from_sources_with_empty_bank_and_saved_submission(dynamic_app):
+def test_default_checkpoint_uses_dify_sources_and_saved_submission(dynamic_app):
     client, repo, llm, grounding, sid = dynamic_app
     topic = "ml.machine_learning_basics"
     llm.answers.extend([generated("主动练习"), generated("新的综合验收", checkpoint=True)])
@@ -104,7 +106,6 @@ def test_default_checkpoint_regenerates_from_sources_with_empty_bank_and_saved_s
     # must be reevaluated instead of permanently locking the learner out.
     with repo._connect() as c:
         c.execute("UPDATE student_topic_states SET status='practicing' WHERE student_id=? AND topic_id=?", (sid, topic))
-        assert c.execute("SELECT COUNT(*) FROM question_bank_items").fetchone()[0] == 0
     response = client.post("/api/v1/practice/sets", headers=headers(sid), json={"topic_id": topic, "mode": "checkpoint", "count": 3})
     assert response.status_code == 201, response.text
     value = response.json()
@@ -136,7 +137,7 @@ def test_default_generation_empty_sources_never_calls_llm_or_writes_questions(dy
     assert response.json()["error"]["code"] == "KNOWLEDGE_INSUFFICIENT"
     assert not llm.calls
     with repo._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM practice_sets").fetchone()[0] == 0
+        assert c.execute("SELECT COUNT(*) FROM practice_sets").fetchone()["count"] == 0
 
 
 def test_dynamic_prerequisite_uses_canonical_course_and_only_verifies_local_competency(dynamic_app):
@@ -159,13 +160,10 @@ def test_dynamic_prerequisite_uses_canonical_course_and_only_verifies_local_comp
     internal = repo.get_practice_set_internal(value["id"], student_id=sid)
     assert internal.assessment_purpose == "prerequisite_test"
     assert internal.source_snapshot[0].document_id == SOURCE["document_id"]
-    with repo._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM question_bank_items").fetchone()[0] == 0
-        assert c.execute("SELECT COUNT(*) FROM practice_questions WHERE bank_item_id IS NOT NULL").fetchone()[0] == 0
     for suffix in ("hint", "solution"):
         assert client.post(f"/api/v1/assessments/{value['id']}/{suffix}", headers=headers(sid), json={
             "question_id": value["questions"][0]["question_id"], "attempt": "attempt",
-        }).status_code == 422
+        }).status_code == 404
     replay_id = str(uuid4())
     result = submit(client, sid, value, prefix="/api/v1/assessments", submission_id=replay_id)
     assert result.status_code == 200, result.text
@@ -177,12 +175,12 @@ def test_dynamic_prerequisite_uses_canonical_course_and_only_verifies_local_comp
     replay = submit(client, sid, value, prefix="/api/v1/assessments", submission_id=replay_id)
     assert replay.json()["idempotent_replay"]
     with repo._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications WHERE student_id=?", (sid,)).fetchone()[0] == 1
+        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications WHERE student_id=?", (sid,)).fetchone()["count"] == 1
     assert len(llm.calls) == 1
 
 
 @pytest.mark.parametrize("failure", ["no_sources", "wrong_competency", "source_id_leak"])
-def test_dynamic_prerequisite_rejects_unsupported_or_invalid_generation_without_bank_fallback(dynamic_app, failure):
+def test_dynamic_prerequisite_rejects_unsupported_or_invalid_generation_without_creating_a_test(dynamic_app, failure):
     client, repo, llm, grounding, sid = dynamic_app
     target = next(p for p in repo.get_unmet_prerequisites(sid, "ml.linear_regression") if p["id"] == "la.dot_product")
     competency = target["required_competencies"][0]
@@ -195,8 +193,8 @@ def test_dynamic_prerequisite_rejects_unsupported_or_invalid_generation_without_
     expected = "KNOWLEDGE_INSUFFICIENT" if failure == "no_sources" else "LLM_STRUCTURED_OUTPUT_INVALID"
     assert response.json()["error"]["code"] == expected
     with repo._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM practice_sets").fetchone()[0] == 0
-        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications").fetchone()[0] == 0
+        assert c.execute("SELECT COUNT(*) FROM practice_sets").fetchone()["count"] == 0
+        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications").fetchone()["count"] == 0
 
 
 def test_dynamic_prerequisite_uncertain_retry_cannot_create_local_proof(dynamic_app):
@@ -212,17 +210,4 @@ def test_dynamic_prerequisite_uncertain_retry_cannot_create_local_proof(dynamic_
     assert second.status_code == 200 and second.json()["total_score"] == 100
     assert "la.dot_product" in {p["id"] for p in repo.get_unmet_prerequisites(sid, "ml.linear_regression")}
     with repo._connect() as c:
-        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications").fetchone()[0] == 0
-
-
-def test_explicit_bank_prerequisite_remains_offline_without_embedding_credentials(settings):
-    configured = settings.model_copy(update={"embedding_provider": "api"})
-    app = create_app(configured, llm_client=QueueLLM([]), vector_store=SimpleNamespace(ready=True))
-    with TestClient(app) as client:
-        ContentRepository(app.state.learning_repository).seed(build_content())
-        sid = client.post("/api/v1/students/anonymous").json()["student_id"]
-        response = client.post("/api/v1/prerequisite-tests", headers=headers(sid), json={
-            "topic_id": "ml.linear_regression", "prerequisite_topic_id": "la.dot_product", "generation_mode": "bank",
-        })
-        assert response.status_code == 201, response.text
-        assert app.state.embedding_client is None
+        assert c.execute("SELECT COUNT(*) FROM prerequisite_verifications").fetchone()["count"] == 0

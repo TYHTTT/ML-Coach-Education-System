@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -28,25 +28,14 @@ class Settings(BaseSettings):
     app_log_level: str = "INFO"
 
     frontend_origin: str = "http://localhost:3000"
-    admin_token: SecretStr = SecretStr("")
 
-    llm_temperature: float = Field(default=0.2, ge=0, le=2)
-    llm_timeout_seconds: float = Field(default=60, gt=0, le=600)
-
-    embedding_dimension: int | None = Field(default=None, ge=1)
+    dify_api_base_url: str = "https://api.dify.ai/v1"
+    dify_api_key: SecretStr = SecretStr("")
+    dify_timeout_seconds: float = Field(default=120, gt=0, le=600)
+    dify_inputs: dict[str, Any] = Field(default_factory=dict)
 
     database_url: str = "postgresql://postgres:postgres@localhost:5432/ml_coach"
-    upload_path: Path = Path("./data/uploads")
-    vector_distance_metric: Literal["cosine", "l2", "ip"] = "cosine"
 
-    rag_top_k: int = Field(default=6, ge=1, le=50)
-    rag_strict_mode: bool = True
-    # HyDE uses a fixed three-answer contract; only the feature toggle is configurable.
-    rag_hyde_enabled: bool = True
-    rag_distance_threshold: float | None = Field(default=None, ge=0)
-    chunk_size: int = Field(default=800, ge=200, le=5000)
-    chunk_overlap: int = Field(default=120, ge=0, le=1000)
-    max_upload_mb: int = Field(default=20, ge=1, le=1024)
     max_history_messages: int = Field(default=12, ge=0, le=100)
     max_message_length: int = Field(default=8000, ge=1, le=100_000)
 
@@ -73,8 +62,6 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def validate_and_resolve(self) -> "Settings":
-        if self.chunk_overlap >= self.chunk_size:
-            raise ValueError("CHUNK_OVERLAP 必须小于 CHUNK_SIZE")
         if self.practice_default_count > self.practice_max_count:
             raise ValueError("PRACTICE_DEFAULT_COUNT 不能大于 PRACTICE_MAX_COUNT")
         if self.checkpoint_default_count > self.practice_max_count:
@@ -82,23 +69,11 @@ class Settings(BaseSettings):
         origins = self.cors_origins
         if self.app_env == "production" and "*" in origins:
             raise ValueError("生产环境不允许 FRONTEND_ORIGIN 使用通配符")
-        if self.app_env == "production" and self.admin_token.get_secret_value() in {
-            "",
-            "change-this-admin-token",
-        }:
-            raise ValueError("生产环境必须配置安全的 ADMIN_TOKEN")
-        for field_name in ("upload_path",):
-            value = getattr(self, field_name)
-            if not value.is_absolute():
-                setattr(self, field_name, (BACKEND_ROOT / value).resolve())
         return self
 
     @property
     def cors_origins(self) -> list[str]:
         return [item.strip() for item in self.frontend_origin.split(",") if item.strip()]
-
-    def ensure_data_directories(self) -> None:
-        self.upload_path.mkdir(parents=True, exist_ok=True)
 
 
 @lru_cache(maxsize=1)

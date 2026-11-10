@@ -4,8 +4,7 @@ export interface OutlineTopic {
   id: string; topic_id: string; owner_course: Course; title: string; description: string;
   learning_objectives: string[]; order_index: number; is_reference: boolean;
   status: TopicStatus; mastery: number | null; prerequisite_gap: { id: string; title: string; reason: string }[];
-  content_status: "ready" | "missing"; can_checkpoint: boolean;
-  has_learning_content?: boolean; readiness_reason?: string;
+  can_checkpoint: boolean;
 }
 export interface OutlineGroup { id: string; title: string; parent_group_id: string | null; order_index: number; topics: OutlineTopic[] }
 export interface CourseOutline { course: Course; title: string; groups: OutlineGroup[]; recommended_topic_id: string | null }
@@ -31,20 +30,4 @@ export interface WorkedExampleData {
   solution_outline: string; steps: ExampleStep[]; final_answer: string; verification: Record<string, unknown>;
   common_mistakes: string[]; followup_practice_ids: string[]; source_refs: Source[]; content_origin: string; version: number; status: string; family_id: string;
 }
-export interface PublicBankItem {
-  id: string; version: number; topic_ids: string[]; primary_course: Course; title: string; question_type: string; difficulty: string;
-  stem: string; options: { option_id: string; text: string }[] | null; tested_competencies: string[]; estimated_minutes: number;
-  usage: string[]; content_origin: string; publication_status: string; validation_status: string;
-}
-export interface ContentCoverage {
-  topic_id: string; title: string; owner_course: Course; lesson_count: number; example_count: number; practice_count: number;
-  checkpoint_count: number; published_count: number; needs_review_count: number; prerequisites_ready: boolean; full_flow_ready: boolean;
-  independent_practice_count?: number; independent_checkpoint_count?: number; readiness_gaps?: string[];
-}
-export interface BankQueryResult { items: PublicBankItem[]; checkpoint_count: number; checkpoint_difficulty_distribution?: Record<string, number>; coverage?: ContentCoverage[] }
 export interface Assessment extends PublicPracticeSet { purpose?: "practice" | "checkpoint" | "prerequisite_test"; result?: PracticeSubmitResult | null }
-export interface AssessmentBlueprint {
-  topic_ids: string[]; purpose: "practice" | "checkpoint"; question_count: number; bank_item_ids?: string[];
-  exclude_seen?: boolean; exclude_exposed_families?: boolean; required_competencies?: string[];
-  allowed_question_types?: string[]; difficulty_distribution?: Record<string, number>;
-}

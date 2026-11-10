@@ -78,37 +78,6 @@ export interface StoredChatState {
   conversations: Conversation[];
 }
 
-export type DocumentStatus = "processing" | "ready" | "failed" | "pending" | string;
-
-export interface KnowledgeDocument {
-  id: string;
-  course: Course;
-  original_filename: string;
-  stored_filename?: string;
-  sha256?: string;
-  file_size: number;
-  chunk_count: number;
-  status: DocumentStatus;
-  error_message?: string | null;
-  created_at: string;
-  updated_at?: string;
-}
-
-export interface KnowledgeUploadResult {
-  document: KnowledgeDocument;
-  duplicate: boolean;
-  message: string;
-}
-
-export interface CourseStats {
-  course?: Course;
-  document_count: number;
-  chunk_count: number;
-  latest_updated_at?: string | null;
-}
-
-export type KnowledgeStats = Record<Course, CourseStats>;
-
 export const TOPIC_STATUSES = [
   "locked",
   "not_started",

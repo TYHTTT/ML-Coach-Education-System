@@ -7,10 +7,6 @@ from fastapi.testclient import TestClient
 
 from app.core.config import Settings
 from app.main import create_app
-from tests.mocks import MockEmbeddingClient
-
-
-HYDE = json.dumps(["课程定义与性质", "关键机制与公式", "典型应用与边界"], ensure_ascii=False)
 
 
 class QueueLLM:
@@ -23,6 +19,15 @@ class QueueLLM:
         if not self.answers:
             raise AssertionError("unexpected LLM call")
         return self.answers.pop(0)
+
+
+    async def run(self, messages, **kwargs):
+        course = kwargs["course"].value
+        return {"answer": "Dify 课程资料", "resources": [{
+            "content": "课程定义、计算、机制、应用与边界；六组七个样本共有 42 个。",
+            "document_id": "dify-test-" + course, "document_name": "Dify 测试课程原文",
+            "doc_metadata": {"course": course, "topic_id": kwargs.get("topic_id")},
+        }]}
 
 
 def _numeric_question(question_id: str, position: int, dimension: str) -> dict:
@@ -213,7 +218,7 @@ def _complete_first_topic(
     )
     assert checkpoint_response.status_code == 201, checkpoint_response.text
     checkpoint = checkpoint_response.json()
-    assert len(llm.calls) == calls_before_submit + 2  # HyDE plus dynamic grounded generation.
+    assert len(llm.calls) == calls_before_submit + 1  # Dynamic generation uses Dify evidence.
     assert len(
         {
             dimension
@@ -232,7 +237,7 @@ def _complete_first_topic(
     evaluation["evidence_source_ids"] = open_question.source_ids
     llm.answers[0] = json.dumps(evaluation, ensure_ascii=False)
     checkpoint_result, _ = _submit_all(client, student_id, checkpoint)
-    assert len(llm.calls) == calls_before_submit + 3  # Plus the open-answer evaluator.
+    assert len(llm.calls) == calls_before_submit + 2  # Plus the open-answer evaluator.
     assert checkpoint_result["total_score"] == 100
     assert checkpoint_result["gate"]["passed"] is True
     assert checkpoint_result["next_action"] == "continue_to_next_topic"
@@ -253,64 +258,32 @@ def test_complete_learning_loop_for_both_courses_and_persist_after_restart(
         _env_file=None,
         app_env="test",
         database_url=postgres_test_database_url,
-        upload_path=tmp_path / "uploads",
-        admin_token="test-admin-token",
-        rag_top_k=6,
-        rag_strict_mode=True,
     )
     ml_dimensions = ["concept", "mechanism", "application"]
     math_dimensions = ["concept", "calculation", "application"]
     llm = QueueLLM(
         [
-            HYDE,
             _generated_set(
                 ml_dimensions,
                 checkpoint=False,
                 open_question_type="case_analysis",
             ),
-            HYDE,
             _generated_set(ml_dimensions, checkpoint=True, open_question_type="case_analysis"),
             _perfect_evaluation("application"),
-            HYDE,
             _generated_set(
                 math_dimensions,
                 checkpoint=False,
                 open_question_type="application",
             ),
-            HYDE,
             _generated_set(math_dimensions, checkpoint=True, open_question_type="application"),
             _perfect_evaluation("application"),
         ]
     )
     application = create_app(
         settings,
-        embedding_client=MockEmbeddingClient(),
         llm_client=llm,
     )
     with TestClient(application) as client:
-        for course, filename, content in (
-            (
-                "machine_learning",
-                "machine-learning-basics.md",
-                "# 机器学习基础\n\n机器学习从数据中学习规律，需说明定义、机制、应用和边界。",
-            ),
-            (
-                "advanced_mathematics",
-                "functions.md",
-                "# 函数\n\n函数描述定义域到值域的映射，需说明定义、计算、应用和边界。",
-            ),
-        ):
-            uploaded = client.post(
-                "/api/v1/knowledge/upload",
-                headers={"X-Admin-Token": "test-admin-token"},
-                data={"course": course},
-                files={"file": (filename, content, "text/markdown")},
-            )
-            assert uploaded.status_code == 200, uploaded.text
-
-        with client.app.state.learning_repository._connect() as connection:
-            assert connection.execute("SELECT COUNT(*) FROM question_bank_items").fetchone()[0] == 0
-
         student = client.post("/api/v1/students/anonymous")
         assert student.status_code == 201
         student_id = student.json()["student_id"]
@@ -343,7 +316,6 @@ def test_complete_learning_loop_for_both_courses_and_persist_after_restart(
     # anonymous learner state; startup seed remains idempotent.
     restarted = create_app(
         settings,
-        embedding_client=MockEmbeddingClient(),
         llm_client=QueueLLM([]),
     )
     with TestClient(restarted) as client:

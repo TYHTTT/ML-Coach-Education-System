@@ -11,7 +11,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.db.database import PostgresDatabase
 from app.main import create_app
-from tests.mocks import MockEmbeddingClient, MockLLMClient
+from tests.mocks import MockLLMClient
 
 
 @pytest.fixture
@@ -32,7 +32,7 @@ def postgres_test_database_url() -> Iterator[str]:
             """
             SELECT quote_ident(tablename) AS name
             FROM pg_tables
-            WHERE schemaname = 'public'
+            WHERE schemaname = 'public' AND tablename <> 'courses'
             """
         ).fetchall()
         connection.execute(
@@ -47,18 +47,7 @@ def settings(tmp_path, postgres_test_database_url: str) -> Settings:
         _env_file=None,
         app_env="test",
         database_url=postgres_test_database_url,
-        upload_path=tmp_path / "uploads",
-        admin_token="test-admin-token",
-        chunk_size=240,
-        chunk_overlap=40,
-        rag_top_k=6,
-        rag_strict_mode=True,
     )
-
-
-@pytest.fixture
-def mock_embedding() -> MockEmbeddingClient:
-    return MockEmbeddingClient()
 
 
 @pytest.fixture
@@ -69,12 +58,10 @@ def mock_llm() -> MockLLMClient:
 @pytest.fixture
 def client(
     settings: Settings,
-    mock_embedding: MockEmbeddingClient,
     mock_llm: MockLLMClient,
 ) -> Iterator[TestClient]:
     application = create_app(
         settings,
-        embedding_client=mock_embedding,
         llm_client=mock_llm,
     )
     with TestClient(application) as test_client:

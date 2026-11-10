@@ -3,25 +3,15 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, Mapping
 
-from starlette.concurrency import run_in_threadpool
-
 from app.core.types import Course
-from app.rag.hyde import HyDEGenerator
-from app.rag.pipeline import RAGPipeline
-from app.rag.retriever import Retriever
-from app.rag.vector_store import RetrievalCandidate
+from app.services.dify import resource_snapshots
 
 
 @dataclass(frozen=True, slots=True)
 class GroundingResult:
-    """Real course chunks selected for one learning operation.
-
-    HyDE text is intentionally absent.  Only immutable snapshots of genuine
-    Retrieved candidates cross the boundary into question generation/evaluation.
-    """
+    """Immutable source evidence returned by Dify for one learning operation."""
 
     query: str
-    candidates: list[RetrievalCandidate]
     source_snapshot: list[dict[str, Any]]
 
     @property
@@ -41,20 +31,10 @@ class GroundingResult:
 
 
 class LearningGroundingService:
-    """Course/topic-aware adapter around the existing HyDE + Retriever stack."""
+    """Request course evidence from Dify; no local indexing or retrieval."""
 
-    def __init__(
-        self,
-        *,
-        retriever: Retriever,
-        hyde_generator: HyDEGenerator,
-        strict_mode: bool = True,
-        hyde_enabled: bool = True,
-    ) -> None:
-        self.retriever = retriever
-        self.hyde_generator = hyde_generator
-        self.strict_mode = strict_mode
-        self.hyde_enabled = hyde_enabled
+    def __init__(self, *, agent) -> None:
+        self.agent = agent
 
     async def retrieve(
         self,
@@ -74,37 +54,15 @@ class LearningGroundingService:
             error_tags=error_tags,
             practice_goal=practice_goal,
         )
-        if topic_ids == [] or (self.strict_mode and self.retriever.collection_count(course) == 0):
-            return GroundingResult(query=query, candidates=[], source_snapshot=[])
-
-        hypotheses = (
-            await self.hyde_generator.generate(
-                course=course,
-                question=query,
-                history=[],
-            )
-            if self.hyde_enabled
-            else []
-        )
-        candidates = await run_in_threadpool(
-            self.retriever.retrieve,
-            course=course,
-            question=query,
-            history=[],
-            hypothetical_answers=hypotheses,
-            **({"topic_ids": topic_ids} if topic_ids is not None else {}),
-        )
-        if self.strict_mode and not self.retriever.has_sufficient_evidence(
-            question=query,
-            history=[],
-            candidates=candidates,
-        ):
-            candidates = []
-        snapshot = [self._snapshot(candidate, index) for index, candidate in enumerate(candidates, 1)]
+        if topic_ids == []:
+            return GroundingResult(query=query, source_snapshot=[])
+        result = await self.agent.run([
+            {"role": "system", "content": f"请从 Dify 知识库检索{course.display_name}的课程原文，用于可靠出题。只使用指定课程和知识点的资料，保留真实引用；资料不足则说明。"},
+            {"role": "user", "content": query},
+        ], course=course, topic_id=str(topic["id"]))
         return GroundingResult(
             query=query,
-            candidates=candidates,
-            source_snapshot=snapshot,
+            source_snapshot=resource_snapshots(result["resources"], course=course, topic_ids=topic_ids),
         )
 
     @staticmethod
@@ -138,22 +96,3 @@ class LearningGroundingService:
         if practice_goal.strip():
             parts.append(f"当前练习目的：{practice_goal.strip()}")
         return "\n".join(part for part in parts if not part.endswith("："))
-
-    @staticmethod
-    def _snapshot(candidate: RetrievalCandidate, index: int) -> dict[str, Any]:
-        public = RAGPipeline._source(candidate, index)
-        return {
-            "source_id": public["source_id"],
-            "source_course": public.get("source_course"),
-            "topic_id": public.get("topic_id"),
-            "document_id": public["document_id"],
-            "source_file": public["source_file"],
-            "title": public["title"],
-            "chapter": public["chapter"],
-            "section": public["section"],
-            "page": public["page"],
-            "chunk_index": public["chunk_index"],
-            # Full chunk text is required internally for stable generation and
-            # later grading.  It is never returned by public practice schemas.
-            "content": candidate.text,
-        }

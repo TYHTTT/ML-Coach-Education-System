@@ -18,48 +18,6 @@ class ConfigurationError(AppError):
     public_message = "服务尚未完成配置"
 
 
-class DocumentProcessingError(AppError):
-    status_code = 422
-    code = "document_processing_error"
-    public_message = "文档处理失败，请检查文件内容"
-
-
-class UnsupportedFileError(AppError):
-    status_code = 415
-    code = "unsupported_file"
-    public_message = "不支持该文件格式或 MIME 类型"
-
-
-class PayloadTooLargeError(AppError):
-    status_code = 413
-    code = "file_too_large"
-    public_message = "上传文件超过大小限制"
-
-
-class DuplicateDocumentError(AppError):
-    status_code = 409
-    code = "duplicate_document"
-    public_message = "该课程中已存在相同文件"
-
-
-class DocumentNotFoundError(AppError):
-    status_code = 404
-    code = "document_not_found"
-    public_message = "未找到该文档"
-
-
-class VectorStoreError(AppError):
-    status_code = 503
-    code = "VECTOR_STORE_UNAVAILABLE"
-    public_message = "知识库服务暂时不可用"
-
-
-class EmbeddingServiceError(AppError):
-    status_code = 502
-    code = "embedding_service_error"
-    public_message = "向量化服务暂时不可用"
-
-
 class LLMServiceError(AppError):
     status_code = 502
     code = "LLM_SERVICE_UNAVAILABLE"
@@ -93,7 +51,7 @@ class TopicLockedError(AppError):
 class KnowledgeInsufficientError(AppError):
     status_code = 422
     code = "KNOWLEDGE_INSUFFICIENT"
-    public_message = "当前知识库中没有足够资料生成该知识点的可靠练习，请补充课程材料。"
+    public_message = "Dify 未返回足够的可引用课程资料，请检查 Dify 知识检索与引用配置。"
 
 
 class PracticeSetNotFoundError(AppError):

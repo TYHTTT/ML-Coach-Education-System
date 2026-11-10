@@ -885,9 +885,8 @@ class LearningRepository:
         now = self._now()
         try:
             with self._connect() as connection:
-                connection.execute("BEGIN IMMEDIATE")
                 practice_set = connection.execute(
-                    "SELECT student_id, status FROM practice_sets WHERE id = ?",
+                    "SELECT student_id, status FROM practice_sets WHERE id = ? FOR UPDATE",
                     (practice_set_id,),
                 ).fetchone()
                 if practice_set is None or practice_set["student_id"] != student_id:
@@ -1031,7 +1030,6 @@ class LearningRepository:
         now = self._now()
 
         with self._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
             reservation = connection.execute(
                 """
                 SELECT s.practice_set_id, s.student_id, s.evaluation_status,
@@ -1039,7 +1037,7 @@ class LearningRepository:
                        ps.topic_id, ps.target_misconception_tags_json
                 FROM practice_submissions s
                 JOIN practice_sets ps ON ps.id = s.practice_set_id
-                WHERE s.id = ?
+                WHERE s.id = ? FOR UPDATE OF s, ps
                 """,
                 (submission_id,),
             ).fetchone()
@@ -1247,7 +1245,7 @@ class LearningRepository:
             )
             if practice_set.assessment_purpose != "legacy":
                 connection.execute(
-                    "INSERT INTO content_exposures(student_id,content_id,content_version,family_id,kind,assessment_id,created_at) SELECT ?,COALESCE(bank_item_id,id),COALESCE(item_version,1),COALESCE(family_id,id),'feedback',practice_set_id,? FROM practice_questions WHERE practice_set_id=?",
+                    "INSERT INTO content_exposures(student_id,content_id,content_version,family_id,kind,assessment_id,created_at) SELECT ?,id,1,COALESCE(family_id,id),'feedback',practice_set_id,? FROM practice_questions WHERE practice_set_id=?",
                     (student_id,now,practice_set.practice_set_id),
                 )
 

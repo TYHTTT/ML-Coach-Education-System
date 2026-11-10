@@ -91,12 +91,6 @@ CREATE TABLE IF NOT EXISTS student_dimension_states (
     FOREIGN KEY (student_id, topic_id) REFERENCES student_topic_states(student_id, topic_id) ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS assessment_blueprints (
-    id TEXT PRIMARY KEY,
-    payload_json TEXT NOT NULL,
-    created_at TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS practice_sets (
     id TEXT PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE RESTRICT,
@@ -105,7 +99,6 @@ CREATE TABLE IF NOT EXISTS practice_sets (
     status TEXT NOT NULL CHECK (status IN ('generated', 'submitted', 'evaluation_uncertain')),
     requested_difficulty TEXT NOT NULL CHECK (requested_difficulty IN ('adaptive', 'easy', 'medium', 'hard')),
     source_snapshot_json TEXT NOT NULL, target_misconception_tags_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, submitted_at TEXT,
-    blueprint_id TEXT REFERENCES assessment_blueprints(id),
     purpose TEXT NOT NULL DEFAULT 'legacy',
     prerequisite_for TEXT REFERENCES curriculum_topics(id),
     rule_version TEXT NOT NULL DEFAULT 'legacy',
@@ -118,12 +111,9 @@ CREATE TABLE IF NOT EXISTS practice_questions (
     difficulty TEXT NOT NULL CHECK (difficulty IN ('easy', 'medium', 'hard')), question TEXT NOT NULL, options_json TEXT,
     dimensions_json TEXT NOT NULL, answer_key_json TEXT NOT NULL, rubric_json TEXT NOT NULL, source_ids_json TEXT NOT NULL,
     question_hash TEXT NOT NULL, created_at TEXT NOT NULL, UNIQUE (practice_set_id, position),
-    bank_item_id TEXT,
-    item_version INTEGER,
     family_id TEXT,
     topic_ids_json TEXT NOT NULL DEFAULT '[]',
     competencies_json TEXT NOT NULL DEFAULT '[]',
-    solution_steps_json TEXT NOT NULL DEFAULT '[]',
     used_hint INTEGER NOT NULL DEFAULT 0,
     solution_revealed INTEGER NOT NULL DEFAULT 0,
     evidence_eligible INTEGER NOT NULL DEFAULT 1,
@@ -187,56 +177,10 @@ CREATE TABLE IF NOT EXISTS worked_examples (
     PRIMARY KEY(id, version)
 );
 
-CREATE TABLE IF NOT EXISTS question_bank_items (
-    id TEXT NOT NULL, version INTEGER NOT NULL CHECK(version > 0), primary_course TEXT NOT NULL REFERENCES courses(id),
-    question_type TEXT NOT NULL, difficulty TEXT NOT NULL, family_id TEXT NOT NULL, publication_status TEXT NOT NULL,
-    validation_status TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL, updated_at TEXT NOT NULL,
-    PRIMARY KEY(id, version)
-);
-
-CREATE TABLE IF NOT EXISTS question_bank_topics (
-    item_id TEXT NOT NULL, item_version INTEGER NOT NULL, topic_id TEXT NOT NULL REFERENCES curriculum_topics(id),
-    PRIMARY KEY(item_id, item_version, topic_id), FOREIGN KEY(item_id, item_version) REFERENCES question_bank_items(id, version)
-);
-
-CREATE TABLE IF NOT EXISTS content_review_events (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, item_id TEXT NOT NULL, item_version INTEGER NOT NULL,
-    action TEXT NOT NULL, review_note TEXT NOT NULL, created_at TEXT NOT NULL,
-    FOREIGN KEY(item_id, item_version) REFERENCES question_bank_items(id, version)
-);
-
 CREATE TABLE IF NOT EXISTS content_exposures (
     id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id),
     content_id TEXT NOT NULL, content_version INTEGER NOT NULL, family_id TEXT NOT NULL, kind TEXT NOT NULL,
     assessment_id TEXT, created_at TEXT NOT NULL
-);
-
-CREATE EXTENSION IF NOT EXISTS vector;
-
-CREATE TABLE IF NOT EXISTS documents (
-    id TEXT PRIMARY KEY,
-    course TEXT NOT NULL,
-    original_filename TEXT NOT NULL,
-    stored_filename TEXT NOT NULL,
-    sha256 TEXT NOT NULL,
-    file_size INTEGER NOT NULL,
-    chunk_count INTEGER NOT NULL DEFAULT 0,
-    status TEXT NOT NULL,
-    error_message TEXT,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL,
-    UNIQUE(course, sha256)
-);
-
-CREATE TABLE IF NOT EXISTS document_chunks (
-    id TEXT PRIMARY KEY,
-    document_id TEXT NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
-    course TEXT NOT NULL,
-    content TEXT NOT NULL,
-    metadata JSONB NOT NULL,
-    embedding vector NOT NULL,
-    created_at TEXT NOT NULL,
-    updated_at TEXT NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_curriculum_topics_course_stage_order ON curriculum_topics(course, active, stage, order_index);
@@ -251,12 +195,7 @@ CREATE INDEX IF NOT EXISTS idx_practice_submissions_student_created ON practice_
 CREATE INDEX IF NOT EXISTS idx_practice_attempts_student_created ON practice_attempts(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_misconception_events_student_topic_unresolved ON misconception_events(student_id, topic_id, resolved_at);
 CREATE INDEX IF NOT EXISTS idx_learning_sessions_student_course_updated ON learning_sessions(student_id, course, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_bank_filters ON question_bank_items(primary_course, publication_status, question_type, difficulty);
 CREATE INDEX IF NOT EXISTS idx_exposure_student_family ON content_exposures(student_id, family_id, kind);
-CREATE INDEX IF NOT EXISTS idx_documents_course ON documents(course);
-CREATE INDEX IF NOT EXISTS idx_documents_updated_at ON documents(updated_at);
-CREATE INDEX IF NOT EXISTS idx_document_chunks_course ON document_chunks(course);
-CREATE INDEX IF NOT EXISTS idx_document_chunks_document_id ON document_chunks(document_id);
 CREATE INDEX IF NOT EXISTS idx_student_sessions_token_hash ON student_sessions(token_hash);
 
 CREATE OR REPLACE FUNCTION enforce_registered_course() RETURNS trigger AS $$

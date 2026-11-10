@@ -27,7 +27,7 @@ from app.schemas.practice_api import (
     SubmitPracticeSetRequest,
 )
 from app.services.learning_repository import LearningRepository
-from app.services.llm.base import LLMClient
+from app.services.llm.base import LLMClient, for_learning_task
 from app.services.structured_output import generate_validated, json_schema_instruction
 
 
@@ -308,7 +308,7 @@ class EvaluationService:
         )
         try:
             result = await generate_validated(
-                llm_client=self.llm_client,
+                llm_client=for_learning_task(self.llm_client, course, topic["id"]),
                 messages=messages,
                 model=EvaluationResultInternal,
                 temperature=self.settings.evaluation_temperature,

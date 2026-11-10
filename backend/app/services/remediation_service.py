@@ -23,7 +23,7 @@ from app.schemas.practice import (
 )
 from app.schemas.practice_api import RemediationResponse
 from app.services.learning_repository import LearningRepository
-from app.services.llm.base import LLMClient
+from app.services.llm.base import LLMClient, for_learning_task
 from app.services.structured_output import generate_validated
 
 
@@ -223,7 +223,7 @@ class RemediationService:
             }
         )
         generated = await generate_validated(
-            llm_client=self.llm_client,
+            llm_client=for_learning_task(self.llm_client, course, topic["id"]),
             messages=messages,
             model=RemediationGeneration,
             temperature=self.settings.remediation_temperature,

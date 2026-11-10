@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { ArrowRightIcon } from "@/components/Icons";
-import ModelSelector from "@/components/ModelSelector";
 import { COURSE_META, COURSES, type Course } from "@/lib/types";
 
 const COURSE_DETAILS: Record<Course, { stages: string; cue: string; gradient: string; ring: string }> = {
@@ -32,10 +31,6 @@ export default function LearnHomePage() {
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
               选择一门课程，系统会依据前置关系引导你讲解、练习、评价和补救。每一次有效作答都会形成学习证据，并给出清晰的下一步。
             </p>
-          </div>
-          <div className="w-full border-2 border-indigo-200 bg-indigo-50/80 p-4 shadow-sm lg:w-auto lg:min-w-80">
-            <p className="mb-2 text-xs font-bold text-indigo-800">模型设置</p>
-            <ModelSelector feature="learning" label="课程学习模型" />
           </div>
         </section>
 

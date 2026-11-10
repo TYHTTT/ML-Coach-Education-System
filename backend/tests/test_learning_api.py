@@ -27,6 +27,9 @@ class FakeRepository:
         self.unmet = []
         self.status = "learning"
 
+    def student_from_token(self, student_id, **kwargs):
+        return self.require_student(student_id, **kwargs)
+
     def require_student(self, student_id, **kwargs):
         if student_id != STUDENT_ID:
             raise StudentNotFoundError()
@@ -151,7 +154,7 @@ def test_practice_endpoint_requires_backend_student_header() -> None:
 
     response = client.post(
         "/api/v1/practice/sets",
-        headers={"X-Student-ID": "2f37cace-c396-4545-991c-27bf8f61f5cc"},
+        headers={"Authorization": "Bearer 2f37cace-c396-4545-991c-27bf8f61f5cc"},
         json={"topic_id": "ml.logistic_regression", "mode": "practice", "count": 1},
     )
     assert response.status_code == 404
@@ -162,7 +165,7 @@ def test_practice_public_response_has_no_hidden_grading_material() -> None:
     client, _ = _client()
     response = client.post(
         "/api/v1/practice/sets",
-        headers={"X-Student-ID": STUDENT_ID},
+        headers={"Authorization": f"Bearer {STUDENT_ID}"},
         json={"topic_id": "ml.logistic_regression", "mode": "practice", "count": 1},
     )
     assert response.status_code == 201
@@ -178,18 +181,18 @@ def test_practice_preview_allowed_but_early_checkpoint_rejected() -> None:
     client, _ = _client(repository)
     response = client.post(
         "/api/v1/practice/sets",
-        headers={"X-Student-ID": STUDENT_ID},
+        headers={"Authorization": f"Bearer {STUDENT_ID}"},
         json={"topic_id": "ml.logistic_regression", "mode": "practice", "count": 1},
     )
     assert response.status_code == 201
-    blocked = client.post('/api/v1/practice/sets',headers={'X-Student-ID':STUDENT_ID},
+    blocked = client.post('/api/v1/practice/sets',headers={'Authorization':f'Bearer {STUDENT_ID}'},
         json={'topic_id':'ml.logistic_regression','mode':'checkpoint','count':5})
     assert blocked.status_code == 409
     repository.unmet = []
     repository.status = "practicing"
     response = client.post(
         "/api/v1/practice/sets",
-        headers={"X-Student-ID": STUDENT_ID},
+        headers={"Authorization": f"Bearer {STUDENT_ID}"},
         json={"topic_id": "ml.logistic_regression", "mode": "checkpoint", "count": 5},
     )
     assert response.status_code == 409
@@ -200,14 +203,14 @@ def test_learning_course_topic_mismatch_and_remediation_route() -> None:
     client, _ = _client()
     mismatch = client.get(
         "/api/learning/advanced_mathematics/topics/ml.logistic_regression",
-        headers={"X-Student-ID": STUDENT_ID},
+        headers={"Authorization": f"Bearer {STUDENT_ID}"},
     )
     assert mismatch.status_code == 422
     assert mismatch.json()["error"]["code"] == "COURSE_TOPIC_MISMATCH"
 
     remediation = client.post(
         "/api/v1/learning/remediation",
-        headers={"X-Student-ID": STUDENT_ID},
+        headers={"Authorization": f"Bearer {STUDENT_ID}"},
         json={"topic_id": "ml.logistic_regression", "attempt_id": "attempt-1"},
     )
     assert remediation.status_code == 200

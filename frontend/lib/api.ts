@@ -3,12 +3,8 @@ import type {
   ChatRequest,
   ChatResponse,
   Course,
-  CourseStats,
   CreatePracticeSetRequest,
   CurriculumResponse,
-  KnowledgeDocument,
-  KnowledgeStats,
-  KnowledgeUploadResult,
   LearningDashboard,
   LearningHistoryResponse,
   PracticeAnswer,
@@ -20,7 +16,6 @@ import type {
   RemediationResponse,
   CurriculumTopic,
 } from "@/lib/types";
-import { getAiModel, getEmbeddingBaseUrl, getEmbeddingModel, getLlmBaseUrl, getUserEmbeddingApiKey, getUserLlmApiKey, type AiFeature } from "@/lib/llm-settings";
 
 const configuredBaseUrl =
   process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -85,26 +80,13 @@ function errorMessage(payload: unknown, fallback: string): string {
 export async function request<T>(
   path: string,
   init: RequestInit = {},
-  aiFeature?: AiFeature,
 ): Promise<T> {
-  const userLlmApiKey = getUserLlmApiKey();
-  const userEmbeddingApiKey = getUserEmbeddingApiKey();
-  const llmBaseUrl = getLlmBaseUrl();
-  const embeddingBaseUrl = getEmbeddingBaseUrl();
-  const llmModel = aiFeature ? getAiModel(aiFeature) : null;
-  const embeddingModel = getEmbeddingModel();
   let response: Response;
   try {
     response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
-        ...(userLlmApiKey ? { "X-LLM-API-Key": userLlmApiKey } : {}),
-        ...(userEmbeddingApiKey ? { "X-Embedding-API-Key": userEmbeddingApiKey } : {}),
-        ...(llmBaseUrl ? { "X-LLM-Base-URL": llmBaseUrl } : {}),
-        ...(embeddingBaseUrl ? { "X-Embedding-Base-URL": embeddingBaseUrl } : {}),
-        ...(llmModel ? { "X-LLM-Model": llmModel } : {}),
-        ...(embeddingModel ? { "X-Embedding-Model": embeddingModel } : {}),
         ...init.headers,
       },
     });
@@ -137,7 +119,7 @@ export function sendChat(
     },
     body: JSON.stringify(payload),
     signal,
-  }, payload.learning_mode === "free_qa" ? "free_qa" : "teaching");
+  });
 }
 
 function studentHeaders(studentId: string): HeadersInit {
@@ -371,7 +353,7 @@ export function sanitizePublicPracticeSet(payload: unknown): PublicPracticeSet {
     throw new ApiError(
       typeof body.message === "string"
         ? body.message
-        : "当前知识库中没有足够资料生成该知识点的可靠练习，请补充课程材料。",
+        : "Dify 未返回足够的可引用课程资料，请检查 Dify 知识检索与引用配置。",
       422,
       "KNOWLEDGE_INSUFFICIENT",
     );
@@ -412,7 +394,7 @@ export async function createPracticeSet(
     method: "POST",
     headers: jsonStudentHeaders(studentId),
     body: JSON.stringify(payload),
-  }, "practice");
+  });
   return sanitizePublicPracticeSet(response);
 }
 
@@ -450,7 +432,7 @@ export function requestRemediation(
     method: "POST",
     headers: jsonStudentHeaders(studentId),
     body: JSON.stringify(payload),
-  }, "practice");
+  });
 }
 
 export function getLearningHistory(
@@ -462,116 +444,4 @@ export function getLearningHistory(
     `/api/v1/learning/history?course=${encodeURIComponent(course)}&limit=${limit}`,
     { headers: studentHeaders(studentId) },
   );
-}
-
-function adminHeaders(token?: string): HeadersInit {
-  return token?.trim() ? { "X-Admin-Token": token.trim() } : {};
-}
-
-export async function listDocuments(
-  course: Course,
-  token?: string,
-): Promise<KnowledgeDocument[]> {
-  const payload = await request<KnowledgeDocument[] | { documents: KnowledgeDocument[] }>(
-    `/api/v1/knowledge/documents?course=${encodeURIComponent(course)}`,
-    { headers: adminHeaders(token) },
-  );
-  return Array.isArray(payload) ? payload : payload.documents;
-}
-
-export async function getKnowledgeStats(token?: string): Promise<KnowledgeStats> {
-  const payload = await request<
-    | KnowledgeStats
-    | { courses: KnowledgeStats }
-    | { stats: CourseStats[] }
-    | CourseStats[]
-  >("/api/v1/knowledge/stats", { headers: adminHeaders(token) });
-
-  if (Array.isArray(payload)) {
-    return Object.fromEntries(payload.map((item) => [item.course, item])) as KnowledgeStats;
-  }
-  if ("stats" in payload) {
-    return Object.fromEntries(payload.stats.map((item) => [item.course, item])) as KnowledgeStats;
-  }
-  if ("courses" in payload) return payload.courses;
-  return payload;
-}
-
-export function uploadDocument(
-  course: Course,
-  file: File,
-  token: string,
-  onProgress: (percent: number) => void,
-  topicIds: string[] = [],
-): Promise<KnowledgeUploadResult> {
-  return new Promise((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", `${API_BASE_URL}/api/v1/knowledge/upload`);
-    xhr.setRequestHeader("Accept", "application/json");
-    xhr.setRequestHeader("X-Admin-Token", token.trim());
-
-    xhr.upload.addEventListener("progress", (event) => {
-      if (event.lengthComputable) {
-        onProgress(Math.round((event.loaded / event.total) * 100));
-      }
-    });
-    xhr.addEventListener("error", () => {
-      reject(new ApiError("上传失败，请检查网络与后端服务。", 0));
-    });
-    xhr.addEventListener("load", () => {
-      let payload: unknown = null;
-      try {
-        payload = JSON.parse(xhr.responseText) as unknown;
-      } catch {
-        // A non-JSON error is normalized below.
-      }
-      if (xhr.status >= 200 && xhr.status < 300) {
-        onProgress(100);
-        if (!payload || typeof payload !== "object") {
-          reject(new ApiError("服务端返回了无效的上传结果。", xhr.status));
-          return;
-        }
-        const body = payload as Partial<KnowledgeUploadResult>;
-        if (!body.document || typeof body.duplicate !== "boolean") {
-          reject(new ApiError("服务端返回了无效的上传结果。", xhr.status));
-          return;
-        }
-        resolve({
-          document: body.document,
-          duplicate: body.duplicate,
-          message: typeof body.message === "string" ? body.message : "文件已导入知识库",
-        });
-        return;
-      }
-      reject(
-        new ApiError(
-          errorMessage(payload, `上传失败（HTTP ${xhr.status}）`),
-          xhr.status,
-        ),
-      );
-    });
-
-    const formData = new FormData();
-    formData.append("course", course);
-    formData.append("file", file);
-    topicIds.forEach((topicId) => formData.append("topic_ids", topicId));
-    xhr.send(formData);
-  });
-}
-
-export function deleteDocument(documentId: string, token: string): Promise<void> {
-  return request<void>(
-    `/api/v1/knowledge/documents/${encodeURIComponent(documentId)}`,
-    {
-      method: "DELETE",
-      headers: adminHeaders(token),
-    },
-  );
-}
-
-export function tagDocumentTopics(documentId: string, topicIds: string[], token: string): Promise<unknown> {
-  return request(`/api/v1/knowledge/documents/${encodeURIComponent(documentId)}/topics`, {
-    method: "PATCH", headers: { ...adminHeaders(token), "Content-Type": "application/json" },
-    body: JSON.stringify({ topic_ids: topicIds }),
-  });
 }

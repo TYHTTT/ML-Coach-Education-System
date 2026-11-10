@@ -1,7 +1,6 @@
 from __future__ import annotations
 import argparse
 import json
-from pathlib import Path
 from app.core.config import Settings
 from app.curriculum.seed import seed_curriculum
 from app.services.learning_repository import LearningRepository

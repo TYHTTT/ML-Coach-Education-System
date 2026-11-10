@@ -73,7 +73,7 @@ export function WorkedExample({ example, askDisabled = false }: { example: Worke
       <ol className="space-y-4">{example.steps.map((step) => <ExampleStepCard key={step.step_id} step={step} example={example} askDisabled={askDisabled} />)}</ol>
       <div className="mt-5 rounded-2xl bg-emerald-50 p-4"><h4 className="text-sm font-bold text-emerald-900">最终结果</h4><MarkdownRenderer content={example.final_answer} /></div>
       {example.common_mistakes.length > 0 && <div className="mt-5"><h4 className="text-sm font-bold text-amber-900">常见错误</h4><ul className="mt-2 list-disc space-y-2 pl-5 text-sm text-slate-600">{example.common_mistakes.map((item) => <li key={item}>{item}</li>)}</ul></div>}
-      <p className="mt-5 text-xs text-slate-400">这是教学例题，阅读不会自动计为掌握。课程测试由 AI 按资料另出新题；题库测试继续保留同源曝光排除规则。</p>
+      <p className="mt-5 text-xs text-slate-400">这是教学例题，阅读不会自动计为掌握。练习与测试由 AI 按课程资料生成，提交后会提供评价。</p>
     </details>
     {example.source_refs.length > 0 && <details className="mt-5"><summary className="text-xs font-semibold text-indigo-700">例题来源</summary><div className="mt-3"><SourcePanel sources={example.source_refs} /></div></details>}
   </article>;

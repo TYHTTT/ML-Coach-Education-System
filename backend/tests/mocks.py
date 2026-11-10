@@ -1,32 +1,8 @@
 from __future__ import annotations
 
-import hashlib
-import math
-
-
-class MockEmbeddingClient:
-    def __init__(self, dimension: int = 16) -> None:
-        self.dimension = dimension
-
-    def _embed(self, text: str) -> list[float]:
-        vector = [0.0] * self.dimension
-        normalized = "".join(text.lower().split())
-        for index, character in enumerate(normalized):
-            digest = hashlib.sha256(f"{index % 3}:{character}".encode("utf-8")).digest()
-            vector[digest[0] % self.dimension] += 1.0
-        norm = math.sqrt(sum(value * value for value in vector)) or 1.0
-        return [value / norm for value in vector]
-
-    def embed_documents(self, texts: list[str]) -> list[list[float]]:
-        return [self._embed(text) for text in texts]
-
-    def embed_query(self, text: str) -> list[float]:
-        return self._embed(text)
-
-
 class MockLLMClient:
     def __init__(self, answer: str = "这是基于课程资料的测试回答。[S1]") -> None:
-        self.answer = answer
+        self.answer_text = answer
         self.calls: list[list[dict[str, str]]] = []
 
     async def generate(
@@ -35,4 +11,14 @@ class MockLLMClient:
         temperature: float | None = None,
     ) -> str:
         self.calls.append(messages)
-        return self.answer
+        return self.answer_text
+
+    async def run(self, messages, **kwargs):
+        self.calls.append(messages)
+        return {"answer": self.answer_text, "resources": getattr(self, "resources", [])}
+
+    async def answer(self, *, course, question, history, system_prompt=None, topic_id=None, user=None):
+        from app.services.dify import resource_snapshots
+        result = await self.run([{"role": "system", "content": system_prompt or "课程辅导"}, *history, {"role": "user", "content": question}])
+        sources = resource_snapshots(result["resources"], course=course)
+        return {"answer": result["answer"], "course": course, "sources": [{**s,"snippet":s["content"]} for s in sources], "retrieval_count": len(sources)}

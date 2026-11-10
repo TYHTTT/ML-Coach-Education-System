@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   BookIcon,
-  DatabaseIcon,
   GearIcon,
   SparklesIcon,
   TargetIcon,
@@ -15,8 +14,6 @@ import { useStudent } from "@/components/StudentProvider";
 const NAV_ITEMS = [
   { href: "/?view=chat", label: "自由问答", icon: SparklesIcon },
   { href: "/learn", label: "课程学习", icon: TargetIcon },
-  { href: "/knowledge", label: "知识库", icon: DatabaseIcon },
-  { href: "/question-bank", label: "题库", icon: BookIcon },
   { href: "/settings", label: "设置", icon: GearIcon },
 ];
 
@@ -27,7 +24,7 @@ export default function LearningShell({ children }: { children: ReactNode }) {
   return (
     <main className="min-h-svh bg-canvas">
       <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3 sm:px-6 lg:px-8">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 py-2 sm:px-6 lg:px-8">
           <Link
             href="/learn"
             className="flex min-w-0 items-center gap-3 rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2"

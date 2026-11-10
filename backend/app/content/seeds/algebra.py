@@ -1,7 +1,7 @@
 """Matrix multiplication content with explicit dimensions and independent tasks."""
 
 
-def authored(T, N, M, E):
+def authored(T, E):
     topics = {
         "la.matrix_multiplication": T(
             "矩阵乘法与维度：逐行逐列完成批量计算",
@@ -22,19 +22,6 @@ def authored(T, N, M, E):
                [("确定结果形状","(2×2)(2×2)","内维匹配","结果为 2×2","需要计算四个行列内积。"),
                 ("第一行两个元素","c₁₁=1×2+2×3；c₁₂=1×0+2×4","2+6；0+8","第一行 (8,8)","右侧选择的是列，不是对应行。"),
                 ("第二行两个元素","c₂₁=0×2+1×3；c₂₂=0×0+1×4","3；4","第二行 (3,4)","第二行 (0,1) 直接选出 B 的第二行。")],
-               "AB=[[8,8],[3,4]]。", [("matrix_product",[[[1,2],[0,1]],[[2,0],[3,4]]],[[8,8],[3,4]])], ["计算第二元素时仍选 B 第一列", "未经检查就交换 A 和 B"])],
-            [N("matrix.row-column-product","A 第一行为 (1,3)，B 第二列为 (2,4)，求 (AB)₁₂。",14,"dot",[[1,3],[2,4]],"指定元素是行列内积，1×2+3×4=14。"),
-             N("matrix.matrix-vector-product","X=[[2,1],[0,3]]，w=(1,2)ᵀ，Xw 的第二个元素是多少？",6,"dot",[[0,3],[1,2]],"取 X 第二行与 w 点乘，0×1+3×2=6。"),
-             M("matrix.inner-dimension-check","A 为 3×4，B 为 4×2，AB 的形状是？",["4×4","3×2","2×3"],"B","内维 4 匹配，结果保留外维 3 与 2。"),
-             M("matrix.invalid-product","A 为 2×3，B 为 2×2，AB 是否定义？",["不定义，内维 3≠2","定义，结果 2×2","定义，补零即可"],"A","标准矩阵乘法不自动补零或截断。","theorem_condition")],
-            [N("matrix.output-element-count","A 为 4×3、B 为 3×2，乘积 AB 共含多少个标量元素？",8,"product",[4,2],"结果形状为 4×2，元素数量 4×2=8。"),
-             N("matrix.linear-system-coefficient","线性方程 Xw=y 的某一行为 2w₁+w₂=9，已知 w₂=3，求 w₁。",3,"ratio",[6,2],"该行矩阵关系表示一个线性方程；2w₁=9-3=6。","application"),
-             M("matrix.transpose-product-order","AB 已定义，则 (AB)ᵀ 等于？",["BᵀAᵀ","AᵀBᵀ","ABᵀ"],"A","转置乘积时需要颠倒因子的顺序。"),
-             M("matrix.gradient-shape-transfer","X 为 10×3，r 为 10×1，要获得 3×1 的向量应使用？",["Xr","Xᵀr","rᵀXᵀ"],"B","(3×10)(10×1) 的内维匹配，结果为 3×1。","application"),
-             M("matrix.noncommuting-shapes","A 为 2×3、B 为 3×2，AB 与 BA 的形状分别是？",["都是 2×2","都是 3×3","2×2 与 3×3"],"C","两者都定义，但外维不同，因此一般不可能相等。")],
-            [N("matrix.product-output-rows","X 为 7×4、w 为 4×1，Xw 有多少行？",7,"sum",[7],"左侧样本行数保留，得到 7×1。"),
-             M("matrix.matching-dimensions","A 为 m×n，B 为 k×p，AB 定义需要？",["n=k","m=p","m=k"],"A","左列数必须等于右行数。","theorem_condition"),
-             M("matrix.element-rule","乘积 (AB)ᵢⱼ 使用哪些数据？",["A 的第 j 列和 B 的第 i 行","A 的第 i 行和 B 的第 j 列","只用 Aᵢⱼ 和 Bᵢⱼ"],"B","矩阵乘法通过行列内积定义。")],
-            ("error_correction","某实现将 (n×d) 的 X 与 (d×1) 的 w 按对应元素相乘，声称得到每个样本预测。说明问题和正确做法。","线性预测需要每行特征与权重的内积并沿 d 维求和，输出 n×1；逐元素乘法本身没有完成求和，且广播规则不能替代数学定义。")),
+               "AB=[[8,8],[3,4]]。", [("matrix_product",[[[1,2],[0,1]],[[2,0],[3,4]]],[[8,8],[3,4]])], ["计算第二元素时仍选 B 第一列", "未经检查就交换 A 和 B"])]),
     }
-    return topics, {"la.matrix_multiplication":{"practice":"BA","checkpoint":"ABC","prerequisite_test":"AB"}}
+    return topics

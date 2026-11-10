@@ -64,7 +64,7 @@ export default function ChatWindow({
             从课程资料出发，把问题讲明白
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-            我会检索当前课程知识库，用中文分步讲解，并把引用资料清楚标出来。
+            我会结合当前课程，通过 AI 助手用中文分步讲解，并展示可用的资料引用。
           </p>
           <div className="mt-8 grid gap-2 text-left sm:grid-cols-2">
             {examples.map((question) => (
@@ -81,7 +81,7 @@ export default function ChatWindow({
               </button>
             ))}
           </div>
-          <p className="mt-6 text-xs text-slate-400">回答仅基于当前课程知识库，资料不足时会如实说明。</p>
+          <p className="mt-6 text-xs text-slate-400">AI 助手结合当前课程资料回答，资料不足时会如实说明。</p>
         </div>
       </div>
     );

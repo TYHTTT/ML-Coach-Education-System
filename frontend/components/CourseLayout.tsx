@@ -12,9 +12,8 @@ import { statusMeta } from "@/lib/learning";
 type CourseContext = { outline: CourseOutline | null; course: Course | null; refresh: () => Promise<void>; topicHref: (topic: Pick<OutlineTopic, "topic_id" | "owner_course">) => string };
 const OutlineContext = createContext<CourseContext>({ outline: null, course: null, refresh: async () => {}, topicHref: () => "/learn" });
 export const useCourseOutline = () => useContext(OutlineContext);
-export function contentState(topic: Pick<OutlineTopic, "status" | "content_status" | "prerequisite_gap">) {
-  if (topic.content_status !== "ready") return { label: "内容待补充", symbol: "□" };
-  if (topic.prerequisite_gap.length && topic.status !== "mastered") return { label: "前置待补充", symbol: "!" };
+function topicState(topic: Pick<OutlineTopic, "status" | "prerequisite_gap">) {
+  if (topic.prerequisite_gap.length && topic.status !== "mastered") return { label: "待完成前置学习", symbol: "!" };
   return statusMeta(topic.status);
 }
 
@@ -131,7 +130,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
         <span aria-hidden="true">{opened ? "▾" : "▸"}</span><span className="flex-1">{group.title}</span><span className="font-normal text-slate-400">{allTopics.filter((topic) => topic.status === "mastered").length}/{allTopics.length}</span>
       </button>
       {opened && <div id={`group-${group.id}`} className={group.parent_group_id ? "ml-2" : ""}>
-        {visibleTopics.map((topic) => { const state = contentState(topic); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} title={[topic.readiness_reason, ...topic.prerequisite_gap.map((item) => `${item.title}：${item.reason}`)].filter(Boolean).join("\n")} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
+        {visibleTopics.map((topic) => { const state = topicState(topic); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} title={topic.prerequisite_gap.map((item) => `${item.title}：${item.reason}`).join("\n")} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
           <span className="block font-medium">{topic.title}{topic.is_reference && <span className="ml-1 text-[10px] text-slate-400">↗</span>}</span>
           <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${COURSE_META[topic.owner_course].label}` : ""}</span>
         </Link>; })}
@@ -158,7 +157,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
           {!outline && !error && <p role="status" className="mt-5 text-xs text-slate-400">正在读取目录…</p>}
           {groups.filter((group) => !group.parent_group_id).map(renderGroup)}
           {query && !groups.some((group) => group.topics.some(matches)) && <p className="py-5 text-xs text-slate-500">没有匹配知识点，试试缩短关键词。</p>}
-          <div className="mt-6 flex gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500"><Link href="/learn">切换课程</Link><Link href="/question-bank">题库与覆盖</Link></div>
+          <div className="mt-6 flex gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500"><Link href="/learn">切换课程</Link></div>
         </div>}
       </aside>
       <div className="min-w-0 flex-1">{children}</div>

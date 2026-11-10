@@ -32,7 +32,7 @@ from app.schemas.practice import (
 from app.schemas.practice_api import CreatePracticeSetRequest, PracticeSetResponse
 from app.services.learning_grounding import LearningGroundingService
 from app.services.learning_repository import LearningRepository
-from app.services.llm.base import LLMClient
+from app.services.llm.base import LLMClient, for_learning_task
 from app.services.structured_output import generate_validated, json_schema_instruction
 
 
@@ -278,7 +278,6 @@ class PracticeService:
         # Metadata and questions commit together; a crash cannot leave a local
         # verification misclassified as an ordinary mastery-bearing practice.
         with self.repository._connect() as connection:
-            connection.execute("BEGIN IMMEDIATE")
             self.repository.create_practice_set(
                 student_id=student_id, practice_set=internal, _connection=connection,
             )
@@ -288,8 +287,7 @@ class PracticeService:
                  json.dumps(internal.required_dimensions), internal.practice_set_id),
             )
             for question, generated_question in zip(internal.questions, generated.questions, strict=True):
-                # Dynamic questions are not bank items. Their opaque per-set
-                # identity supports the existing exposure/first-attempt guard.
+                # Per-set identity supports the exposure/first-attempt guard.
                 identity = "dynamic." + question.question_id
                 connection.execute(
                     "UPDATE practice_questions SET family_id=?,topic_ids_json=?,competencies_json=? WHERE id=?",
@@ -334,7 +332,7 @@ class PracticeService:
         if not grounding.source_snapshot:
             raise KnowledgeInsufficientError(
                 message=(
-                    "当前知识库中没有足够资料生成该知识点的可靠练习，请补充课程材料。"
+                    "Dify 未返回足够的可引用课程资料，暂时无法生成可靠练习，请检查 Dify 知识检索与引用配置。"
                 ),
                 internal_message=f"no grounded sources for {request.topic_id}",
             )
@@ -449,7 +447,7 @@ class PracticeService:
             )
         )
         envelope = await generate_validated(
-            llm_client=self.llm_client,
+            llm_client=for_learning_task(self.llm_client, course, topic["id"]),
             messages=messages,
             model=envelope_model,
             temperature=self.settings.practice_generation_temperature,
@@ -468,7 +466,7 @@ class PracticeService:
         if isinstance(envelope.root, KnowledgeInsufficientPayload):
             raise KnowledgeInsufficientError(
                 message=(
-                    "当前知识库中没有足够资料生成该知识点的可靠练习，请补充课程材料。"
+                    "Dify 未返回足够的可引用课程资料，暂时无法生成可靠练习，请检查 Dify 知识检索与引用配置。"
                 ),
                 internal_message=(
                     "generation model reported knowledge_insufficient for "

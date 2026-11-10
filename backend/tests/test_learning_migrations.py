@@ -22,9 +22,6 @@ def test_postgres_schema_initialization_is_idempotent() -> None:
         connection.execute_script(schema)
     with database.connect() as connection:
         connection.execute_script(schema)
-        extension = connection.execute(
-            "SELECT 1 FROM pg_extension WHERE extname = 'vector'"
-        ).fetchone()
         rows = connection.execute(
             """
             SELECT table_name
@@ -32,14 +29,13 @@ def test_postgres_schema_initialization_is_idempotent() -> None:
             WHERE table_schema = 'public'
               AND table_name = ANY(%s)
             """,
-            (["students", "curriculum_topics", "practice_sets", "documents", "document_chunks"],),
+            (["students", "curriculum_topics", "practice_sets", "worked_examples", "lessons"],),
         ).fetchall()
 
-    assert extension is not None
     assert {row["table_name"] for row in rows} == {
         "students",
         "curriculum_topics",
         "practice_sets",
-        "documents",
-        "document_chunks",
+        "worked_examples",
+        "lessons",
     }

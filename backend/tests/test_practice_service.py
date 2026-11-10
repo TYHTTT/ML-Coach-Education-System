@@ -65,7 +65,6 @@ class FakeGrounding:
     async def retrieve(self, **kwargs):
         return GroundingResult(
             query="逻辑回归",
-            candidates=[],
             source_snapshot=self.sources,
         )
 
