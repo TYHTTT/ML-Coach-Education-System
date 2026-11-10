@@ -53,7 +53,7 @@ export interface ChatRequest {
   message: string;
   history: ChatHistoryItem[];
   topic_id?: string;
-  learning_mode?: "free_qa" | "topic_teaching" | "worked_example" | "remediation";
+  learning_mode?: "free_qa" | "topic_teaching" | "topic_clarification" | "worked_example" | "remediation";
 }
 
 export interface ChatResponse {

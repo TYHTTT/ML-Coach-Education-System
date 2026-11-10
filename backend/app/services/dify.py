@@ -19,7 +19,7 @@ class DifyClient:
     async def close(self) -> None:
         await self.http.aclose()
 
-    async def run(self, messages: list[dict[str, str]], *, course: Course | None = None,
+    async def run(self, messages: list[dict[str, str]] | str, *, course: Course | None = None,
                   topic_id: str | None = None, user: str | None = None) -> dict:
         key = self.settings.dify_api_key.get_secret_value().strip()
         if not key or not self.settings.dify_api_base_url.strip():
@@ -30,7 +30,7 @@ class DifyClient:
             "inputs": {**self.settings.dify_inputs,
                        **({"course": course.value} if course else {}),
                        **({"topic_id": topic_id} if topic_id else {})},
-            "query": json.dumps({"messages": messages}, ensure_ascii=False),
+            "query": messages if isinstance(messages, str) else json.dumps({"messages": messages}, ensure_ascii=False),
             "response_mode": "streaming",
             "user": user or f"course-coach-{uuid4().hex}",
             "auto_generate_name": False,
@@ -85,20 +85,33 @@ class DifyClient:
 
     async def answer(self, *, course: Course, question: str, history: list[dict[str, str]],
                      system_prompt: str | None = None, topic_id: str | None = None,
-                     user: str | None = None) -> dict:
+                     user: str | None = None, plain_query: bool = False) -> dict:
+        messages: str | list[dict[str, str]]
+        if plain_query:
+            messages = question
+            if history:
+                transcript = "\n\n".join(
+                    f"{'学生' if item['role'] == 'user' else '课程助手'}：\n{item['content']}"
+                    for item in history
+                )
+                messages = f"此前对话：\n{transcript}\n\n学生本次提问：\n{question}"
+        else:
+            messages = self._chat_messages(course, question, history, system_prompt, topic_id)
+        result = await self.run(messages, course=course, topic_id=topic_id, user=user)
+        sources = resource_snapshots(result["resources"], course=course)
+        return {"answer": result["answer"], "course": course,
+                "sources": [{**item, "snippet": item["content"][:600]} for item in sources],
+                "retrieval_count": len(sources)}
+
+    @staticmethod
+    def _chat_messages(course: Course, question: str, history: list[dict[str, str]],
+                       system_prompt: str | None, topic_id: str | None) -> list[dict[str, str]]:
         prompt = f"你是中文课程辅导助手。当前课程：{course.display_name}。仅使用该课程的资料；资料不足时如实说明，不得编造引用。"
         if topic_id:
             prompt += f"当前知识点：{topic_id}。"
         if system_prompt:
             prompt += "\n" + system_prompt
-        result = await self.run(
-            [{"role": "system", "content": prompt}, *history, {"role": "user", "content": question}],
-            course=course, topic_id=topic_id, user=user,
-        )
-        sources = resource_snapshots(result["resources"], course=course)
-        return {"answer": result["answer"], "course": course,
-                "sources": [{**item, "snippet": item["content"][:600]} for item in sources],
-                "retrieval_count": len(sources)}
+        return [{"role": "system", "content": prompt}, *history, {"role": "user", "content": question}]
 
 
 class DifyTaskClient:

@@ -31,12 +31,14 @@ class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=100_000)
     history: list[HistoryMessage] = Field(default_factory=list, max_length=100)
     topic_id: str | None = Field(default=None, pattern=r"^(?:ml|math|la|prob)\.[a-z0-9_]+$")
-    learning_mode: Literal["free_qa", "topic_teaching", "worked_example", "remediation"] = "free_qa"
+    learning_mode: Literal["free_qa", "topic_teaching", "topic_clarification", "worked_example", "remediation"] = "free_qa"
 
     @model_validator(mode="after")
     def example_requires_topic(self) -> "ChatRequest":
         if self.learning_mode == "worked_example" and self.topic_id is None:
             raise ValueError("生成学习例题需要指定当前知识点 topic_id")
+        if self.learning_mode == "topic_clarification" and self.topic_id is None:
+            raise ValueError("补充讲解需要指定当前知识点 topic_id")
         return self
 
     @field_validator("message")

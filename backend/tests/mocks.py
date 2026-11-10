@@ -17,8 +17,8 @@ class MockLLMClient:
         self.calls.append(messages)
         return {"answer": self.answer_text, "resources": getattr(self, "resources", [])}
 
-    async def answer(self, *, course, question, history, system_prompt=None, topic_id=None, user=None):
+    async def answer(self, *, course, question, history, system_prompt=None, topic_id=None, user=None, plain_query=False):
         from app.services.dify import resource_snapshots
-        result = await self.run([{"role": "system", "content": system_prompt or "课程辅导"}, *history, {"role": "user", "content": question}])
+        result = await self.run(([{"role": "user", "content": question}] if plain_query else [{"role": "system", "content": system_prompt or "课程辅导"}, *history, {"role": "user", "content": question}]))
         sources = resource_snapshots(result["resources"], course=course)
         return {"answer": result["answer"], "course": course, "sources": [{**s,"snippet":s["content"]} for s in sources], "retrieval_count": len(sources)}

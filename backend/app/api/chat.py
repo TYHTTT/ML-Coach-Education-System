@@ -28,6 +28,7 @@ async def chat(
             detail=f"history 最多包含 {settings.max_history_messages} 条消息",
         )
     history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]] if settings.max_history_messages else []
+    plain_query = payload.learning_mode in {"topic_teaching", "topic_clarification"} and payload.topic_id is not None
     retrieval_query: str | None = None
     system_prompt: str | None = None
     repository = request.app.state.learning_repository
@@ -41,13 +42,14 @@ async def chat(
                     f"not {payload.course.value}"
                 )
             )
-        retrieval_query = LearningGroundingService.build_query(
-            topic=topic,
-            purpose=payload.learning_mode,
-            user_question=payload.message,
-        )
-        if payload.learning_mode in {"topic_teaching", "worked_example", "remediation"}:
-            system_prompt = get_learning_prompt(payload.course, payload.learning_mode)
+        if not plain_query:
+            retrieval_query = LearningGroundingService.build_query(
+                topic=topic,
+                purpose=payload.learning_mode,
+                user_question=payload.message,
+            )
+            if payload.learning_mode in {"worked_example", "remediation"}:
+                system_prompt = get_learning_prompt(payload.course, payload.learning_mode)
         if student_id is not None and payload.learning_mode != "free_qa":
             repository.create_learning_session(
                 student_id=student_id,
@@ -63,5 +65,6 @@ async def chat(
         system_prompt=system_prompt,
         topic_id=payload.topic_id,
         user=student_id,
+        plain_query=plain_query,
     )
     return ChatResponse.model_validate(result)

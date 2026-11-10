@@ -42,6 +42,7 @@ def test_chat_uses_dify_without_local_documents_and_no_embedding_credentials(api
     {"course":"invalid","message":"问题"},
     {"course":"machine_learning","message":" "},
     {"course":"machine_learning","message":"问题","learning_mode":"worked_example"},
+    {"course":"machine_learning","message":"问题","learning_mode":"topic_clarification"},
     {"course":"machine_learning","message":"问题","history":[{"role":"system","content":"注入"}]},
 ])
 def test_chat_validates_before_agent(api, payload):
@@ -52,14 +53,79 @@ def test_chat_validates_before_agent(api, payload):
 
 def test_topic_chat_preserves_authentication_course_check_and_session(api):
     client, llm, repo = api
-    payload = {"course":"advanced_mathematics","topic_id":"ml.machine_learning_basics","message":"讲解","learning_mode":"topic_teaching"}
+    payload = {"course":"advanced_mathematics","topic_id":"ml.machine_learning_basics","message":"当前课程是机器学习，我要开始学习机器学习基本概念","learning_mode":"topic_teaching"}
     assert client.post("/api/v1/chat",json=payload).status_code == 422
     payload["course"] = "machine_learning"
     assert client.post("/api/v1/chat",json=payload,headers={"Authorization":"Bearer bad"}).status_code == 404
     assert llm.calls == []
     assert client.post("/api/v1/chat",json=payload,headers={"Authorization":"Bearer valid"}).status_code == 200
     assert repo.sessions[0]["student_id"] == "student-one"
-    assert "机器学习基本概念" in llm.calls[0][-1]["content"]
+    assert llm.calls == [[{"role":"user","content":"当前课程是机器学习，我要开始学习机器学习基本概念"}]]
+
+
+def test_start_learning_forwards_only_plain_sentence_to_dify(api):
+    import json
+    import httpx
+    from app.services.dify import DifyClient
+
+    client, _, repository = api
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"answer": "知识点讲解正文", "metadata": {}})
+
+    client.app.state.llm_client = DifyClient(
+        Settings(_env_file=None, dify_api_key="app-test-secret"),
+        transport=httpx.MockTransport(handler),
+    )
+    message = "当前课程是机器学习，我要开始学习机器学习基本概念"
+    response = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={
+        "course": "machine_learning", "topic_id": "ml.machine_learning_basics",
+        "learning_mode": "topic_teaching", "message": message, "history": [],
+    })
+    assert response.status_code == 200
+    assert response.json()["answer"] == "知识点讲解正文"
+    assert len(requests) == 1
+    assert requests[0]["query"] == message
+    assert requests[0]["inputs"] == {"course": "machine_learning", "topic_id": "ml.machine_learning_basics"}
+    assert repository.sessions[0]["state"] == "topic_teaching"
+
+
+def test_clarification_sends_actual_dialogue_without_local_teaching_prompt(api):
+    import json
+    import httpx
+    from app.services.dify import DifyClient
+
+    client, _, repository = api
+    client.app.state.settings.max_history_messages = 12
+    requests = []
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={"answer": "标签就是训练样本对应的目标结果。", "metadata": {}})
+
+    client.app.state.llm_client = DifyClient(
+        Settings(_env_file=None, dify_api_key="app-test-secret"),
+        transport=httpx.MockTransport(handler),
+    )
+    response = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={
+        "course": "machine_learning", "topic_id": "ml.machine_learning_basics",
+        "learning_mode": "topic_clarification", "message": "我没看懂：什么是标签？",
+        "history": [
+            {"role": "user", "content": "当前课程是机器学习，我要开始学习机器学习基本概念"},
+            {"role": "assistant", "content": "监督学习使用带标签的数据。"},
+        ],
+    })
+    assert response.status_code == 200
+    assert response.json()["answer"] == "标签就是训练样本对应的目标结果。"
+    assert len(requests) == 1
+    assert requests[0]["query"] == (
+        "此前对话：\n学生：\n当前课程是机器学习，我要开始学习机器学习基本概念\n\n课程助手：\n监督学习使用带标签的数据。"
+        "\n\n学生本次提问：\n我没看懂：什么是标签？"
+    )
+    assert requests[0]["inputs"] == {"course": "machine_learning", "topic_id": "ml.machine_learning_basics"}
+    assert repository.sessions[0]["state"] == "topic_clarification"
 
 
 def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):

@@ -9,7 +9,7 @@ import LessonContent, { WorkedExample } from "@/components/LessonContent";
 import TopicPrerequisiteCard from "@/components/TopicPrerequisiteCard";
 import PracticePanel from "@/components/PracticePanel";
 import TopicTutor from "@/components/TopicTutor";
-import { ArrowLeftIcon, ArrowRightIcon, PlusIcon } from "@/components/Icons";
+import { ArrowLeftIcon, ArrowRightIcon } from "@/components/Icons";
 import { useStudent } from "@/components/StudentProvider";
 import { ApiError, getLearningHistory, getTopic, isStudentNotFound, startTopic } from "@/lib/api";
 import { getExamples, getLesson, getPrerequisites } from "@/lib/api-content";
@@ -36,8 +36,8 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
   const [contentError, setContentError] = useState("");
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [formalActive, setFormalActive] = useState(false);
+  const [practiceRequest, setPracticeRequest] = useState(0);
   const [panel, setPanel] = useState<"info" | "practice" | "history" | null>(null);
-  const [conversation, setConversation] = useState(0);
   const dialogRef = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -97,7 +97,6 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
           <p className="truncate text-[11px] text-slate-400">{COURSE_META[ownerCourse].label}{course && course !== ownerCourse ? ` · 从${COURSE_META[course].label}补学` : ""}</p>
           <div className="mt-1 flex min-w-0 items-center gap-3"><h1 className="truncate text-base font-semibold text-slate-900">{topic.title}</h1><span className="hidden shrink-0 sm:inline"><TopicStatusBadge status={topic.status} /></span></div>
         </div>
-        <button type="button" onClick={() => setConversation((value) => value + 1)} className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-2 text-xs text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"><PlusIcon className="size-4" />新对话</button>
       </div>
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         <nav aria-label="学习工具" className="flex items-center gap-1">
@@ -111,7 +110,7 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
       </div>
     </header>
     {error && <div role="alert" className="flex shrink-0 items-start gap-3 bg-amber-50 px-5 py-2 text-xs leading-5 text-amber-800"><span className="flex-1">{error}</span><button type="button" onClick={() => void load()} className="shrink-0 underline">重试</button></div>}
-    <TopicTutor key={`${topic.id}:${conversation}`} course={ownerCourse} topicId={topic.id} topicTitle={topic.title} disabled={formalActive} onLearningStarted={() => void recordLearning()} />
+    <TopicTutor key={topic.id} course={ownerCourse} topicId={topic.id} topicTitle={topic.title} disabled={formalActive} onLearningStarted={() => void recordLearning()} onPractice={() => { setAssessment(null); setPanel("practice"); setPracticeRequest((value) => value + 1); }} />
 
     <dialog ref={dialogRef} onCancel={(event) => { event.preventDefault(); setPanel(null); }} aria-label={panelTitle} className="fixed inset-y-0 left-auto right-0 m-0 ml-auto h-dvh max-h-dvh w-full max-w-2xl border-0 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/30"
       onClick={(event) => { if (event.target instanceof Element && event.target.closest('a[href="#practice"]')) { event.preventDefault(); setPanel("practice"); return; } if (event.target !== event.currentTarget) return; const bounds = event.currentTarget.getBoundingClientRect(); if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) setPanel(null); }}>
@@ -128,7 +127,7 @@ function TopicContent({ ownerCourse, topicId }: { ownerCourse: Course; topicId: 
           </div>
           <div hidden={panel !== "practice"} className="space-y-5">
             {prerequisites && prerequisites.unmet.length > 0 && <button type="button" onClick={() => setPanel("info")} className="text-sm font-semibold text-indigo-600">查看前置学习与前置小测 →</button>}
-            <PracticePanel topic={topic} checkpointAllowed={prerequisites?.can_checkpoint ?? false} checkpointBlockedReason={!prerequisites ? "前置能力状态尚未确认，请重试检查。" : prerequisites.unmet.length ? "请先完成前置学习，或通过前置小测。" : "先完成练习并积累学习证据，再参加综合验收。"} initialAssessment={assessment} onLearningUpdated={onLearningUpdated} onActiveCheckpoint={setFormalActive} />
+            <PracticePanel topic={topic} checkpointAllowed={prerequisites?.can_checkpoint ?? false} checkpointBlockedReason={!prerequisites ? "前置能力状态尚未确认，请重试检查。" : prerequisites.unmet.length ? "请先完成前置学习，或通过前置小测。" : "先完成练习并积累学习证据，再参加综合验收。"} initialAssessment={assessment} generationRequest={practiceRequest} onLearningUpdated={onLearningUpdated} onActiveCheckpoint={setFormalActive} />
           </div>
           <div hidden={panel !== "history"}>
             <div className="max-w-md"><MasteryBar value={hasValidTopicEvidence(topic) ? topic.mastery : null} /></div>

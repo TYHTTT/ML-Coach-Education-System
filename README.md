@@ -37,7 +37,9 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 ## Dify 应用要求
 
 - 使用已发布、支持 `/chat-messages` 的 Agent、Chatbot 或 Chatflow 应用；后端使用流式请求并汇总为现有 API 响应。接口参考：[Dify 对话消息 API](https://docs.dify.ai/en/api-reference/chat-messages/send-chat-message)。
-- 后端把任务说明、历史消息和当前问题放在 `query` 的 JSON `messages` 数组中。Agent 应按照角色和任务执行，动态出题、评价等结构化任务须只返回约定 JSON，避免添加开场白或额外说明。
+- 点击“开始学习”时，Dify 的 `query` 为纯文本 `当前课程是[课程名]，我要开始学习[知识点名称]`，例如 `当前课程是机器学习，我要开始学习机器学习基础`。课程名随当前知识点所属课程变化。教学规则由 Dify 应用的内置提示词负责，不附加本地教学提示、学习目标或 JSON 消息包装。
+- 讲解结束后显示“没看懂”和“做练习”。“没看懂”打开输入弹窗，将疑问和当前知识点的近期对话以纯文本发送给 Dify，补充讲解追加在正文下方；“做练习”直接打开练习面板并自动生成 3 道题，出题后显示作答框，提交后展示评价。重新打开未完成练习时保留答案。
+- 其他问答与动态出题、评价等结构化任务仍按现有任务格式发送；结构化任务须只返回约定 JSON，避免添加开场白或额外说明。
 - 建议在 Dify 定义 `course` 和 `topic_id` 输入变量，并在知识检索节点使用元数据筛选，确保当前课程和知识点范围。额外必填输入可用 `DIFY_INPUTS={"变量名":"值"}` 配置。应用已配置的模型与采样参数统一在 Dify 调整。
 - 动态出题依赖响应 `metadata.retriever_resources` 中的真实原文与引用。前置知识验证还要求引用 `doc_metadata` 包含匹配的 `course` 和 `topic_id`。引用缺失或范围不符时会提示资料不足，不会把 Agent 回答当作原文。
 - 每次调用独立执行，聊天历史由前端传入，避免不同课程、对话和批改任务共享远端会话。
@@ -307,11 +309,11 @@ Pydantic 请求和响应模型，用于 API 数据校验与序列化。
 - `SourcePanel.tsx`：展示回答引用的知识来源。
 - `MarkdownRenderer.tsx`：渲染 Markdown、GFM 和数学公式。
 - `StudentProvider.tsx`：创建并维护匿名学生身份。
-- `CourseLayout.tsx`、`LearningShell.tsx`：课程目录和整体布局。知识点页以对话为主，学习资料、练习与记录通过侧边面板打开。
+- `CourseLayout.tsx`、`LearningShell.tsx`：课程目录和整体布局。知识点页通过“开始学习”按钮请求 Dify Agent 讲解，不显示常驻输入框；学习资料、练习与记录通过侧边面板打开。
 - `LearningWidgets.tsx`：学习进度、掌握度和推荐动作组件。
 - `LessonContent.tsx`：课程正文内容展示。
 - `PracticePanel.tsx`：练习题、选项、答案提交和反馈展示。
-- `TopicTutor.tsx`：知识点 AI 对话、底部输入框、讲解与例题快捷操作。
+- `TopicTutor.tsx`：生成当前知识点讲解，展示正文、引用及学习分支；通过弹窗追问，或进入自动出题与作答流程，支持停止生成和失败重试。
 - `TopicPrerequisiteCard.tsx`：主题前置知识状态展示。
 - `Icons.tsx`：项目内复用的图标组件。
 

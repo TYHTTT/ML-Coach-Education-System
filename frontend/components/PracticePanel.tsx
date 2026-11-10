@@ -89,6 +89,7 @@ export default function PracticePanel({
   initialAssessment = null,
   onActiveCheckpoint,
   checkpointBlockedReason,
+  generationRequest = 0,
 }: {
   topic: CurriculumTopic;
   onLearningUpdated: () => void | Promise<void>;
@@ -96,6 +97,7 @@ export default function PracticePanel({
   initialAssessment?: Assessment | null;
   onActiveCheckpoint?: (active: boolean) => void;
   checkpointBlockedReason?: string;
+  generationRequest?: number;
 }) {
   const { withStudent, studentId } = useStudent();
   const [practiceSet, setPracticeSet] = useState<PublicPracticeSet | null>(null);
@@ -110,6 +112,8 @@ export default function PracticePanel({
   const [remediation, setRemediation] = useState<RemediationResponse | null>(null);
   const [remediating, setRemediating] = useState(false);
   const practiceRef = useRef<HTMLDivElement | null>(null);
+  const consumedRequest = useRef(0);
+  const generationInFlight = useRef(false);
   const [assessmentPurpose, setAssessmentPurpose] = useState<string>("practice");
   const restoreKey = studentId ? `course-coach:assessment:${studentId}:${topic.id}` : null;
 
@@ -142,7 +146,7 @@ export default function PracticePanel({
   }, []);
 
   useEffect(() => {
-    if (!restoreKey || initialAssessment) return;
+    if (!restoreKey || initialAssessment || generationRequest) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       let saved: { id?: string; answers?: Record<string, string>; submissionId?: string } = {};
@@ -158,7 +162,7 @@ export default function PracticePanel({
       }).catch((cause) => { if (!cancelled) setError(`无法恢复上次测试：${cause instanceof Error ? cause.message : "请检查连接"}。你可以重新加载页面，或开始一套新练习。`); });
     }, 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [restoreKey, initialAssessment, withStudent, installPracticeSet]);
+  }, [restoreKey, initialAssessment, generationRequest, withStudent, installPracticeSet]);
   useEffect(() => {
     if (!initialAssessment) return;
     const timer = window.setTimeout(() => {
@@ -180,8 +184,9 @@ export default function PracticePanel({
   }, [restoreKey, practiceSet, answers, submissionId]);
   useEffect(() => { onActiveCheckpoint?.(Boolean(practiceSet && (practiceSet.mode === "checkpoint" || assessmentPurpose === "prerequisite_test") && !result)); }, [onActiveCheckpoint, practiceSet, result, assessmentPurpose]);
 
-  async function generate(mode: LearningMode) {
-    if (generatingMode || submitting || (mode === "checkpoint" && !checkpointAllowed)) return;
+  const generate = useCallback(async (mode: LearningMode) => {
+    if (generationInFlight.current || generatingMode || submitting || (mode === "checkpoint" && !checkpointAllowed)) return;
+    generationInFlight.current = true;
     setGeneratingMode(mode);
     setError(null);
     setValidationError(null);
@@ -205,9 +210,21 @@ export default function PracticePanel({
         setError(cause instanceof Error ? cause.message : "练习生成失败，请稍后重试。");
       }
     } finally {
+      generationInFlight.current = false;
       setGeneratingMode(null);
     }
-  }
+  }, [generatingMode, submitting, checkpointAllowed, withStudent, topic.id, installPracticeSet]);
+
+  useEffect(() => {
+    if (!generationRequest || consumedRequest.current === generationRequest) return;
+    const timer = window.setTimeout(() => {
+      consumedRequest.current = generationRequest;
+      // Reopening an unfinished exercise preserves the student's answers.
+      if (practiceSet && !result) return;
+      void generate("practice");
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [generationRequest, practiceSet, result, generate]);
 
   async function submit() {
     if (!practiceSet || submitting || result) return;
@@ -312,6 +329,8 @@ export default function PracticePanel({
         </div>
         {!checkpointAllowed && <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2 text-xs leading-6 text-amber-800">{checkpointBlockedReason || "正式测试前需满足前置能力与学习证据要求。可以先完成无提示练习，并查看知识点页的下一步建议。"}</p>}
       </div>
+
+      {generatingMode && <p role="status" className="flex items-center gap-2 px-1 text-sm text-indigo-600"><RefreshIcon className="size-4 animate-spin" />正在为当前知识点出题，请稍候…</p>}
 
       {error && (
         <div className="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800" role="alert">
