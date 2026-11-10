@@ -53,7 +53,8 @@ export interface ChatRequest {
   message: string;
   history: ChatHistoryItem[];
   topic_id?: string;
-  learning_mode?: "free_qa" | "topic_teaching" | "topic_clarification" | "worked_example" | "remediation";
+  conversation_token?: string;
+  learning_mode?: "free_qa" | "topic_teaching" | "topic_clarification" | "topic_practice" | "topic_answer" | "worked_example" | "remediation";
 }
 
 export interface ChatResponse {
@@ -61,6 +62,7 @@ export interface ChatResponse {
   course: Course;
   sources: Source[];
   retrieval_count: number;
+  conversation_token?: string | null;
 }
 
 export interface Conversation {

@@ -89,7 +89,6 @@ export default function PracticePanel({
   initialAssessment = null,
   onActiveCheckpoint,
   checkpointBlockedReason,
-  generationRequest = 0,
 }: {
   topic: CurriculumTopic;
   onLearningUpdated: () => void | Promise<void>;
@@ -97,7 +96,6 @@ export default function PracticePanel({
   initialAssessment?: Assessment | null;
   onActiveCheckpoint?: (active: boolean) => void;
   checkpointBlockedReason?: string;
-  generationRequest?: number;
 }) {
   const { withStudent, studentId } = useStudent();
   const [practiceSet, setPracticeSet] = useState<PublicPracticeSet | null>(null);
@@ -112,7 +110,6 @@ export default function PracticePanel({
   const [remediation, setRemediation] = useState<RemediationResponse | null>(null);
   const [remediating, setRemediating] = useState(false);
   const practiceRef = useRef<HTMLDivElement | null>(null);
-  const consumedRequest = useRef(0);
   const generationInFlight = useRef(false);
   const [assessmentPurpose, setAssessmentPurpose] = useState<string>("practice");
   const restoreKey = studentId ? `course-coach:assessment:${studentId}:${topic.id}` : null;
@@ -146,7 +143,7 @@ export default function PracticePanel({
   }, []);
 
   useEffect(() => {
-    if (!restoreKey || initialAssessment || generationRequest) return;
+    if (!restoreKey || initialAssessment) return;
     let cancelled = false;
     const timer = window.setTimeout(() => {
       let saved: { id?: string; answers?: Record<string, string>; submissionId?: string } = {};
@@ -162,7 +159,7 @@ export default function PracticePanel({
       }).catch((cause) => { if (!cancelled) setError(`无法恢复上次测试：${cause instanceof Error ? cause.message : "请检查连接"}。你可以重新加载页面，或开始一套新练习。`); });
     }, 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [restoreKey, initialAssessment, generationRequest, withStudent, installPracticeSet]);
+  }, [restoreKey, initialAssessment, withStudent, installPracticeSet]);
   useEffect(() => {
     if (!initialAssessment) return;
     const timer = window.setTimeout(() => {
@@ -214,17 +211,6 @@ export default function PracticePanel({
       setGeneratingMode(null);
     }
   }, [generatingMode, submitting, checkpointAllowed, withStudent, topic.id, installPracticeSet]);
-
-  useEffect(() => {
-    if (!generationRequest || consumedRequest.current === generationRequest) return;
-    const timer = window.setTimeout(() => {
-      consumedRequest.current = generationRequest;
-      // Reopening an unfinished exercise preserves the student's answers.
-      if (practiceSet && !result) return;
-      void generate("practice");
-    }, 0);
-    return () => window.clearTimeout(timer);
-  }, [generationRequest, practiceSet, result, generate]);
 
   async function submit() {
     if (!practiceSet || submitting || result) return;

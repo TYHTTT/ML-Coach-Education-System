@@ -4,6 +4,7 @@ from app.api.dependencies import agent_from_request, student_id_from_authorizati
 from app.core.exceptions import CourseTopicMismatchError
 from app.prompts.learning import get_learning_prompt
 from app.services.learning_grounding import LearningGroundingService
+from app.services.conversation_tokens import issue_conversation_token, read_conversation_token
 from app.schemas.chat import ChatRequest, ChatResponse
 
 
@@ -28,11 +29,24 @@ async def chat(
             detail=f"history 最多包含 {settings.max_history_messages} 条消息",
         )
     history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]] if settings.max_history_messages else []
-    plain_query = payload.learning_mode in {"topic_teaching", "topic_clarification"} and payload.topic_id is not None
+    plain_query = payload.learning_mode in {"topic_teaching", "topic_clarification", "topic_practice", "topic_answer"} and payload.topic_id is not None
     retrieval_query: str | None = None
     system_prompt: str | None = None
     repository = request.app.state.learning_repository
     student_id = student_id_from_authorization(authorization, repository)
+    conversation_id = None
+    scope = {
+        "secret": settings.dify_api_key.get_secret_value(),
+        "student_id": student_id or "", "course": payload.course.value,
+        "topic_id": payload.topic_id or "",
+    }
+    if payload.conversation_token:
+        if not plain_query or not student_id:
+            raise HTTPException(status_code=403, detail="该对话不属于当前学生或知识点，请重新开始学习。")
+        try:
+            conversation_id = read_conversation_token(payload.conversation_token, **scope)
+        except ValueError:
+            raise HTTPException(status_code=403, detail="对话已过期或不属于当前知识点，请重新开始学习。") from None
     if payload.topic_id is not None:
         topic = repository.require_topic(payload.topic_id)
         if topic["course"] != payload.course.value:
@@ -66,5 +80,9 @@ async def chat(
         topic_id=payload.topic_id,
         user=student_id,
         plain_query=plain_query,
+        **({"conversation_id": conversation_id} if conversation_id else {}),
     )
+    remote_id = result.get("conversation_id")
+    if plain_query and student_id and scope["secret"] and isinstance(remote_id, str) and 1 <= len(remote_id) <= 128:
+        result["conversation_token"] = issue_conversation_token(remote_id, **scope)
     return ChatResponse.model_validate(result)

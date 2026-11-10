@@ -20,12 +20,13 @@ class DifyClient:
         await self.http.aclose()
 
     async def run(self, messages: list[dict[str, str]] | str, *, course: Course | None = None,
-                  topic_id: str | None = None, user: str | None = None) -> dict:
+                  topic_id: str | None = None, user: str | None = None,
+                  conversation_id: str | None = None) -> dict:
         key = self.settings.dify_api_key.get_secret_value().strip()
         if not key or not self.settings.dify_api_base_url.strip():
             raise ConfigurationError("请在后端配置 DIFY_API_BASE_URL 和 DIFY_API_KEY")
-        # Each operation is independent. Browser history is supplied explicitly;
-        # never reuse a remote conversation across courses or grading tasks.
+        # Only topic dialogue reuses a verified conversation. Structured grading
+        # and retrieval tasks continue to run independently.
         payload = {
             "inputs": {**self.settings.dify_inputs,
                        **({"course": course.value} if course else {}),
@@ -35,7 +36,10 @@ class DifyClient:
             "user": user or f"course-coach-{uuid4().hex}",
             "auto_generate_name": False,
         }
+        if conversation_id:
+            payload["conversation_id"] = conversation_id
         answer = ""
+        remote_conversation_id = conversation_id
         metadata = {}
         ended = False
         try:
@@ -48,6 +52,7 @@ class DifyClient:
                     body = json.loads(await response.aread())
                     answer = body.get("answer", "")
                     metadata = body.get("metadata") or {}
+                    remote_conversation_id = body.get("conversation_id") or remote_conversation_id
                     ended = True
                 else:
                     async for line in response.aiter_lines():
@@ -58,6 +63,7 @@ class DifyClient:
                             continue
                         event = json.loads(data)
                         kind = event.get("event")
+                        remote_conversation_id = event.get("conversation_id") or remote_conversation_id
                         if kind == "error":
                             raise LLMServiceError("Dify Agent 处理失败，请检查应用配置后重试")
                         if kind in {"message", "agent_message"}:
@@ -74,7 +80,8 @@ class DifyClient:
         if not ended or not isinstance(answer, str) or not answer.strip():
             raise LLMServiceError("Dify 返回了空回答或未完整结束的响应，请重试")
         resources = metadata.get("retriever_resources", []) if isinstance(metadata, dict) else []
-        return {"answer": answer, "resources": resources if isinstance(resources, list) else []}
+        return {"answer": answer, "resources": resources if isinstance(resources, list) else [],
+                "conversation_id": remote_conversation_id}
 
     async def generate(self, messages: list[dict[str, str]], temperature: float | None = None) -> str:
         # Sampling and model selection are configured on the published Dify app.
@@ -85,11 +92,12 @@ class DifyClient:
 
     async def answer(self, *, course: Course, question: str, history: list[dict[str, str]],
                      system_prompt: str | None = None, topic_id: str | None = None,
-                     user: str | None = None, plain_query: bool = False) -> dict:
+                     user: str | None = None, plain_query: bool = False,
+                     conversation_id: str | None = None) -> dict:
         messages: str | list[dict[str, str]]
         if plain_query:
             messages = question
-            if history:
+            if history and not conversation_id:
                 transcript = "\n\n".join(
                     f"{'学生' if item['role'] == 'user' else '课程助手'}：\n{item['content']}"
                     for item in history
@@ -97,11 +105,11 @@ class DifyClient:
                 messages = f"此前对话：\n{transcript}\n\n学生本次提问：\n{question}"
         else:
             messages = self._chat_messages(course, question, history, system_prompt, topic_id)
-        result = await self.run(messages, course=course, topic_id=topic_id, user=user)
+        result = await self.run(messages, course=course, topic_id=topic_id, user=user, conversation_id=conversation_id)
         sources = resource_snapshots(result["resources"], course=course)
         return {"answer": result["answer"], "course": course,
                 "sources": [{**item, "snippet": item["content"][:600]} for item in sources],
-                "retrieval_count": len(sources)}
+                "retrieval_count": len(sources), "conversation_id": result.get("conversation_id")}
 
     @staticmethod
     def _chat_messages(course: Course, question: str, history: list[dict[str, str]],

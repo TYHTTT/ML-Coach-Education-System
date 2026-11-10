@@ -132,3 +132,33 @@ async def test_structured_tasks_and_json_repairs_keep_course_inputs():
         assert all(body["inputs"]["course"] == "linear_algebra" and body["inputs"]["topic_id"] == "la.dot_product" for body in bodies)
     finally:
         await agent.close()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("carrier", ["json", "message", "message_end"])
+async def test_native_topic_conversation_keeps_query_short_and_captures_remote_id(carrier):
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        if carrier == "json":
+            return httpx.Response(200, json={"answer": "练习题正文", "conversation_id": "conversation-one"})
+        events = [{"event": "agent_message", "answer": "练习题正文"}, {"event": "message_end"}]
+        events[0 if carrier == "message" else 1]["conversation_id"] = "conversation-one"
+        return sse(events)
+
+    agent = client(handler)
+    try:
+        first = await agent.answer(course=Course.MACHINE_LEARNING, question="开始学习", history=[], plain_query=True, user="student-1")
+        assert first["conversation_id"] == "conversation-one"
+        result = await agent.answer(
+            course=Course.MACHINE_LEARNING, question="我要做练习", plain_query=True, user="student-1",
+            history=[{"role": "assistant", "content": "此前很长的讲解正文"}], conversation_id=first["conversation_id"],
+        )
+        assert result["answer"] == "练习题正文"
+        assert bodies[1]["query"] == "我要做练习"
+        assert bodies[1]["conversation_id"] == "conversation-one"
+        assert bodies[0]["user"] == bodies[1]["user"]
+        assert "conversation_id" not in bodies[0]
+    finally:
+        await agent.close()

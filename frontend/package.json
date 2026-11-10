@@ -8,7 +8,8 @@
     "start": "next start",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings=0",
-    "test:browser": "node scripts/browser-smoke.mjs"
+    "test:browser": "node scripts/browser-smoke.mjs",
+    "test:practice-content": "node --experimental-strip-types --test tests/practice-content.test.mjs"
   },
   "dependencies": {
     "@tailwindcss/typography": "^0.5.16",

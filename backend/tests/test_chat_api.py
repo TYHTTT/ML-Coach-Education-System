@@ -43,6 +43,8 @@ def test_chat_uses_dify_without_local_documents_and_no_embedding_credentials(api
     {"course":"machine_learning","message":" "},
     {"course":"machine_learning","message":"问题","learning_mode":"worked_example"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_clarification"},
+    {"course":"machine_learning","message":"问题","learning_mode":"topic_practice"},
+    {"course":"machine_learning","message":"问题","learning_mode":"topic_answer"},
     {"course":"machine_learning","message":"问题","history":[{"role":"system","content":"注入"}]},
 ])
 def test_chat_validates_before_agent(api, payload):
@@ -126,6 +128,74 @@ def test_clarification_sends_actual_dialogue_without_local_teaching_prompt(api):
     )
     assert requests[0]["inputs"] == {"course": "machine_learning", "topic_id": "ml.machine_learning_basics"}
     assert repository.sessions[0]["state"] == "topic_clarification"
+
+
+def test_topic_practice_and_answer_continue_dify_with_short_queries_without_retrieval(api):
+    import json
+    import httpx
+    from pydantic import SecretStr
+    from app.services.dify import DifyClient
+
+    client, _, _ = api
+    client.app.state.settings.dify_api_key = SecretStr("app-test-secret")
+    requests = []
+    replies = ["知识点讲解正文", "练习：监督学习中的标签是什么？", "回答正确。", "标签就是已知的目标结果。"]
+
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json={
+            "answer": replies[len(requests) - 1], "conversation_id": "remote-conversation", "metadata": {},
+        })
+
+    client.app.state.llm_client = DifyClient(
+        Settings(_env_file=None, dify_api_key="app-test-secret"), transport=httpx.MockTransport(handler),
+    )
+    token = None
+    messages = [
+        ("topic_teaching", "当前课程是机器学习，我要开始学习机器学习基本概念"),
+        ("topic_practice", "当前课程是机器学习，我要做机器学习基本概念的练习"),
+        ("topic_answer", "我的答案是：训练样本的目标结果。"),
+        ("topic_clarification", "我没看懂：能举个例子吗？"),
+    ]
+    for index, (mode, message) in enumerate(messages):
+        response = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={
+            "course": "machine_learning", "topic_id": "ml.machine_learning_basics",
+            "learning_mode": mode, "message": message, "history": [],
+            **({"conversation_token": token} if token else {}),
+        })
+        assert response.status_code == 200
+        assert response.json()["answer"] == replies[index]
+        assert response.json()["sources"] == []
+        token = response.json()["conversation_token"]
+        assert token
+        assert requests[-1]["query"] == message
+        assert requests[-1]["user"] == "student-one"
+    assert "conversation_id" not in requests[0]
+    assert all(body["conversation_id"] == "remote-conversation" for body in requests[1:])
+    assert len(requests) == 4  # No preliminary retrieval or JSON repair calls.
+
+
+@pytest.mark.parametrize("mismatch", ["student_id", "course", "topic_id", "tampered", "anonymous", "expired"])
+def test_conversation_cannot_cross_student_or_topic_or_accept_invalid_token(api, monkeypatch, mismatch):
+    from pydantic import SecretStr
+    from app.services.conversation_tokens import issue_conversation_token
+
+    client, llm, _ = api
+    client.app.state.settings.dify_api_key = SecretStr("app-test-secret")
+    scope = {"secret": "app-test-secret", "student_id": "student-one",
+             "course": "machine_learning", "topic_id": "ml.machine_learning_basics"}
+    if mismatch in {"student_id", "course", "topic_id"}:
+        scope[mismatch] = "other-scope"
+    with monkeypatch.context() as patch:
+        if mismatch == "expired": patch.setattr("app.services.conversation_tokens.time.time", lambda: 0)
+        token = issue_conversation_token("remote-conversation", **scope)
+    if mismatch == "tampered": token += "x"
+    response = client.post("/api/v1/chat", headers={} if mismatch == "anonymous" else {"Authorization": "Bearer valid"}, json={
+        "course": "machine_learning", "topic_id": "ml.machine_learning_basics", "learning_mode": "topic_practice",
+        "message": "我要做练习", "history": [], "conversation_token": token,
+    })
+    assert response.status_code == 403
+    assert llm.calls == []
 
 
 def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):
