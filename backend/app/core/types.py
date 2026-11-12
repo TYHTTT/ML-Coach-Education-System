@@ -15,7 +15,3 @@ class Course(str, Enum):
             self.LINEAR_ALGEBRA: "线性代数",
             self.PROBABILITY_STATISTICS: "概率论与统计基础",
         }[self]
-
-    @property
-    def collection_name(self) -> str:
-        return f"course_{self.value}"

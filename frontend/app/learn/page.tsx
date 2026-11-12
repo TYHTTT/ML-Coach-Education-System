@@ -29,7 +29,7 @@ export default function LearnHomePage() {
               从“听懂了”走到“真正掌握”
             </h1>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              选择一门课程，系统会依据前置关系引导你讲解、练习、评价和补救。每一次有效作答都会形成学习证据，并给出清晰的下一步。
+              选择一门课程和知识点，开始 AI 讲解。没看懂可以继续追问，也可以在同一对话中做练习并获得反馈。
             </p>
           </div>
         </section>

@@ -5,8 +5,7 @@ import sys
 from pathlib import Path
 
 from app.core.config import Settings
-from app.core.types import Course
-from app.curriculum.seed import DEFAULT_SEED_PATHS, seed_curriculum
+from app.curriculum.seed import seed_curriculum
 from app.services.learning_repository import LearningRepository
 
 
@@ -17,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--seed",
         action="append",
         type=Path,
-        help="自定义 Seed JSON；可重复传入。省略时导入两门默认课程",
+        help="自定义 Seed JSON；可重复传入。省略时导入四门课程及其前置关系",
     )
     return parser
 
@@ -26,9 +25,7 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     repository = LearningRepository(args.database_url or Settings().database_url)
     try:
-        counts = seed_curriculum(repository, args.seed or DEFAULT_SEED_PATHS)
-        if not args.seed:
-            counts = {course.value: len(repository.list_topics(course)) for course in Course}
+        counts = seed_curriculum(repository, args.seed)
     except Exception as exc:
         print(f"Seed 导入失败：{exc}", file=sys.stderr)
         return 1

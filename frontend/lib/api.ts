@@ -3,17 +3,9 @@ import type {
   ChatRequest,
   ChatResponse,
   Course,
-  CreatePracticeSetRequest,
+  CourseOutline,
   CurriculumResponse,
   LearningDashboard,
-  LearningHistoryResponse,
-  PracticeAnswer,
-  PracticeOption,
-  PracticeSubmitResult,
-  PublicPracticeQuestion,
-  PublicPracticeSet,
-  RemediationRequest,
-  RemediationResponse,
   CurriculumTopic,
 } from "@/lib/types";
 
@@ -124,10 +116,6 @@ export function sendChat(
 
 function studentHeaders(studentId: string): HeadersInit {
   return { Authorization: `Bearer ${studentId}` };
-}
-
-function jsonStudentHeaders(studentId: string): HeadersInit {
-  return { "Content-Type": "application/json", ...studentHeaders(studentId) };
 }
 
 export function isStudentNotFound(error: unknown): boolean {
@@ -313,135 +301,9 @@ function strings(value: unknown): string[] {
     : [];
 }
 
-function sanitizeOptions(value: unknown): PracticeOption[] | undefined {
-  if (!Array.isArray(value)) return undefined;
-  const options = value.flatMap((item, index) => {
-    if (typeof item === "string") return [{ value: item, label: item }];
-    const option = asRecord(item);
-    const labelCandidate = option.label ?? option.text ?? option.content ?? option.value;
-    const valueCandidate = option.value ?? option.option_id ?? option.key ?? option.id ?? String.fromCharCode(65 + index);
-    if (typeof labelCandidate !== "string") return [];
-    return [{ value: String(valueCandidate), label: labelCandidate }];
-  });
-  return options.length > 0 ? options : undefined;
-}
-
-function sanitizeQuestion(value: unknown, index: number): PublicPracticeQuestion {
-  const question = asRecord(value);
-  const dimensionNames = Array.isArray(question.dimension_names)
-    ? strings(question.dimension_names)
-    : Array.isArray(question.dimensions)
-      ? strings(question.dimensions)
-      : Object.keys(asRecord(question.dimensions));
-  return {
-    question_id: String(question.question_id ?? question.id ?? ""),
-    position: Number(question.position ?? index + 1),
-    question_type: String(question.question_type ?? "concept_explanation"),
-    difficulty: String(question.difficulty ?? "medium"),
-    question: String(question.question ?? ""),
-    options: sanitizeOptions(question.options),
-    dimension_names: dimensionNames,
-    max_score: typeof question.max_score === "number" ? question.max_score : undefined,
-    required: typeof question.required === "boolean" ? question.required : true,
-  };
-}
-
-/** Explicit projection prevents hidden grading fields from entering React state. */
-export function sanitizePublicPracticeSet(payload: unknown): PublicPracticeSet {
-  const body = asRecord(payload);
-  if (String(body.status ?? "").toLowerCase() === "knowledge_insufficient") {
-    throw new ApiError(
-      typeof body.message === "string"
-        ? body.message
-        : "Dify 未返回足够的可引用课程资料，请检查 Dify 知识检索与引用配置。",
-      422,
-      "KNOWLEDGE_INSUFFICIENT",
-    );
-  }
-  const questions = Array.isArray(body.questions)
-    ? body.questions.map(sanitizeQuestion)
-    : [];
-  const sourceSummary = Array.isArray(body.source_summary)
-    ? body.source_summary.map((item) => {
-        const source = asRecord(item);
-        return {
-          source_id: String(source.source_id ?? ""),
-          source_file: String(source.source_file ?? ""),
-          title: typeof source.title === "string" ? source.title : null,
-        };
-      })
-    : [];
-  const result: PublicPracticeSet = {
-    practice_set_id: String(body.practice_set_id ?? ""),
-    topic_id: String(body.topic_id ?? ""),
-    mode: body.mode === "checkpoint" ? "checkpoint" : "practice",
-    questions,
-    source_summary: sourceSummary,
-    status: typeof body.status === "string" ? body.status : undefined,
-    created_at: typeof body.created_at === "string" ? body.created_at : undefined,
-  };
-  if (!result.practice_set_id || !result.topic_id || result.questions.some((item) => !item.question_id)) {
-    throw new ApiError("服务端返回了无效的练习内容。", 502, "INVALID_PRACTICE_RESPONSE");
-  }
-  return result;
-}
-
-export async function createPracticeSet(
-  payload: CreatePracticeSetRequest,
-  studentId: string,
-): Promise<PublicPracticeSet> {
-  const response = await request<unknown>("/api/v1/practice/sets", {
-    method: "POST",
-    headers: jsonStudentHeaders(studentId),
-    body: JSON.stringify(payload),
-  });
-  return sanitizePublicPracticeSet(response);
-}
-
-export async function getPracticeSet(
-  practiceSetId: string,
-  studentId: string,
-): Promise<PublicPracticeSet> {
-  const response = await request<unknown>(
-    `/api/v1/practice/sets/${encodeURIComponent(practiceSetId)}`,
-    { headers: studentHeaders(studentId) },
-  );
-  return sanitizePublicPracticeSet(response);
-}
-
-export function submitPracticeSet(
-  practiceSetId: string,
-  payload: { client_submission_id: string; answers: PracticeAnswer[] },
-  studentId: string,
-): Promise<PracticeSubmitResult> {
-  return request<PracticeSubmitResult>(
-    `/api/v1/practice/sets/${encodeURIComponent(practiceSetId)}/submit`,
-    {
-      method: "POST",
-      headers: jsonStudentHeaders(studentId),
-      body: JSON.stringify(payload),
-    },
-  );
-}
-
-export function requestRemediation(
-  payload: RemediationRequest,
-  studentId: string,
-): Promise<RemediationResponse> {
-  return request<RemediationResponse>("/api/v1/learning/remediation", {
-    method: "POST",
-    headers: jsonStudentHeaders(studentId),
-    body: JSON.stringify(payload),
-  });
-}
-
-export function getLearningHistory(
-  course: Course,
-  studentId: string,
-  limit = 20,
-): Promise<LearningHistoryResponse> {
-  return request<LearningHistoryResponse>(
-    `/api/v1/learning/history?course=${encodeURIComponent(course)}&limit=${limit}`,
-    { headers: studentHeaders(studentId) },
+export function getCourseOutline(course: Course, studentId?: string): Promise<CourseOutline> {
+  return request<CourseOutline>(
+    `/api/v1/courses/${encodeURIComponent(course)}/outline`,
+    studentId ? { headers: studentHeaders(studentId) } : {},
   );
 }

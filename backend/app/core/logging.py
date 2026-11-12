@@ -12,20 +12,6 @@ def _redact(value: str, secrets: Iterable[str]) -> str:
     return re.sub(r"(?i)(bearer\s+)[A-Za-z0-9._~+\-/=]+", r"\1***", value)
 
 
-class SecretRedactionFilter(logging.Filter):
-    """Compatibility filter for handlers that do not use RedactingFormatter."""
-
-    def __init__(self, secrets: Iterable[str] = ()) -> None:
-        super().__init__()
-        self.secrets = tuple(secret for secret in secrets if secret)
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        message = _redact(record.getMessage(), self.secrets)
-        record.msg = message
-        record.args = ()
-        return True
-
-
 class RedactingFormatter(logging.Formatter):
     """Redact the final formatted record, including exception tracebacks."""
 

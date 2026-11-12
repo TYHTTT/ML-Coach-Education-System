@@ -15,9 +15,7 @@ from app.api.chat import router as chat_router
 from app.api.curriculum import router as curriculum_router
 from app.api.health import router as health_router
 from app.api.learning import router as learning_router
-from app.api.practice import router as practice_router
 from app.api.students import router as students_router
-from app.api.content import router as content_router
 from app.api.course_content import router as course_content_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppError
@@ -71,7 +69,7 @@ def create_app(
     app = FastAPI(
         title="Course Coach API",
         version=__version__,
-        description="机器学习与高等数学课程问答 Agent 后端",
+        description="Dify 学习助手、课程目录与学生账户后端",
         lifespan=lifespan,
     )
     app.state.settings = app_settings
@@ -82,7 +80,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=app_settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
 
@@ -123,9 +121,7 @@ def create_app(
     app.include_router(chat_router)
     app.include_router(students_router)
     app.include_router(curriculum_router)
-    app.include_router(practice_router)
     app.include_router(learning_router)
-    app.include_router(content_router)
     app.include_router(course_content_router)
     return app
 

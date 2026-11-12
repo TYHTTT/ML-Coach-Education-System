@@ -39,33 +39,14 @@ class Settings(BaseSettings):
     max_history_messages: int = Field(default=12, ge=0, le=100)
     max_message_length: int = Field(default=8000, ge=1, le=100_000)
 
-    practice_default_count: int = Field(default=3, ge=1, le=8)
-    checkpoint_default_count: int = Field(default=5, ge=1, le=8)
-    practice_max_count: int = Field(default=8, ge=1, le=8)
-
     mastery_gate_threshold: float = Field(default=0.80, ge=0, le=1)
     prerequisite_mastery_threshold: float = Field(default=0.80, ge=0, le=1)
     mastery_min_valid_attempts: int = Field(default=3, ge=1)
     mastery_checkpoint_score: float = Field(default=80, ge=0, le=100)
     mastery_min_dimension_coverage: int = Field(default=3, ge=1)
-    mastery_evidence_confidence_target: float = Field(default=6, gt=0)
-
-    evaluator_min_confidence: float = Field(default=0.60, ge=0, le=1)
-    evaluation_max_repair_attempts: int = Field(default=1, ge=0, le=1)
-
-    practice_generation_temperature: float = Field(default=0.30, ge=0, le=2)
-    evaluation_temperature: float = Field(default=0.00, ge=0, le=2)
-    remediation_temperature: float = Field(default=0.20, ge=0, le=2)
-
-    recent_question_dedup_count: int = Field(default=10, ge=1, le=100)
-    question_generation_max_retries: int = Field(default=1, ge=0, le=1)
 
     @model_validator(mode="after")
     def validate_and_resolve(self) -> "Settings":
-        if self.practice_default_count > self.practice_max_count:
-            raise ValueError("PRACTICE_DEFAULT_COUNT 不能大于 PRACTICE_MAX_COUNT")
-        if self.checkpoint_default_count > self.practice_max_count:
-            raise ValueError("CHECKPOINT_DEFAULT_COUNT 不能大于 PRACTICE_MAX_COUNT")
         origins = self.cors_origins
         if self.app_env == "production" and "*" in origins:
             raise ValueError("生产环境不允许 FRONTEND_ORIGIN 使用通配符")

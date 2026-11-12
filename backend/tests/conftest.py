@@ -6,12 +6,8 @@ from pathlib import Path
 
 import pytest
 from psycopg.conninfo import conninfo_to_dict
-from fastapi.testclient import TestClient
 
-from app.core.config import Settings
 from app.db.database import PostgresDatabase
-from app.main import create_app
-from tests.mocks import MockLLMClient
 
 
 @pytest.fixture
@@ -39,30 +35,3 @@ def postgres_test_database_url() -> Iterator[str]:
             "TRUNCATE TABLE " + ", ".join(row["name"] for row in tables) + " RESTART IDENTITY CASCADE"
         )
     yield database_url
-
-
-@pytest.fixture
-def settings(tmp_path, postgres_test_database_url: str) -> Settings:
-    return Settings(
-        _env_file=None,
-        app_env="test",
-        database_url=postgres_test_database_url,
-    )
-
-
-@pytest.fixture
-def mock_llm() -> MockLLMClient:
-    return MockLLMClient()
-
-
-@pytest.fixture
-def client(
-    settings: Settings,
-    mock_llm: MockLLMClient,
-) -> Iterator[TestClient]:
-    application = create_app(
-        settings,
-        llm_client=mock_llm,
-    )
-    with TestClient(application) as test_client:
-        yield test_client

@@ -3,7 +3,6 @@ from __future__ import annotations
 from typing import Any
 
 from app.core.config import Settings
-from app.core.exceptions import TopicLockedError
 from app.core.types import Course
 from app.learning.gate import MasteryGateConfig, MasteryGateInput, evaluate_mastery_gate
 from app.learning.orchestrator import (
@@ -15,7 +14,7 @@ from app.services.learning_repository import LearningRepository
 
 
 class LearningService:
-    """Deterministic application service for topic state and next actions."""
+    """Study state and course overview, including historical progress recommendations."""
 
     def __init__(self, *, settings: Settings, repository: LearningRepository) -> None:
         self.settings = settings
@@ -24,7 +23,6 @@ class LearningService:
     def start_topic(self, *, student_id: str, topic_id: str) -> dict[str, Any]:
         self.repository.require_student(student_id)
         topic = self.repository.require_topic(topic_id, student_id=student_id)
-        unmet = self.repository.get_unmet_prerequisites(student_id, topic_id)
         state = self.repository.ensure_topic_state(student_id, topic_id)
         if state["status"] != "mastered":
             changes: dict[str, Any] = {"status": "learning"}
@@ -44,7 +42,7 @@ class LearningService:
         topic = self.repository.require_topic(topic_id, student_id=student_id)
         state = self.repository.get_topic_state(student_id, topic_id)
         unmet = self.repository.get_unmet_prerequisites(student_id, topic_id)
-        status = self._status(state, unmet)
+        status = self._status(state)
         dimensions = {
             item["dimension"]: {
                 "mastery": float(item["mastery"]),
@@ -74,11 +72,10 @@ class LearningService:
             "confidence": float(state["confidence"]) if state else 0.0,
             "dimensions": dimensions,
             "locked_reason": (
-                "请先通过：" + "、".join(item["title"] for item in unmet)
+                "建议先学习：" + "、".join(item["title"] for item in unmet)
                 if unmet
                 else None
             ),
-            "gate": self.evaluate_topic_gate(student_id, topic, state).model_dump(),
         }
 
     def dashboard(self, *, student_id: str, course: Course) -> dict[str, Any]:
@@ -110,7 +107,7 @@ class LearningService:
                     "stage": topic["stage"],
                     "stage_title": topic["stage_title"],
                     "order_index": topic["order_index"],
-                    "status": self._status(state, unmet),
+                    "status": self._status(state),
                     "mastery": (
                         float(state["mastery"])
                         if state is not None and int(state["evidence_count"]) > 0
@@ -199,23 +196,6 @@ class LearningService:
             ],
         }
 
-    def history(
-        self,
-        *,
-        student_id: str,
-        course: Course,
-        limit: int,
-    ) -> dict[str, Any]:
-        self.repository.require_student(student_id)
-        return {
-            "course": course.value,
-            "events": self.repository.list_learning_history(
-                student_id,
-                course=course,
-                limit=limit,
-            ),
-        }
-
     def evaluate_topic_gate(self, student_id: str, topic: dict[str, Any], state):
         state = state or {
             "mastery": 0.5,
@@ -261,7 +241,7 @@ class LearningService:
         )
 
     @staticmethod
-    def _status(state, unmet: list[dict[str, Any]]) -> str:
+    def _status(state) -> str:
         if state is not None and state["status"] == "mastered":
             return "mastered"
         return state["status"] if state is not None and state["status"] != "locked" else "not_started"

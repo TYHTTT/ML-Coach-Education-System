@@ -80,9 +80,6 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   outline-offset: 3px;
 }
 
-.lesson-panel { min-width: 0; overflow-wrap: anywhere; }
-.lesson-panel .prose { min-width: 0; }
-.lesson-panel .katex-display { max-width: 100%; }
 
 .prose .katex {
   font-size: 1.05em;

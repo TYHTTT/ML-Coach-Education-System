@@ -19,19 +19,17 @@ class DifyClient:
     async def close(self) -> None:
         await self.http.aclose()
 
-    async def run(self, messages: list[dict[str, str]] | str, *, course: Course | None = None,
+    async def run(self, query: str, *, course: Course | None = None,
                   topic_id: str | None = None, user: str | None = None,
                   conversation_id: str | None = None) -> dict:
         key = self.settings.dify_api_key.get_secret_value().strip()
         if not key or not self.settings.dify_api_base_url.strip():
             raise ConfigurationError("请在后端配置 DIFY_API_BASE_URL 和 DIFY_API_KEY")
-        # Only topic dialogue reuses a verified conversation. Structured grading
-        # and retrieval tasks continue to run independently.
         payload = {
             "inputs": {**{key: value for key, value in self.settings.dify_inputs.items() if key not in {"course", "topic_id"}},
                        **({"course": course.value} if course else {}),
                        **({"topic_id": topic_id} if topic_id else {})},
-            "query": messages if isinstance(messages, str) else json.dumps({"messages": messages}, ensure_ascii=False),
+            "query": query,
             "response_mode": "streaming",
             "user": user or f"course-coach-{uuid4().hex}",
             "auto_generate_name": False,
@@ -83,62 +81,25 @@ class DifyClient:
         return {"answer": answer, "resources": resources if isinstance(resources, list) else [],
                 "conversation_id": remote_conversation_id}
 
-    async def generate(self, messages: list[dict[str, str]], temperature: float | None = None) -> str:
-        # Sampling and model selection are configured on the published Dify app.
-        return (await self.run(messages))["answer"]
-
-    def for_task(self, course: Course, topic_id: str) -> DifyTaskClient:
-        return DifyTaskClient(self, course, topic_id)
-
     async def answer(self, *, course: Course | None, question: str, history: list[dict[str, str]],
-                     system_prompt: str | None = None, topic_id: str | None = None,
-                     user: str | None = None, plain_query: bool = False,
+                     topic_id: str | None = None, user: str | None = None,
                      conversation_id: str | None = None) -> dict:
-        messages: str | list[dict[str, str]]
-        if plain_query:
-            messages = question
-            if history and not conversation_id:
-                transcript = "\n\n".join(
-                    f"{'学生' if item['role'] == 'user' else '课程助手'}：\n{item['content']}"
-                    for item in history
-                )
-                messages = f"此前对话：\n{transcript}\n\n学生本次提问：\n{question}"
-        else:
-            messages = self._chat_messages(course, question, history, system_prompt, topic_id)
-        result = await self.run(messages, course=course, topic_id=topic_id, user=user, conversation_id=conversation_id)
+        query = question
+        if history and not conversation_id:
+            transcript = "\n\n".join(
+                f"{'学生' if item['role'] == 'user' else '课程助手'}：\n{item['content']}"
+                for item in history
+            )
+            query = f"此前对话：\n{transcript}\n\n学生本次提问：\n{question}"
+        result = await self.run(query, course=course, topic_id=topic_id, user=user, conversation_id=conversation_id)
         sources = resource_snapshots(result["resources"], course=course)
         return {"answer": result["answer"], "course": course,
                 "sources": [{**item, "snippet": item["content"][:600]} for item in sources],
                 "retrieval_count": len(sources), "conversation_id": result.get("conversation_id")}
 
-    @staticmethod
-    def _chat_messages(course: Course | None, question: str, history: list[dict[str, str]],
-                       system_prompt: str | None, topic_id: str | None) -> list[dict[str, str]]:
-        prompt = "你是中文学习助手。请根据用户的问题回答，不得编造引用。"
-        if course:
-            prompt = f"你是中文课程辅导助手。当前课程：{course.display_name}。仅使用该课程的资料；资料不足时如实说明，不得编造引用。"
-        if topic_id:
-            prompt += f"当前知识点：{topic_id}。"
-        if system_prompt:
-            prompt += "\n" + system_prompt
-        return [{"role": "system", "content": prompt}, *history, {"role": "user", "content": question}]
 
-
-class DifyTaskClient:
-    """Immutable scope for generation and repairs using the shared transport."""
-
-    def __init__(self, agent: DifyClient, course: Course, topic_id: str) -> None:
-        self.agent = agent
-        self.course = course
-        self.topic_id = topic_id
-
-    async def generate(self, messages: list[dict[str, str]], temperature: float | None = None) -> str:
-        result = await self.agent.run(messages, course=self.course, topic_id=self.topic_id)
-        return result["answer"]
-
-
-def resource_snapshots(resources: list, *, course: Course | None, topic_ids: list[str] | None = None) -> list[dict]:
-    """Keep actual Dify evidence; ignore explicitly foreign course/topic metadata."""
+def resource_snapshots(resources: list, *, course: Course | None) -> list[dict]:
+    """Keep actual Dify citations; ignore explicitly foreign course metadata."""
     snapshots = []
     seen = set()
     for resource in resources:
@@ -150,8 +111,6 @@ def resource_snapshots(resources: list, *, course: Course | None, topic_ids: lis
         source_course = metadata.get("course")
         topic_id = metadata.get("topic_id")
         if course and source_course and source_course != course.value:
-            continue
-        if topic_ids is not None and (course is None or source_course != course.value or topic_id not in topic_ids):
             continue
         try:
             resolved_course = course or (Course(source_course) if source_course else None)

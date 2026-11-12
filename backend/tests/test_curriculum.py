@@ -61,8 +61,8 @@ def test_default_seed_is_complete_and_idempotent(repository: LearningRepository)
     assert len(repository.list_topics(Course.ADVANCED_MATHEMATICS)) == 23
     with repository._connect() as connection:
         assert connection.execute(
-            "SELECT COUNT(*) FROM curriculum_topics"
-        ).fetchone()[0] == 74
+            "SELECT COUNT(*) AS count FROM curriculum_topics"
+        ).fetchone()["count"] == 74
         ids = connection.execute(
             "SELECT id FROM curriculum_topics GROUP BY id HAVING COUNT(*) > 1"
         ).fetchall()

@@ -1,4 +1,3 @@
-from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 from app.core.config import Settings
@@ -41,7 +40,9 @@ def test_chat_uses_dify_without_local_documents_and_no_embedding_credentials(api
 @pytest.mark.parametrize("payload", [
     {"course":"invalid","message":"问题"},
     {"course":"machine_learning","message":" "},
-    {"course":"machine_learning","message":"问题","learning_mode":"worked_example"},
+    {"course":"machine_learning","message":"问题","topic_id":"ml.machine_learning_basics","learning_mode":"worked_example"},
+    {"course":"machine_learning","message":"问题","topic_id":"ml.machine_learning_basics","learning_mode":"remediation"},
+    {"course":"machine_learning","message":"问题","learning_mode":"topic_teaching"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_clarification"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_practice"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_answer"},
@@ -246,13 +247,6 @@ def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):
     assert "knowledge" not in str(client.get("/openapi.json").json()["paths"])
 
 
-def test_undeclared_prerequisite_is_rejected_before_agent(api):
-    client, llm, _ = api
-    result = client.post("/api/v1/topics/ml.machine_learning_basics/prerequisites/la.vectors/ask",json={"message":"补学"})
-    assert result.status_code == 403
-    assert llm.calls == []
-
-
 def test_unconfigured_agent_returns_clear_503_without_database(monkeypatch):
     monkeypatch.setattr("app.main.seed_curriculum", lambda repository: None)
     app = create_app(Settings(_env_file=None), learning_repository=Repository())
@@ -277,8 +271,37 @@ def test_question_bank_and_fixed_selection_routes_are_removed(api, method, path)
     assert not any('question-bank' in path for path in client.get('/openapi.json').json()['paths'])
 
 
-def test_prerequisite_requests_no_longer_accept_bank_generation():
-    from pydantic import ValidationError
-    from app.schemas.content import PrerequisiteTestRequest
-    with pytest.raises(ValidationError):
-        PrerequisiteTestRequest(topic_id='ml.linear_regression', generation_mode='bank')
+
+
+@pytest.mark.parametrize("method,path", [
+    ("get", "/api/v1/courses"),
+    ("post", "/api/v1/students/anonymous"),
+    ("get", "/api/v1/topics/ml.machine_learning_basics/lesson"),
+    ("get", "/api/v1/topics/ml.machine_learning_basics/examples"),
+    ("get", "/api/v1/topics/ml.machine_learning_basics/prerequisites"),
+    ("post", "/api/v1/topics/ml.machine_learning_basics/prerequisites/la.vectors/ask"),
+    ("post", "/api/v1/practice/sets"),
+    ("get", "/api/v1/practice/sets/old-set"),
+    ("post", "/api/v1/practice/sets/old-set/submit"),
+    ("post", "/api/v1/learning/remediation"),
+    ("get", "/api/v1/learning/history"),
+    ("get", "/api/learning/machine_learning/history"),
+    ("get", "/api/v1/learning/machine_learning/topics/ml.machine_learning_basics"),
+    ("post", "/api/learning/machine_learning/start"),
+])
+def test_retired_content_and_assessment_routes_do_not_call_agent(api, method, path):
+    client, agent, _ = api
+    assert client.request(method, path).status_code == 404
+    assert agent.calls == []
+
+
+def test_openapi_exposes_only_current_features(api):
+    client, _, _ = api
+    assert set(client.get("/openapi.json").json()["paths"]) == {
+        "/health", "/api/v1/chat",
+        "/api/v1/students/register", "/api/v1/students/login",
+        "/api/v1/students/me", "/api/v1/students/logout",
+        "/api/v1/curriculum/topics", "/api/v1/curriculum/topics/{topic_id}",
+        "/api/v1/courses/{course}/outline", "/api/v1/learning/dashboard",
+        "/api/v1/learning/topics/{topic_id}/start",
+    }

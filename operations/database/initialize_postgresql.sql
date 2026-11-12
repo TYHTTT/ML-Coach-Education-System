@@ -91,6 +91,7 @@ CREATE TABLE IF NOT EXISTS student_dimension_states (
     FOREIGN KEY (student_id, topic_id) REFERENCES student_topic_states(student_id, topic_id) ON DELETE CASCADE
 );
 
+-- Read-only compatibility: existing course progress still reads historical results.
 CREATE TABLE IF NOT EXISTS practice_sets (
     id TEXT PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE RESTRICT,
@@ -165,24 +166,6 @@ CREATE TABLE IF NOT EXISTS prerequisite_verifications (
     PRIMARY KEY(student_id, dependent_topic_id, prerequisite_topic_id, competency, rule_version)
 );
 
-CREATE TABLE IF NOT EXISTS lessons (
-    id TEXT NOT NULL, version INTEGER NOT NULL CHECK(version > 0), topic_id TEXT NOT NULL REFERENCES curriculum_topics(id),
-    status TEXT NOT NULL CHECK(status IN ('draft', 'published', 'archived')), payload_json TEXT NOT NULL, created_at TEXT NOT NULL,
-    PRIMARY KEY(id, version)
-);
-
-CREATE TABLE IF NOT EXISTS worked_examples (
-    id TEXT NOT NULL, version INTEGER NOT NULL CHECK(version > 0), topic_id TEXT NOT NULL REFERENCES curriculum_topics(id), family_id TEXT NOT NULL,
-    status TEXT NOT NULL CHECK(status IN ('draft', 'published', 'archived')), payload_json TEXT NOT NULL, created_at TEXT NOT NULL,
-    PRIMARY KEY(id, version)
-);
-
-CREATE TABLE IF NOT EXISTS content_exposures (
-    id BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id),
-    content_id TEXT NOT NULL, content_version INTEGER NOT NULL, family_id TEXT NOT NULL, kind TEXT NOT NULL,
-    assessment_id TEXT, created_at TEXT NOT NULL
-);
-
 CREATE INDEX IF NOT EXISTS idx_curriculum_topics_course_stage_order ON curriculum_topics(course, active, stage, order_index);
 CREATE INDEX IF NOT EXISTS idx_topic_prerequisites_prerequisite ON topic_prerequisites(prerequisite_topic_id);
 CREATE INDEX IF NOT EXISTS idx_student_topic_states_topic_status ON student_topic_states(topic_id, status);
@@ -195,7 +178,6 @@ CREATE INDEX IF NOT EXISTS idx_practice_submissions_student_created ON practice_
 CREATE INDEX IF NOT EXISTS idx_practice_attempts_student_created ON practice_attempts(student_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_misconception_events_student_topic_unresolved ON misconception_events(student_id, topic_id, resolved_at);
 CREATE INDEX IF NOT EXISTS idx_learning_sessions_student_course_updated ON learning_sessions(student_id, course, updated_at DESC);
-CREATE INDEX IF NOT EXISTS idx_exposure_student_family ON content_exposures(student_id, family_id, kind);
 CREATE INDEX IF NOT EXISTS idx_student_sessions_token_hash ON student_sessions(token_hash);
 
 CREATE OR REPLACE FUNCTION enforce_registered_course() RETURNS trigger AS $$

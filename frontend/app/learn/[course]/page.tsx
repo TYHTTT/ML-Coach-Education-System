@@ -178,7 +178,7 @@ export default function CourseDashboardPage() {
                   <div>
                     <span className="inline-flex items-center gap-2 text-xs font-semibold text-slate-500"><ChartIcon className="size-4 text-indigo-600" />总体进度</span>
                     <p className="mt-3 text-3xl font-bold tabular-nums text-slate-950">{currentDashboard.mastered_count}<span className="ml-1 text-base font-medium text-slate-400">/ {currentDashboard.total_topics}</span></p>
-                    <p className="mt-1 text-xs text-slate-500">知识点已通过 Mastery Gate</p>
+                    <p className="mt-1 text-xs text-slate-500">知识点已有掌握记录</p>
                   </div>
                   {activeStage && <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-700">当前 · 阶段 {activeStage.stage}</span>}
                 </div>
@@ -222,7 +222,7 @@ export default function CourseDashboardPage() {
                     <p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600">Curriculum</p>
                     <h2 className="mt-1 text-xl font-bold text-slate-900">课程阶段与知识点</h2>
                   </div>
-                  <span className="text-xs text-slate-400">状态由学习证据自动计算</span>
+                  <span className="text-xs text-slate-400">保留学习状态与历史评估</span>
                 </div>
                 {currentCurriculum.stages.map((stage) => (
                   <section key={stage.stage} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6">
@@ -247,12 +247,12 @@ export default function CourseDashboardPage() {
                 <section className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center gap-2">
                     <ClockIcon className="size-4 text-indigo-600" />
-                    <h2 className="text-sm font-bold text-slate-900">最近成绩</h2>
+                    <h2 className="text-sm font-bold text-slate-900">历史成绩</h2>
                   </div>
                   {currentDashboard.recent_practice.length === 0 ? (
                     <div className="py-8 text-center">
                       <span className="mx-auto grid size-10 place-items-center rounded-2xl bg-slate-100 text-slate-400"><ChartIcon className="size-4" /></span>
-                      <p className="mt-3 text-xs leading-5 text-slate-400">完成第一组练习后，成绩会显示在这里。</p>
+                      <p className="mt-3 text-xs leading-5 text-slate-400">暂无历史成绩。当前练习反馈在知识点对话中查看。</p>
                     </div>
                   ) : (
                     <div className="mt-4 space-y-3">
@@ -270,8 +270,8 @@ export default function CourseDashboardPage() {
                 </section>
                 <section className="rounded-3xl border border-emerald-200 bg-emerald-50 p-5">
                   <TrophyIcon className="size-5 text-emerald-700" />
-                  <h2 className="mt-3 text-sm font-bold text-emerald-900">掌握不是单次高分</h2>
-                  <p className="mt-2 text-xs leading-5 text-emerald-800/80">系统会结合练习证据、综合验收、能力维度和未解决错误决定是否通过。</p>
+                  <h2 className="mt-3 text-sm font-bold text-emerald-900">在对话中学习与练习</h2>
+                  <p className="mt-2 text-xs leading-5 text-emerald-800/80">进入知识点后开始学习，可继续追问或做练习。Agent 的对话反馈不会自动转换为本地分数或掌握度。</p>
                 </section>
               </aside>
             </section>

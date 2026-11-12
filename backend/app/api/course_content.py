@@ -1,33 +1,12 @@
-"""Stable canonical curriculum navigation and prerequisite explanations."""
+"""Stable canonical curriculum navigation."""
 from __future__ import annotations
 
-from fastapi import APIRouter, Header, Request, HTTPException
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import APIRouter, Header, Request
 
 from app.core.types import Course
-from app.services.learning_service import LearningService
-from app.api.dependencies import agent_from_request, student_id_from_authorization
-from app.schemas.chat import ChatResponse
+from app.api.dependencies import student_id_from_authorization
 
 router = APIRouter(prefix="/api/v1", tags=["course-content"])
-
-
-def _can_checkpoint(request: Request, student_id: str | None, topic: dict) -> bool:
-    if student_id is None:
-        return False
-    repository = request.app.state.learning_repository
-    if repository.get_unmet_prerequisites(student_id, topic["id"]):
-        return False
-    state = repository.get_topic_state(student_id, topic["id"])
-    service = LearningService(settings=request.app.state.settings, repository=repository)
-    gate = service.evaluate_topic_gate(student_id, topic, state)
-    return bool(gate.next_action == "take_checkpoint" or (state and state["status"] in ("ready_for_checkpoint", "mastered")))
-
-
-@router.get("/courses")
-def registered_courses(request: Request):
-    with request.app.state.learning_repository._connect() as connection:
-        return {"courses": [dict(row) for row in connection.execute("SELECT * FROM courses WHERE active=1 ORDER BY id")]}
 
 
 @router.get("/courses/{course}/outline")
@@ -124,40 +103,3 @@ def outline(course: Course, request: Request, authorization: str | None = Header
         if recommended is None and status!="mastered" and not unmet:
             recommended = topic_id
     return {"course":course.value,"title":course.display_name,"groups":list(groups.values()),"recommended_topic_id":recommended}
-
-
-@router.get("/topics/{topic_id}/prerequisites")
-def prerequisites(topic_id: str, request: Request, authorization: str | None = Header(default=None, alias="Authorization")):
-    repository = request.app.state.learning_repository
-    student_id = student_id_from_authorization(authorization, repository)
-    topic = repository.require_topic(topic_id)
-    edges = repository.prerequisite_status(student_id, topic_id)
-    with repository._connect() as connection:
-        successors = [dict(row) for row in connection.execute("""SELECT t.id,t.title,t.course,p.relation_type,p.reason
-            FROM topic_prerequisites p JOIN curriculum_topics t ON t.id=p.topic_id
-            WHERE p.prerequisite_topic_id=? ORDER BY t.course,t.order_index""", (topic_id,))]
-    return {"topic_id":topic_id,"owner_course":topic["course"],"rule_version":"content-v1","can_browse":True,"can_study":True,
-        "can_checkpoint":_can_checkpoint(request,student_id,topic),
-        **{kind:[edge for edge in edges if edge["relation_type"]==kind] for kind in ("required","recommended","related")},
-        "unmet":[edge for edge in edges if edge["relation_type"]=="required" and edge["scope"]=="topic" and not edge["satisfied"]],
-        "successors":successors}
-
-
-class SupplementQuestion(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    message: str = Field(min_length=1, max_length=8000)
-
-
-@router.post("/topics/{topic_id}/prerequisites/{prerequisite_id}/ask", response_model=ChatResponse)
-async def ask_prerequisite(topic_id: str, prerequisite_id: str, payload: SupplementQuestion, request: Request):
-    repository = request.app.state.learning_repository
-    repository.require_topic(topic_id)
-    declared = repository.list_prerequisites(topic_id)
-    if not any(edge["id"] == prerequisite_id for edge in declared):
-        raise HTTPException(403, detail={"code":"RETRIEVAL_SCOPE_FORBIDDEN","message":"该知识点未声明这一补学范围，请从前置知识卡片进入。"})
-    topic = repository.require_topic(prerequisite_id)
-    course = Course(topic["course"])
-    agent = agent_from_request(request)
-    return ChatResponse.model_validate(await agent.answer(
-        course=course, question=payload.message, history=[], topic_id=prerequisite_id,
-        system_prompt=f"只回答前置知识点：{topic['title']}。"))

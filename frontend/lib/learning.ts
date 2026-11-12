@@ -5,23 +5,12 @@ import type {
   TopicStatus,
 } from "@/lib/types";
 
-export const DIMENSION_LABELS: Record<string, string> = {
-  concept: "概念理解",
-  mathematics: "数学理解",
-  mechanism: "原理理解",
-  engineering: "工程能力",
-  application: "应用能力",
-  theorem_condition: "定理条件",
-  derivation: "推导理解",
-  calculation: "计算能力",
-};
-
 export const TOPIC_STATUS_META: Record<
   TopicStatus,
   { label: string; symbol: string; badge: string; border: string }
 > = {
   locked: {
-    label: "前置待补充",
+    label: "待完成前置学习",
     symbol: "🔒",
     badge: "border-slate-200 bg-slate-100 text-slate-600",
     border: "border-slate-200",
@@ -117,15 +106,4 @@ export function hasValidTopicEvidence(
     return false;
   }
   return topic.mastery !== null && topic.mastery !== undefined;
-}
-
-export function hasValidDimensionEvidence(dimension: DimensionProgress): boolean {
-  if (typeof dimension.evidence_count === "number") return dimension.evidence_count > 0;
-  if (
-    (dimension.confidence === null || dimension.confidence === undefined || dimension.confidence <= 0)
-    && (dimension.mastery === null || Math.abs(dimension.mastery - 0.5) < 1e-9)
-  ) {
-    return false;
-  }
-  return dimension.mastery !== null && dimension.mastery !== undefined;
 }

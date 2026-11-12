@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { useStudent } from "./StudentProvider";
-import { getCourseOutline } from "@/lib/api-content";
+import { getCourseOutline } from "@/lib/api";
 import { COURSE_META, COURSES, type Course } from "@/lib/types";
-import type { CourseOutline, OutlineGroup, OutlineTopic } from "@/lib/types-content";
+import type { CourseOutline, OutlineGroup, OutlineTopic } from "@/lib/types";
 import { statusMeta } from "@/lib/learning";
 
 type CourseContext = { outline: CourseOutline | null; course: Course | null; refresh: () => Promise<void>; topicHref: (topic: Pick<OutlineTopic, "topic_id" | "owner_course">) => string };

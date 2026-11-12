@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import os
 from pathlib import Path
-
-import pytest
 
 from app.db.database import PostgresDatabase
 
@@ -11,10 +8,8 @@ from app.db.database import PostgresDatabase
 SCHEMA_FILE = Path(__file__).resolve().parents[2] / "operations" / "database" / "initialize_postgresql.sql"
 
 
-def test_postgres_schema_initialization_is_idempotent() -> None:
-    database_url = os.environ.get("POSTGRES_TEST_DATABASE_URL")
-    if not database_url:
-        pytest.skip("需要专用的 POSTGRES_TEST_DATABASE_URL 才运行 PostgreSQL 架构集成测试")
+def test_postgres_schema_initialization_is_idempotent(postgres_test_database_url) -> None:
+    database_url = postgres_test_database_url
 
     schema = SCHEMA_FILE.read_text(encoding="utf-8")
     database = PostgresDatabase(database_url)
@@ -29,13 +24,20 @@ def test_postgres_schema_initialization_is_idempotent() -> None:
             WHERE table_schema = 'public'
               AND table_name = ANY(%s)
             """,
-            (["students", "curriculum_topics", "practice_sets", "worked_examples", "lessons"],),
+            (["students", "curriculum_topics", "practice_sets", "learning_sessions", "topic_placements"],),
         ).fetchall()
 
     assert {row["table_name"] for row in rows} == {
         "students",
         "curriculum_topics",
         "practice_sets",
-        "worked_examples",
-        "lessons",
+        "learning_sessions",
+        "topic_placements",
     }
+
+
+def test_new_schema_omits_retired_local_content_without_dropping_existing_data():
+    schema = SCHEMA_FILE.read_text(encoding="utf-8")
+    for table in ["lessons", "worked_examples", "content_exposures", "documents", "document_chunks", "question_bank"]:
+        assert f"CREATE TABLE IF NOT EXISTS {table} (" not in schema
+    assert "DROP TABLE" not in schema.upper()
