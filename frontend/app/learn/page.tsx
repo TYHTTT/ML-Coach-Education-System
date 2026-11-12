@@ -21,20 +21,13 @@ const COURSE_DETAILS: Record<Course, { stages: string; cue: string; gradient: st
 
 export default function LearnHomePage() {
   return (
-    <div className="app-grid-bg min-h-[calc(100svh-65px)]">
+    <div className="min-h-[calc(100svh-65px)] bg-canvas">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
-        <section className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
-          <div className="max-w-3xl">
-            <h1 className="text-balance text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-              从“听懂了”走到“真正掌握”
-            </h1>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-              选择一门课程和知识点，开始 AI 讲解。没看懂可以继续追问，也可以在同一对话中做练习并获得反馈。
-            </p>
-          </div>
-        </section>
+        <header>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">课程学习</h1>
+        </header>
 
-        <section className="mt-9 grid gap-5 md:grid-cols-2" aria-label="选择课程">
+        <section className="mt-6 grid gap-5 md:grid-cols-2" aria-label="选择课程">
           {COURSES.map((course) => {
             const meta = COURSE_META[course];
             const detail = COURSE_DETAILS[course];

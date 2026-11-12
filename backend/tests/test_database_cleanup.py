@@ -119,7 +119,7 @@ def test_cleanup_preserves_accounts_curriculum_progress_and_current_queries(lega
     monkeypatch.setattr(cleanup, "_create_backup", backup)
     result = cleanup.cleanup_database(url, apply=True)
     assert result["applied"] is True
-    assert result["retained_tables"] == 15
+    assert result["retained_tables"] == 16
     assert _plan(url) == {"tables": {}, "columns": {}, "vector": False}
     assert repository.student_from_token(account["access_token"])["id"] == account["id"]
     assert repository.get_topic_state(account["id"], "ml.machine_learning_basics")["status"] == "learning"

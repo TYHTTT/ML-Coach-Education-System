@@ -34,6 +34,8 @@ class Settings(BaseSettings):
     dify_timeout_seconds: float = Field(default=120, gt=0, le=600)
     dify_inputs: dict[str, Any] = Field(default_factory=dict)
 
+    admin_authcode: SecretStr = SecretStr("")
+
     database_url: str = "postgresql://postgres:postgres@localhost:5432/ml_coach"
 
     max_history_messages: int = Field(default=12, ge=0, le=100)

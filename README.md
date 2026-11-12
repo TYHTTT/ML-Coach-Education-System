@@ -34,6 +34,28 @@ NEXT_PUBLIC_API_BASE_URL=http://localhost:8000
 
 模型、提示词、知识资料和检索策略在 Dify 应用中配置。前端不再填写模型或 Embedding 密钥；应用密钥仅保存在后端。自建 Dify 时请使用实例的 Service API 地址（包含 `/v1`），不要填写 WebApp 分享地址或知识库 API Key。
 
+## 管理员账户
+
+登录页可切换“学生”和“管理员”。选择管理员后，可登录已有账户，或点击“创建管理员”，填写姓名、用户名、密码、确认密码及 Authcode。创建成功后直接进入 `/admin` 管理后台；目前后台提供管理员账户信息和退出入口。
+
+创建授权码配置在后端 `backend/.env.local`：
+
+```env
+ADMIN_AUTHCODE=填写独立的随机授权码
+```
+
+创建时输入同一授权码。该值仅由后端校验，不发送给前端读取、不写入数据库，也不要使用 `NEXT_PUBLIC_` 前缀。留空会禁止创建管理员，但已有账户仍可登录。修改环境变量后重启后端。
+
+首次部署会随初始化脚本创建 `administrators` 表。已有数据库请从项目根目录执行一次：
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/add_administrators.py
+```
+
+该迁移可重复执行，只新增一张管理员表，不修改学生或课程数据。管理员密码和登录凭据均以哈希保存；每个管理员同时保留一个有效会话，重新登录会使旧会话失效，会话最长有效期为 30 天，退出后立即撤销。管理员与学生账户独立，同名账户可分别创建，凭据不能互用于另一身份的受保护接口。
+
+管理后台刷新时通过后端 `/api/v1/admins/me` 验证身份，不凭浏览器中保存的角色授予权限。管理员登录凭据与学生凭据分开保存在浏览器中，Authcode 不保存在浏览器存储里。
+
 ## Dify 应用要求
 
 - 自由问答不再选择或绑定课程，请求不传 `course`、`topic_id`，直接把用户的问题发给 Dify，并按对话复用会话。Dify 输入中的课程变量应允许省略；`DIFY_INPUTS` 中的同名默认值也不会用于绑定自由问答。已有各课程的本地聊天自动合并到统一历史列表，保留原消息和当前对话；旧课程范围的会话凭证不会复用。
@@ -199,6 +221,8 @@ operations/database/ # 初始化、备份和恢复
 | `POST /api/v1/chat` | 自由问答与知识点对话 |
 | `POST /api/v1/students/register`、`login`、`logout` | 账户操作 |
 | `GET /api/v1/students/me` | 当前学生 |
+| `POST /api/v1/admins/register`、`login`、`logout` | 管理员创建、登录和退出 |
+| `GET /api/v1/admins/me` | 验证当前管理员 |
 | `GET /api/v1/curriculum/topics`、`topics/{topic_id}` | 知识点列表与详情 |
 | `GET /api/v1/courses/{course}/outline` | 分组课程目录 |
 | `GET /api/v1/learning/dashboard` | 课程概览和历史成绩 |

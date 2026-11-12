@@ -53,6 +53,7 @@ export default function LearningShell({ children }: { children: ReactNode }) {
           </nav>
 
           <div className="col-start-3 hidden min-w-0 items-center justify-end gap-3 sm:flex">
+            <Link href="/admin" className="shrink-0 text-xs font-semibold text-slate-500 hover:text-indigo-700">管理后台</Link>
             <span className="max-w-28 truncate text-xs font-semibold text-slate-600" title={student?.username}>{student?.display_name}</span>
             <button type="button" onClick={() => void logout()} className="text-xs font-semibold text-slate-500 hover:text-slate-900">退出</button>
           </div>

@@ -135,7 +135,7 @@ export default function CourseDashboardPage() {
     : null;
 
   return (
-    <div className="app-grid-bg min-h-[calc(100svh-65px)]">
+    <div className="min-h-[calc(100svh-65px)] bg-canvas">
       <div className="mx-auto max-w-7xl px-4 py-7 sm:px-6 sm:py-10 lg:px-8">
         <div className="flex flex-col justify-between gap-5 lg:flex-row lg:items-end">
           <div>

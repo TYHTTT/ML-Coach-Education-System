@@ -301,6 +301,8 @@ def test_openapi_exposes_only_current_features(api):
         "/health", "/api/v1/chat",
         "/api/v1/students/register", "/api/v1/students/login",
         "/api/v1/students/me", "/api/v1/students/logout",
+        "/api/v1/admins/register", "/api/v1/admins/login",
+        "/api/v1/admins/me", "/api/v1/admins/logout",
         "/api/v1/curriculum/topics", "/api/v1/curriculum/topics/{topic_id}",
         "/api/v1/courses/{course}/outline", "/api/v1/learning/dashboard",
         "/api/v1/learning/topics/{topic_id}/start",

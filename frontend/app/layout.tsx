@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { StudentProvider } from "@/components/StudentProvider";
+import { AdminProvider } from "@/components/AdminProvider";
 import AuthGate from "@/components/AuthGate";
 import TopicSessionsProvider from "@/components/TopicSessionsProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -25,7 +26,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN">
       <body>
         <ThemeProvider>
-          <StudentProvider><AuthGate><TopicSessionsProvider>{children}</TopicSessionsProvider></AuthGate></StudentProvider>
+          <AdminProvider><StudentProvider><AuthGate><TopicSessionsProvider>{children}</TopicSessionsProvider></AuthGate></StudentProvider></AdminProvider>
         </ThemeProvider>
       </body>
     </html>

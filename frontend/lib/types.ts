@@ -110,6 +110,19 @@ export interface AuthenticatedStudent {
   created_at: string;
 }
 
+export interface Administrator {
+  admin_id: string;
+  username: string;
+  display_name: string;
+  role: "admin";
+  created_at: string;
+  last_active_at: string;
+}
+
+export interface AuthenticatedAdmin extends Administrator {
+  access_token: string;
+}
+
 export interface TopicPrerequisite {
   id?: string;
   topic_id?: string;

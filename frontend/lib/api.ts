@@ -1,5 +1,7 @@
 import type {
   AuthenticatedStudent,
+  Administrator,
+  AuthenticatedAdmin,
   ChatRequest,
   ChatResponse,
   Course,
@@ -143,6 +145,30 @@ export function logoutStudent(accessToken: string): Promise<void> {
     method: "POST",
     headers: studentHeaders(accessToken),
   });
+}
+
+export function registerAdmin(payload: { username: string; password: string; display_name: string; authcode: string }): Promise<AuthenticatedAdmin> {
+  return request<AuthenticatedAdmin>("/api/v1/admins/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function loginAdmin(payload: { username: string; password: string }): Promise<AuthenticatedAdmin> {
+  return request<AuthenticatedAdmin>("/api/v1/admins/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getCurrentAdmin(token: string, signal?: AbortSignal): Promise<Administrator> {
+  return request<Administrator>("/api/v1/admins/me", { headers: studentHeaders(token), signal });
+}
+
+export function logoutAdmin(token: string): Promise<void> {
+  return request<void>("/api/v1/admins/logout", { method: "POST", headers: studentHeaders(token) });
 }
 
 export function getCurriculum(

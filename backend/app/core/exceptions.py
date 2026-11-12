@@ -30,6 +30,12 @@ class StudentNotFoundError(AppError):
     public_message = "登录已失效，请重新登录"
 
 
+class AdminUnauthorizedError(AppError):
+    status_code = 401
+    code = "ADMIN_UNAUTHORIZED"
+    public_message = "管理员登录已失效，请重新登录"
+
+
 class TopicNotFoundError(AppError):
     status_code = 404
     code = "TOPIC_NOT_FOUND"

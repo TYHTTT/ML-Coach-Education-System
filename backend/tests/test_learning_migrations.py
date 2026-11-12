@@ -24,11 +24,12 @@ def test_postgres_schema_initialization_is_idempotent(postgres_test_database_url
             WHERE table_schema = 'public'
               AND table_name = ANY(%s)
             """,
-            (["students", "curriculum_topics", "practice_sets", "learning_sessions", "topic_placements"],),
+            (["students", "administrators", "curriculum_topics", "practice_sets", "learning_sessions", "topic_placements"],),
         ).fetchall()
 
     assert {row["table_name"] for row in rows} == {
         "students",
+        "administrators",
         "curriculum_topics",
         "practice_sets",
         "learning_sessions",
