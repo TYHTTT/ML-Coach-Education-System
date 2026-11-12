@@ -8,6 +8,8 @@ from tests.mocks import MockLLMClient
 
 class Repository:
     def __init__(self): self.sessions = []
+    def require_course(self, course):
+        return {"id": course.value}
     def require_topic(self, topic_id):
         if topic_id != "ml.machine_learning_basics": raise TopicNotFoundError()
         return {"id":topic_id,"course":"machine_learning","title":"机器学习基本概念"}
@@ -20,7 +22,7 @@ class Repository:
 
 @pytest.fixture
 def api(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository: None)
+    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
     llm = MockLLMClient()
     repo = Repository()
     app = create_app(Settings(_env_file=None, app_env="test", max_history_messages=0), llm_client=llm, learning_repository=repo)
@@ -38,7 +40,7 @@ def test_chat_uses_dify_without_local_documents_and_no_embedding_credentials(api
 
 
 @pytest.mark.parametrize("payload", [
-    {"course":"invalid","message":"问题"},
+    {"course":"invalid!","message":"问题"},
     {"course":"machine_learning","message":" "},
     {"course":"machine_learning","message":"问题","topic_id":"ml.machine_learning_basics","learning_mode":"worked_example"},
     {"course":"machine_learning","message":"问题","topic_id":"ml.machine_learning_basics","learning_mode":"remediation"},
@@ -223,7 +225,7 @@ def test_free_chat_needs_no_course_and_keeps_cross_course_sources_and_native_his
     first = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={"message": "梯度和导数有什么关系？", "history": []})
     assert first.status_code == 200
     assert first.json()["course"] is None
-    assert [source["source_course"] for source in first.json()["sources"]] == ["machine_learning", "advanced_mathematics", None]
+    assert [source["source_course"] for source in first.json()["sources"]] == ["machine_learning", "advanced_mathematics", "general"]
     token = first.json()["conversation_token"]
     assert token
     second = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={"message": "再举一个例子", "history": [], "conversation_token": token})
@@ -248,7 +250,7 @@ def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):
 
 
 def test_unconfigured_agent_returns_clear_503_without_database(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository: None)
+    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
     app = create_app(Settings(_env_file=None), learning_repository=Repository())
     with TestClient(app) as client:
         response = client.post("/api/v1/chat",json={"course":"machine_learning","message":"问题"})
@@ -274,7 +276,6 @@ def test_question_bank_and_fixed_selection_routes_are_removed(api, method, path)
 
 
 @pytest.mark.parametrize("method,path", [
-    ("get", "/api/v1/courses"),
     ("post", "/api/v1/students/anonymous"),
     ("get", "/api/v1/topics/ml.machine_learning_basics/lesson"),
     ("get", "/api/v1/topics/ml.machine_learning_basics/examples"),
@@ -303,6 +304,7 @@ def test_openapi_exposes_only_current_features(api):
         "/api/v1/students/me", "/api/v1/students/logout",
         "/api/v1/admins/register", "/api/v1/admins/login",
         "/api/v1/admins/me", "/api/v1/admins/logout",
+        "/api/v1/courses", "/api/v1/admin/courses", "/api/v1/admin/courses/{course_id}",
         "/api/v1/curriculum/topics", "/api/v1/curriculum/topics/{topic_id}",
         "/api/v1/courses/{course}/outline", "/api/v1/learning/dashboard",
         "/api/v1/learning/topics/{topic_id}/start",

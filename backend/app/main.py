@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from app import __version__
 from app.api.chat import router as chat_router
 from app.api.admins import router as admins_router
+from app.api.courses import router as courses_router, admin_router as admin_courses_router
 from app.api.curriculum import router as curriculum_router
 from app.api.health import router as health_router
 from app.api.learning import router as learning_router
@@ -25,6 +26,7 @@ from app.curriculum.seed import seed_curriculum
 from app.services.dify import DifyClient
 from app.services.learning_repository import LearningRepository
 from app.services.admin_repository import AdminRepository
+from app.services.course_repository import CourseRepository
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +38,7 @@ def create_app(
     llm_client: Any = None,
     learning_repository: LearningRepository | None = None,
     admin_repository: AdminRepository | None = None,
+    course_repository: CourseRepository | None = None,
 ) -> FastAPI:
     app_settings = settings or get_settings()
     configure_logging(
@@ -51,10 +54,9 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        # The bundled curriculum is configuration data.  Its upsert is
-        # intentionally idempotent; database schema must be initialized first
-        # with operations/database/initialize.py.
-        seed_curriculum(app_learning_repository)
+        # Initialize only an empty curriculum; administrative changes must
+        # survive restarts. Schema is managed by operations/database scripts.
+        seed_curriculum(app_learning_repository, initialize_only=True)
         try:
             yield
         finally:
@@ -79,13 +81,14 @@ def create_app(
     app.state.settings = app_settings
     app.state.learning_repository = app_learning_repository
     app.state.admin_repository = admin_repository or AdminRepository(app_settings.database_url)
+    app.state.course_repository = course_repository or CourseRepository(app_settings.database_url)
     app.state.llm_client = llm_client if llm_client is not None else DifyClient(app_settings)
 
     app.add_middleware(
         CORSMiddleware,
         allow_origins=app_settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "OPTIONS"],
+        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
 
@@ -126,6 +129,8 @@ def create_app(
     app.include_router(chat_router)
     app.include_router(students_router)
     app.include_router(admins_router)
+    app.include_router(courses_router)
+    app.include_router(admin_courses_router)
     app.include_router(curriculum_router)
     app.include_router(learning_router)
     app.include_router(course_content_router)

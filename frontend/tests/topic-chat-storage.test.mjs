@@ -31,6 +31,17 @@ test("students and knowledge points have independent saved conversations", () =>
   assert.equal(loaded.chats[otherKey].drafts.answer, "向量练习");
 });
 
+test("administrator-created courses keep conversations and return locations after reload", () => {
+  storage();
+  const customKey = topicChatKey("physics", "physics.motion");
+  const customLesson = { ...lesson, response: { ...lesson.response, course: "physics" } };
+  const sessions = { chats: { [customKey]: { ...emptyTopicChat(), turns: [customLesson], drafts: { clarification: "速度的疑问", answer: "" } } }, lastPath: "/learn/physics/physics.motion" };
+  saveTopicSessions("student-a", sessions);
+  assert.deepEqual(loadTopicSessions("student-a"), sessions);
+  assert.equal(isLearningPath("/learn/physics/physics.motion"), true);
+  assert.equal(isLearningPath("/learn/../physics.motion"), false);
+});
+
 test("hard reload turns an unfinished request into a retry without losing existing content", () => {
   storage();
   saveTopicSessions("student-a", { chats: { [key]: { ...emptyTopicChat(), turns: [lesson], pending: "topic_practice", pendingMessage: "我要做练习" } }, lastPath: null });

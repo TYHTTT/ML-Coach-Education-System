@@ -29,6 +29,8 @@ async def chat(
     history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]] if settings.max_history_messages else []
     repository = request.app.state.learning_repository
     student_id = student_id_from_authorization(authorization, repository)
+    if payload.course is not None:
+        repository.require_course(payload.course)
     conversation_id = None
     scope = {
         "secret": settings.dify_api_key.get_secret_value(),

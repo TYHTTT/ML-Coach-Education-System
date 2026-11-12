@@ -30,7 +30,7 @@ class ChatRequest(BaseModel):
     # absolute safety ceiling so deployments may choose a value above 8,000.
     message: str = Field(min_length=1, max_length=100_000)
     history: list[HistoryMessage] = Field(default_factory=list, max_length=100)
-    topic_id: str | None = Field(default=None, pattern=r"^(?:ml|math|la|prob)\.[a-z0-9_]+$")
+    topic_id: str | None = Field(default=None, pattern=r"^[a-z][a-z0-9_]*\.[a-z0-9_]+$")
     conversation_token: str | None = Field(default=None, min_length=1, max_length=2048)
     learning_mode: Literal["free_qa", "topic_teaching", "topic_clarification", "topic_practice", "topic_answer"] = "free_qa"
 

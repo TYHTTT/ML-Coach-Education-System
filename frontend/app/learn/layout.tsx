@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import LearningShell from "@/components/LearningShell";
 import CourseLayout from "@/components/CourseLayout";
+import CourseCatalogProvider from "@/components/CourseCatalogProvider";
 import { Suspense } from "react";
 
 export const metadata: Metadata = {
@@ -9,5 +10,5 @@ export const metadata: Metadata = {
 };
 
 export default function LearnLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <LearningShell><Suspense fallback={<div className="p-8" role="status">正在准备课程目录…</div>}><CourseLayout>{children}</CourseLayout></Suspense></LearningShell>;
+  return <LearningShell><CourseCatalogProvider><Suspense fallback={<div className="p-8" role="status">正在准备课程目录…</div>}><CourseLayout>{children}</CourseLayout></Suspense></CourseCatalogProvider></LearningShell>;
 }

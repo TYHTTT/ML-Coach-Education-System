@@ -118,7 +118,9 @@ class LearningService:
                 }
             )
         current = self._current_topic(views)
-        if current is None:
+        if not views:
+            decision = {"next_action": "start_learning", "reasons": ["当前课程暂无知识点"], "recommended_topic_id": None}
+        elif current is None:
             decision = {
                 "next_action": "course_completed",
                 "reasons": ["当前课程的全部知识点均已通过 Mastery Gate"],

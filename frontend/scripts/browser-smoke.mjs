@@ -40,6 +40,7 @@ await page.route("**/api/v1/**", async (route) => {
   const body = request.postDataJSON() || {};
   requests.push({ endpoint, body });
   if (request.method() === "OPTIONS") return json(route, {});
+  if (endpoint === "/api/v1/courses") return json(route, [{ id: "machine_learning", title: "机器学习", description: "模型、算法与实践", active: true, sort_order: 1, topic_count: 30, stage_count: 7, created_at: "2026-11-12T08:00:00Z", updated_at: "2026-11-12T08:00:00Z" }]);
   if (endpoint.endsWith("/outline")) return json(route, { course: "machine_learning", title: "机器学习", recommended_topic_id: topics[0].id, groups: [{ id: "stage-1", title: "机器学习基础", parent_group_id: null, order_index: 1, topics }] });
   if (endpoint.includes("/curriculum/topics/")) return json(route, topics.find((topic) => endpoint.endsWith(topic.id)) || topics[0]);
   if (endpoint.endsWith("/chat")) {

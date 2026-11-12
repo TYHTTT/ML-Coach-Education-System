@@ -5,7 +5,8 @@ import { useParams, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { useStudent } from "./StudentProvider";
 import { getCourseOutline } from "@/lib/api";
-import { COURSE_META, COURSES, type Course } from "@/lib/types";
+import type { Course } from "@/lib/types";
+import { useCourseCatalog } from "@/components/CourseCatalogProvider";
 import type { CourseOutline, OutlineGroup, OutlineTopic } from "@/lib/types";
 import { statusMeta } from "@/lib/learning";
 
@@ -23,7 +24,9 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
   const searchParams = useSearchParams();
   const contextualCourse = searchParams.get("course");
   const rawCourse = contextualCourse || params.course;
-  const course = COURSES.includes(rawCourse as Course) ? rawCourse as Course : null;
+  const { courses } = useCourseCatalog();
+  const course = courses.find((item) => item.id === rawCourse)?.id ?? null;
+  const courseName = (id: string) => courses.find((item) => item.id === id)?.title ?? id;
   const topicId = params.topicId ? decodeURIComponent(params.topicId) : "";
   const { status, withStudent, studentId } = useStudent();
   const [outline, setOutline] = useState<CourseOutline | null>(null);
@@ -132,7 +135,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       {opened && <div id={`group-${group.id}`} className="ml-3 border-l border-slate-200/80 pl-2">
         {visibleTopics.map((topic) => { const state = topicState(topic); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} title={topic.prerequisite_gap.map((item) => `${item.title}：${item.reason}`).join("\n")} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
           <span className="block font-medium">{topic.title}{topic.is_reference && <span className="ml-1 text-[10px] text-slate-400">↗</span>}</span>
-          <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${COURSE_META[topic.owner_course].label}` : ""}</span>
+          <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${courseName(topic.owner_course)}` : ""}</span>
         </Link>; })}
         {children.map(renderGroup)}
       </div>}
@@ -145,7 +148,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       {mobileOpen && <button type="button" tabIndex={-1} onClick={closeMobile} aria-label="关闭目录遮罩" className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden" />}
       <aside ref={navRef} id="course-outline" aria-label="课程知识点目录" onKeyDown={navigateKeyboard} className={`${mobileOpen ? "fixed inset-y-0 left-0 z-50 flex w-[min(290px,85vw)]" : "hidden"} ${collapsed ? "lg:w-14" : "lg:w-[280px]"} shrink-0 flex-col border-r border-slate-200 bg-white lg:sticky lg:top-[65px] lg:flex lg:h-[calc(100svh-65px)]`}>
         <div className="flex items-center justify-between border-b border-slate-100 p-3">
-          {(!collapsed || mobileOpen) && <Link href={`/learn/${course}`} className="min-w-0 text-sm font-bold">{COURSE_META[course].label}</Link>}
+          {(!collapsed || mobileOpen) && <Link href={`/learn/${course}`} className="min-w-0 text-sm font-bold">{courseName(course)}</Link>}
           <button type="button" aria-label={collapsed ? "展开课程目录" : "折叠课程目录"} onClick={() => { setCollapsed(!collapsed); persist(closedGroups, !collapsed); }} className="hidden rounded-lg px-2 py-1 text-slate-500 lg:block">{collapsed ? "»" : "«"}</button>
           <button type="button" onClick={closeMobile} className="rounded-lg px-2 py-1 text-sm lg:hidden" aria-label="关闭课程目录">✕</button>
         </div>

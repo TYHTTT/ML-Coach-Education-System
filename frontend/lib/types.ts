@@ -1,7 +1,37 @@
-export const COURSES = ["machine_learning", "advanced_mathematics", "linear_algebra", "probability_statistics"] as const;
+export type Course = string;
 
-export type Course = (typeof COURSES)[number];
+export interface CourseRecord {
+  id: string;
+  title: string;
+  description: string;
+  active: boolean;
+  sort_order: number;
+  topic_count: number;
+  stage_count: number;
+  created_at: string;
+  updated_at: string;
+}
 
+export interface CourseInput {
+  id: string;
+  title: string;
+  description: string;
+  active: boolean;
+  sort_order: number;
+}
+
+export interface CourseList {
+  items: CourseRecord[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
+export interface CourseDetail extends CourseRecord {
+  topics: { id: string; title: string; stage: number; stage_title: string; active: boolean }[];
+}
+
+/** Display fallbacks for stored citations and course symbols, not the active catalog. */
 export const COURSE_META: Record<
   Course,
   { label: string; shortLabel: string; description: string; accent: string }

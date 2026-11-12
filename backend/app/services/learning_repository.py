@@ -11,6 +11,7 @@ import psycopg
 
 from app.core.exceptions import (
     CourseTopicMismatchError,
+    CourseNotFoundError,
     StudentNotFoundError,
     TopicNotFoundError,
 )
@@ -268,6 +269,15 @@ class LearningRepository:
         record["active"] = bool(record["active"])
         return record
 
+    def require_course(self, course: Course | str) -> dict[str, Any]:
+        with self._connect() as connection:
+            row = connection.execute(
+                "SELECT * FROM courses WHERE id=? AND active=1 AND deleted_at IS NULL", (course.value if isinstance(course, Course) else course,)
+            ).fetchone()
+        if row is None:
+            raise CourseNotFoundError()
+        return dict(row)
+
     def list_topics(
         self,
         course: Course | str,
@@ -276,6 +286,7 @@ class LearningRepository:
         student_id: str | None = None,
     ) -> list[dict[str, Any]]:
         course_value = course.value if isinstance(course, Course) else Course(course).value
+        self.require_course(course_value)
         params: list[Any] = []
         state_columns = "NULL AS state_status, NULL AS state_mastery, NULL AS state_confidence, NULL AS state_evidence_count"
         join = ""
@@ -334,6 +345,7 @@ class LearningRepository:
                 f"""
                 SELECT t.*, {state_columns}
                 FROM curriculum_topics t
+                JOIN courses owner_course ON owner_course.id=t.course AND owner_course.active=1 AND owner_course.deleted_at IS NULL
                 {join}
                 WHERE t.id = ?
                 """,

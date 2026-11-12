@@ -12,10 +12,11 @@ router = APIRouter(prefix="/api/v1", tags=["course-content"])
 @router.get("/courses/{course}/outline")
 def outline(course: Course, request: Request, authorization: str | None = Header(default=None, alias="Authorization")):
     repository = request.app.state.learning_repository
+    course_record = repository.require_course(course)
     student_id = student_id_from_authorization(authorization, repository)
     with repository._connect() as connection:
-        placements = [dict(row) for row in connection.execute("""SELECT p.*,t.title,t.description,t.course AS owner_course
-            FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id
+        placements = [dict(row) for row in connection.execute("""SELECT p.*,t.title,t.description,t.course AS owner_course,owner.title AS owner_title
+            FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id JOIN courses owner ON owner.id=t.course AND owner.active=1 AND owner.deleted_at IS NULL
             WHERE p.course_id=? AND t.active=1 ORDER BY p.is_reference DESC,p.order_index""", (course.value,))]
         topic_ids = [placement["topic_id"] for placement in placements]
         topics = {
@@ -93,7 +94,7 @@ def outline(course: Course, request: Request, authorization: str | None = Header
             if not satisfied:
                 unmet.append(edge)
         group_id = placement["parent_group_id"]
-        group = groups.setdefault(group_id, {"id":group_id,"title":placement["group_title"],"parent_group_id":"math-preparation" if placement["is_reference"] else None,"order_index":len(groups),"topics":[]})
+        group = groups.setdefault(group_id, {"id":group_id,"title":"数学准备 · " + placement["owner_title"] if placement["is_reference"] else placement["group_title"],"parent_group_id":"math-preparation" if placement["is_reference"] else None,"order_index":len(groups),"topics":[]})
         status = state["status"] if state and state["status"]!="locked" else "not_started"
         group["topics"].append({"id":topic_id,"topic_id":topic_id,"owner_course":placement["owner_course"],
             "title":topic["title"],"description":topic["description"],"learning_objectives":topic["learning_objectives"],
@@ -102,4 +103,4 @@ def outline(course: Course, request: Request, authorization: str | None = Header
             "prerequisite_gap":[{"id":edge["id"],"title":edge["title"],"reason":edge["reason"]} for edge in unmet]})
         if recommended is None and status!="mastered" and not unmet:
             recommended = topic_id
-    return {"course":course.value,"title":course.display_name,"groups":list(groups.values()),"recommended_topic_id":recommended}
+    return {"course":course.value,"title":course_record["title"],"groups":list(groups.values()),"recommended_topic_id":recommended}

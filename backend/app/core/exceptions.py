@@ -46,3 +46,15 @@ class CourseTopicMismatchError(AppError):
     status_code = 422
     code = "COURSE_TOPIC_MISMATCH"
     public_message = "知识点不属于当前课程"
+
+
+class CourseNotFoundError(AppError):
+    status_code = 404
+    code = "COURSE_NOT_FOUND"
+    public_message = "课程不存在或已停用"
+
+
+class CourseConflictError(AppError):
+    status_code = 409
+    code = "COURSE_ID_CONFLICT"
+    public_message = "课程标识已被使用，请更换标识"

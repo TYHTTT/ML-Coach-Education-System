@@ -2,6 +2,10 @@ import type {
   AuthenticatedStudent,
   Administrator,
   AuthenticatedAdmin,
+  CourseRecord,
+  CourseInput,
+  CourseDetail,
+  CourseList,
   ChatRequest,
   ChatResponse,
   Course,
@@ -169,6 +173,35 @@ export function getCurrentAdmin(token: string, signal?: AbortSignal): Promise<Ad
 
 export function logoutAdmin(token: string): Promise<void> {
   return request<void>("/api/v1/admins/logout", { method: "POST", headers: studentHeaders(token) });
+}
+
+export function getCourses(signal?: AbortSignal): Promise<CourseRecord[]> {
+  return request<CourseRecord[]>("/api/v1/courses", { signal });
+}
+
+export function getAdminCourses(token: string, filters: { q: string; status: string; page: number }, signal?: AbortSignal): Promise<CourseList> {
+  const params = new URLSearchParams({ q: filters.q, status: filters.status, page: String(filters.page), page_size: "20" });
+  return request<CourseList>(`/api/v1/admin/courses?${params}`, { headers: studentHeaders(token), signal });
+}
+
+export function getAdminCourse(token: string, id: string): Promise<CourseDetail> {
+  return request<CourseDetail>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { headers: studentHeaders(token) });
+}
+
+export function createCourse(token: string, payload: CourseInput): Promise<CourseRecord> {
+  return request<CourseRecord>("/api/v1/admin/courses", {
+    method: "POST", headers: { "Content-Type": "application/json", ...studentHeaders(token) }, body: JSON.stringify(payload),
+  });
+}
+
+export function updateCourse(token: string, id: string, payload: Omit<CourseInput, "id">): Promise<CourseRecord> {
+  return request<CourseRecord>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, {
+    method: "PATCH", headers: { "Content-Type": "application/json", ...studentHeaders(token) }, body: JSON.stringify(payload),
+  });
+}
+
+export function deleteCourse(token: string, id: string): Promise<void> {
+  return request<void>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { method: "DELETE", headers: studentHeaders(token) });
 }
 
 export function getCurriculum(

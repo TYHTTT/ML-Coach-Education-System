@@ -16,10 +16,10 @@ export interface TopicChatState {
 export interface TopicSessions { chats: Record<string, TopicChatState>; lastPath: string | null }
 
 const ACTIONS = new Set(["topic_teaching", "topic_clarification", "topic_practice", "topic_answer"]);
-const SCOPE = /^(machine_learning|advanced_mathematics|linear_algebra|probability_statistics):(?:ml|math|la|prob)\.[a-z0-9_]+$/;
+const SCOPE = /^[a-z][a-z0-9_]{1,63}:[a-z][a-z0-9_]*\.[a-z0-9_]+$/;
 export function topicChatKey(course: Course, topicId: string): string { return `${course}:${topicId}`; }
 export function isLearningPath(path: unknown): path is string {
-  return typeof path === "string" && /^\/learn\/(machine_learning|advanced_mathematics|linear_algebra|probability_statistics)\/(?:ml|math|la|prob)\.[a-z0-9_]+(?:\?[^\s#]*)?$/.test(path);
+  return typeof path === "string" && /^\/learn\/[a-z][a-z0-9_]{1,63}\/[a-z][a-z0-9_]*\.[a-z0-9_]+(?:\?[^\s#]*)?$/.test(path);
 }
 export function emptyTopicChat(): TopicChatState {
   return { turns: [], pending: null, pendingMessage: "", failure: null, inputMode: null, drafts: { clarification: "", answer: "" }, awaitingAnswer: false };

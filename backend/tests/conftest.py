@@ -28,10 +28,11 @@ def postgres_test_database_url() -> Iterator[str]:
             """
             SELECT quote_ident(tablename) AS name
             FROM pg_tables
-            WHERE schemaname = 'public' AND tablename <> 'courses'
+            WHERE schemaname = 'public'
             """
         ).fetchall()
         connection.execute(
             "TRUNCATE TABLE " + ", ".join(row["name"] for row in tables) + " RESTART IDENTITY CASCADE"
         )
+        connection.execute_script(schema_path.read_text(encoding="utf-8"))
     yield database_url

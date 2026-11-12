@@ -40,19 +40,24 @@ CREATE TABLE IF NOT EXISTS student_sessions (
 CREATE TABLE IF NOT EXISTS courses (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
-    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1))
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    description TEXT NOT NULL DEFAULT '',
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"'),
+    updated_at TEXT NOT NULL DEFAULT to_char(CURRENT_TIMESTAMP AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"+00:00"'),
+    deleted_at TEXT
 );
 
-INSERT INTO courses(id, title) VALUES
-    ('machine_learning', '机器学习'),
-    ('advanced_mathematics', '高等数学'),
-    ('linear_algebra', '线性代数'),
-    ('probability_statistics', '概率论与统计基础')
+INSERT INTO courses(id, title, description, sort_order) VALUES
+    ('machine_learning', '机器学习', '模型、算法与实践', 1),
+    ('advanced_mathematics', '高等数学', '极限、微积分与定理', 2),
+    ('linear_algebra', '线性代数', '向量、矩阵与几何', 3),
+    ('probability_statistics', '概率论与统计基础', '概率、分布与统计', 4)
 ON CONFLICT (id) DO NOTHING;
 
 CREATE TABLE IF NOT EXISTS curriculum_topics (
     id TEXT PRIMARY KEY,
-    course TEXT NOT NULL CHECK (course IN ('machine_learning', 'advanced_mathematics', 'linear_algebra', 'probability_statistics')),
+    course TEXT NOT NULL REFERENCES courses(id),
     slug TEXT NOT NULL,
     title TEXT NOT NULL,
     stage INTEGER NOT NULL CHECK (stage > 0),
@@ -110,7 +115,7 @@ CREATE TABLE IF NOT EXISTS student_dimension_states (
 CREATE TABLE IF NOT EXISTS practice_sets (
     id TEXT PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE RESTRICT,
-    course TEXT NOT NULL CHECK (course IN ('machine_learning', 'advanced_mathematics', 'linear_algebra', 'probability_statistics')),
+    course TEXT NOT NULL REFERENCES courses(id),
     mode TEXT NOT NULL CHECK (mode IN ('practice', 'checkpoint')),
     status TEXT NOT NULL CHECK (status IN ('generated', 'submitted', 'evaluation_uncertain')),
     requested_difficulty TEXT NOT NULL CHECK (requested_difficulty IN ('adaptive', 'easy', 'medium', 'hard')),
@@ -163,7 +168,7 @@ CREATE TABLE IF NOT EXISTS misconception_events (
 
 CREATE TABLE IF NOT EXISTS learning_sessions (
     id TEXT PRIMARY KEY, student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    course TEXT NOT NULL CHECK (course IN ('machine_learning', 'advanced_mathematics', 'linear_algebra', 'probability_statistics')),
+    course TEXT NOT NULL REFERENCES courses(id),
     topic_id TEXT REFERENCES curriculum_topics(id) ON DELETE SET NULL, state TEXT NOT NULL, started_at TEXT NOT NULL, ended_at TEXT,
     created_at TEXT NOT NULL, updated_at TEXT NOT NULL
 );
@@ -197,7 +202,7 @@ CREATE INDEX IF NOT EXISTS idx_student_sessions_token_hash ON student_sessions(t
 
 CREATE OR REPLACE FUNCTION enforce_registered_course() RETURNS trigger AS $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM courses WHERE id = NEW.course AND active = 1) THEN
+    IF NOT EXISTS (SELECT 1 FROM courses WHERE id = NEW.course AND active = 1 AND deleted_at IS NULL) THEN
         RAISE EXCEPTION 'unregistered_course';
     END IF;
     RETURN NEW;

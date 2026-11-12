@@ -13,6 +13,7 @@ interface AdminContextValue {
   completeLogin: (account: AuthenticatedAdmin) => void;
   logout: () => Promise<void>;
   retry: () => void;
+  withAdmin: <T>(action: (token: string) => Promise<T>) => Promise<T>;
 }
 const Context = createContext<AdminContextValue | null>(null);
 
@@ -73,7 +74,16 @@ export function AdminProvider({ children }: { children: ReactNode }) {
     finally { clear(); }
   }, [clear]);
   const retry = useCallback(() => { void restore(); }, [restore]);
-  const value = useMemo(() => ({ admin, status, error, completeLogin, logout, retry }), [admin, status, error, completeLogin, logout, retry]);
+  const withAdmin = useCallback(async <T,>(action: (token: string) => Promise<T>) => {
+    const token = tokenRef.current;
+    if (!token) throw new Error("请先登录管理员账户。");
+    try { return await action(token); }
+    catch (cause) {
+      if (cause instanceof ApiError && cause.status === 401) { clear(); setError("管理员登录已过期，请重新登录。"); }
+      throw cause;
+    }
+  }, [clear]);
+  const value = useMemo(() => ({ admin, status, error, completeLogin, logout, retry, withAdmin }), [admin, status, error, completeLogin, logout, retry, withAdmin]);
   return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 

@@ -14,21 +14,16 @@ import {
   TrophyIcon,
 } from "@/components/Icons";
 import { LoadingBlock, MasteryBar, TopicStatusBadge } from "@/components/LearningWidgets";
+import { useCourseCatalog } from "@/components/CourseCatalogProvider";
 import { useStudent } from "@/components/StudentProvider";
 import { getCurriculum, getLearningDashboard } from "@/lib/api";
 import { hasValidTopicEvidence, nextActionLabel, scoreLabel } from "@/lib/learning";
 import {
-  COURSE_META,
-  COURSES,
   type Course,
   type CurriculumResponse,
   type CurriculumTopicSummary,
   type LearningDashboard,
 } from "@/lib/types";
-
-function isCourse(value: string): value is Course {
-  return COURSES.some((course) => course === value);
-}
 
 function visibleMastery(topic: CurriculumTopicSummary): number | null {
   return hasValidTopicEvidence(topic) ? topic.mastery : null;
@@ -68,7 +63,9 @@ function TopicCard({ topic, course }: { topic: CurriculumTopicSummary; course: C
 export default function CourseDashboardPage() {
   const params = useParams<{ course: string }>();
   const rawCourse = Array.isArray(params.course) ? params.course[0] : params.course;
-  const course = isCourse(rawCourse) ? rawCourse : null;
+  const catalog = useCourseCatalog();
+  const courseRecord = catalog.courses.find((item) => item.id === rawCourse);
+  const course = courseRecord?.id ?? null;
   const { status: studentStatus, withStudent } = useStudent();
   const [dashboard, setDashboard] = useState<LearningDashboard | null>(null);
   const [curriculum, setCurriculum] = useState<CurriculumResponse | null>(null);
@@ -117,6 +114,8 @@ export default function CourseDashboardPage() {
     ) ?? currentCurriculum.stages.find((stage) => stage.topics.some((topic) => topic.status !== "mastered")) ?? null;
   }, [currentCurriculum]);
 
+  if (catalog.loading) return <div className="p-8"><LoadingBlock label="正在加载课程…" /></div>;
+  if (catalog.error) return <div role="alert" className="p-8 text-sm text-rose-700">{catalog.error}<button type="button" onClick={catalog.reload} className="ml-3 underline">重试</button></div>;
   if (!course) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center sm:px-6">
@@ -127,7 +126,7 @@ export default function CourseDashboardPage() {
     );
   }
 
-  const meta = COURSE_META[course];
+  const meta = { label: courseRecord?.title ?? course, shortLabel: (courseRecord?.title ?? course).slice(0, 2) };
   const recommended = currentDashboard
     ? currentCurriculum?.stages
         .flatMap((stage) => stage.topics)
@@ -157,7 +156,7 @@ export default function CourseDashboardPage() {
           </Link>
         </div>
 
-        {loading || studentStatus === "initializing" || !currentDashboard || !currentCurriculum ? (
+        {loading || studentStatus === "initializing" ? (
           <div className="mt-7"><LoadingBlock /></div>
         ) : error ? (
           <div className="mt-7 rounded-3xl border border-rose-200 bg-rose-50 p-6 text-rose-800" role="alert">
@@ -170,7 +169,7 @@ export default function CourseDashboardPage() {
               <button type="button" onClick={() => void load()} className="rounded-xl bg-white px-3 py-2 text-xs font-semibold shadow-sm">重试</button>
             </div>
           </div>
-        ) : currentDashboard && currentCurriculum ? (
+        ) : currentDashboard?.total_topics === 0 ? (<section className="mt-7 rounded-3xl border border-slate-200 bg-white p-10 text-center"><h2 className="text-lg font-semibold text-slate-800">当前课程暂无知识点</h2><p className="mt-3 text-sm text-slate-500">课程内容准备好后会显示在这里。</p></section>) : currentDashboard && currentCurriculum ? (
           <>
             <section className="mt-7 grid gap-4 lg:grid-cols-[1.35fr_0.9fr]">
               <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-soft sm:p-6">

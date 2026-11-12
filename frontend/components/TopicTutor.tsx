@@ -8,7 +8,8 @@ import { useStudent } from "@/components/StudentProvider";
 import { useTopicConversation } from "@/components/TopicSessionsProvider";
 import { ApiError, sendChat } from "@/lib/api";
 import { splitPracticeContent } from "@/lib/practice-content";
-import { COURSE_META, type ChatHistoryItem, type Course } from "@/lib/types";
+import { type ChatHistoryItem, type Course } from "@/lib/types";
+import { useCourseCatalog } from "@/components/CourseCatalogProvider";
 import type { TopicAction as Action, TopicInputMode as InputMode } from "@/lib/topic-chat-storage";
 
 const ANSWER_LABELS: Record<Action, string> = {
@@ -27,7 +28,8 @@ export default function TopicTutor({ course, topicId, topicTitle, onLearningStar
   onLearningStarted?: () => void;
 }) {
   const { withStudent } = useStudent();
-  const courseName = COURSE_META[course].label;
+  const { courses } = useCourseCatalog();
+  const courseName = courses.find((item) => item.id === course)?.title ?? course;
   const startMessage = `当前课程是${courseName}，我要开始学习${topicTitle}`;
   const { state, update, begin, finish, stop, rememberPath, storageError } = useTopicConversation(course, topicId);
   const { turns, pending, failure, inputMode, drafts, awaitingAnswer } = state;
