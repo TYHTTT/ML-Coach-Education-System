@@ -3,19 +3,18 @@
 import { useEffect, useRef } from "react";
 import ChatMessage from "@/components/ChatMessage";
 import { SparklesIcon } from "@/components/Icons";
-import { COURSE_META, type ChatMessage as ChatMessageType, type Course } from "@/lib/types";
+import type { ChatMessage as ChatMessageType } from "@/lib/types";
 
 interface ChatWindowProps {
   messages: ChatMessageType[];
-  course: Course;
-  examples: string[];
+  examples: { title: string; question: string }[];
   isLoading: boolean;
   onExample: (question: string) => void;
 }
 
 function ThinkingIndicator() {
   return (
-    <div className="flex animate-fade-up items-start gap-3" role="status" aria-label="Tutor 正在整理回答">
+    <div className="flex animate-fade-up items-start gap-3" role="status" aria-label="正在整理回答">
       <div className="mt-0.5 hidden size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm sm:grid">
         <SparklesIcon className="size-4.5" />
       </div>
@@ -30,7 +29,7 @@ function ThinkingIndicator() {
               />
             ))}
           </div>
-          <span className="text-sm text-slate-500">正在检索课程资料并组织答案…</span>
+          <span className="text-sm text-slate-500">正在思考你的问题…</span>
         </div>
       </div>
     </div>
@@ -39,7 +38,6 @@ function ThinkingIndicator() {
 
 export default function ChatWindow({
   messages,
-  course,
   examples,
   isLoading,
   onExample,
@@ -52,43 +50,37 @@ export default function ChatWindow({
 
   if (messages.length === 0 && !isLoading) {
     return (
-      <div className="flex min-h-full items-center justify-center px-4 py-10 sm:px-8">
-        <div className="w-full max-w-2xl animate-fade-up text-center">
-          <div className="mx-auto grid size-14 place-items-center rounded-2xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-200">
+      <div className="flex min-h-full items-center justify-center px-5 py-8 sm:px-8 sm:py-12">
+        <div className="w-full max-w-2xl animate-fade-up">
+          <div className="grid size-12 place-items-center rounded-2xl bg-indigo-50 text-indigo-600">
             <SparklesIcon className="size-6" />
           </div>
-          <p className="mt-5 text-xs font-semibold uppercase tracking-[0.22em] text-indigo-600">
-            {COURSE_META[course].label} Tutor
-          </p>
-          <h2 className="mt-2 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
-            从课程资料出发，把问题讲明白
+          <h2 className="mt-6 text-balance text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+            有什么想聊的？
           </h2>
-          <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-            我会结合当前课程，通过 AI 助手用中文分步讲解，并展示可用的资料引用。
+          <p className="mt-3 max-w-xl text-sm leading-7 text-slate-500">
+            从一个问题开始，一起理解概念、拆解难题、探索思路。
           </p>
-          <div className="mt-8 grid gap-2 text-left sm:grid-cols-2">
-            {examples.map((question) => (
+          <div className="mt-8 grid gap-3 text-left sm:grid-cols-2">
+            {examples.map(({ title, question }) => (
               <button
                 key={question}
                 type="button"
                 onClick={() => onExample(question)}
-                className="group rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-5 text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="group rounded-xl border border-slate-200/80 bg-white p-4 text-left text-sm leading-6 transition hover:border-indigo-300 hover:bg-indigo-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
-                <span className="flex items-start gap-2">
-                  <span className="mt-0.5 text-indigo-400 transition group-hover:text-indigo-600" aria-hidden="true">→</span>
-                  {question}
-                </span>
+                <span className="block text-xs font-medium text-slate-400">{title}</span>
+                <span className="mt-1 block text-slate-700">{question}<span className="ml-2 inline-block text-indigo-400" aria-hidden="true">↗</span></span>
               </button>
             ))}
           </div>
-          <p className="mt-6 text-xs text-slate-400">AI 助手结合当前课程资料回答，资料不足时会如实说明。</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-8 sm:py-8" aria-live="polite">
+    <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-7 sm:px-6 sm:py-9" aria-live="polite">
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

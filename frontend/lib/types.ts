@@ -23,7 +23,7 @@ export const COURSE_META: Record<
 };
 
 export interface Source {
-  source_course?: Course;
+  source_course?: Course | null;
   topic_id?: string | null;
   source_id: string;
   document_id: string;
@@ -49,7 +49,7 @@ export interface ChatMessage extends ChatHistoryItem {
 }
 
 export interface ChatRequest {
-  course: Course;
+  course?: Course;
   message: string;
   history: ChatHistoryItem[];
   topic_id?: string;
@@ -59,7 +59,7 @@ export interface ChatRequest {
 
 export interface ChatResponse {
   answer: string;
-  course: Course;
+  course: Course | null;
   sources: Source[];
   retrieval_count: number;
   conversation_token?: string | null;
@@ -67,7 +67,7 @@ export interface ChatResponse {
 
 export interface Conversation {
   id: string;
-  course: Course;
+  conversationToken?: string;
   title: string;
   messages: ChatMessage[];
   createdAt: string;
@@ -75,7 +75,6 @@ export interface Conversation {
 }
 
 export interface StoredChatState {
-  selectedCourse: Course;
   activeConversationId: string;
   conversations: Conversation[];
 }

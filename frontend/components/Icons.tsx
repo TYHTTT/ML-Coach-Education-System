@@ -31,8 +31,8 @@ export function SparklesIcon(props: IconProps) {
   return <IconBase {...props}><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Zm14-2 .8 2.2L22 15l-2.2.8L19 18l-.8-2.2L16 15l2.2-.8L19 12Z" /></IconBase>;
 }
 
-export function SendIcon(props: IconProps) {
-  return <IconBase {...props}><path d="m21 3-7.5 18-4.2-7.8L2 9l19-6Z" /><path d="M9.3 13.2 21 3" /></IconBase>;
+export function ArrowUpIcon(props: IconProps) {
+  return <IconBase {...props}><path d="M12 19V5M5 12l7-7 7 7" /></IconBase>;
 }
 
 export function TrashIcon(props: IconProps) {

@@ -25,7 +25,7 @@ class HistoryMessage(BaseModel):
 class ChatRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    course: Course
+    course: Course | None = None
     # The route applies the configured MAX_MESSAGE_LENGTH. This is only an
     # absolute safety ceiling so deployments may choose a value above 8,000.
     message: str = Field(min_length=1, max_length=100_000)
@@ -36,6 +36,8 @@ class ChatRequest(BaseModel):
 
     @model_validator(mode="after")
     def example_requires_topic(self) -> "ChatRequest":
+        if self.course is None and (self.topic_id is not None or self.learning_mode != "free_qa"):
+            raise ValueError("课程学习需要指定 course，自由问答可以不指定课程")
         if self.learning_mode == "worked_example" and self.topic_id is None:
             raise ValueError("生成学习例题需要指定当前知识点 topic_id")
         if self.learning_mode in {"topic_clarification", "topic_practice", "topic_answer"} and self.topic_id is None:
@@ -68,7 +70,7 @@ class SourceResponse(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
-    course: Course
+    course: Course | None = None
     sources: list[SourceResponse]
     retrieval_count: int
     conversation_token: str | None = None

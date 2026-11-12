@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { StudentProvider } from "@/components/StudentProvider";
 import AuthGate from "@/components/AuthGate";
+import TopicSessionsProvider from "@/components/TopicSessionsProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import "katex/dist/katex.min.css";
 import "./globals.css";
@@ -24,7 +25,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN">
       <body>
         <ThemeProvider>
-          <StudentProvider><AuthGate>{children}</AuthGate></StudentProvider>
+          <StudentProvider><AuthGate><TopicSessionsProvider>{children}</TopicSessionsProvider></AuthGate></StudentProvider>
         </ThemeProvider>
       </body>
     </html>

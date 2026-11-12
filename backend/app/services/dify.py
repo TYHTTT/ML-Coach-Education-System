@@ -28,7 +28,7 @@ class DifyClient:
         # Only topic dialogue reuses a verified conversation. Structured grading
         # and retrieval tasks continue to run independently.
         payload = {
-            "inputs": {**self.settings.dify_inputs,
+            "inputs": {**{key: value for key, value in self.settings.dify_inputs.items() if key not in {"course", "topic_id"}},
                        **({"course": course.value} if course else {}),
                        **({"topic_id": topic_id} if topic_id else {})},
             "query": messages if isinstance(messages, str) else json.dumps({"messages": messages}, ensure_ascii=False),
@@ -90,7 +90,7 @@ class DifyClient:
     def for_task(self, course: Course, topic_id: str) -> DifyTaskClient:
         return DifyTaskClient(self, course, topic_id)
 
-    async def answer(self, *, course: Course, question: str, history: list[dict[str, str]],
+    async def answer(self, *, course: Course | None, question: str, history: list[dict[str, str]],
                      system_prompt: str | None = None, topic_id: str | None = None,
                      user: str | None = None, plain_query: bool = False,
                      conversation_id: str | None = None) -> dict:
@@ -112,9 +112,11 @@ class DifyClient:
                 "retrieval_count": len(sources), "conversation_id": result.get("conversation_id")}
 
     @staticmethod
-    def _chat_messages(course: Course, question: str, history: list[dict[str, str]],
+    def _chat_messages(course: Course | None, question: str, history: list[dict[str, str]],
                        system_prompt: str | None, topic_id: str | None) -> list[dict[str, str]]:
-        prompt = f"你是中文课程辅导助手。当前课程：{course.display_name}。仅使用该课程的资料；资料不足时如实说明，不得编造引用。"
+        prompt = "你是中文学习助手。请根据用户的问题回答，不得编造引用。"
+        if course:
+            prompt = f"你是中文课程辅导助手。当前课程：{course.display_name}。仅使用该课程的资料；资料不足时如实说明，不得编造引用。"
         if topic_id:
             prompt += f"当前知识点：{topic_id}。"
         if system_prompt:
@@ -135,7 +137,7 @@ class DifyTaskClient:
         return result["answer"]
 
 
-def resource_snapshots(resources: list, *, course: Course, topic_ids: list[str] | None = None) -> list[dict]:
+def resource_snapshots(resources: list, *, course: Course | None, topic_ids: list[str] | None = None) -> list[dict]:
     """Keep actual Dify evidence; ignore explicitly foreign course/topic metadata."""
     snapshots = []
     seen = set()
@@ -147,16 +149,20 @@ def resource_snapshots(resources: list, *, course: Course, topic_ids: list[str] 
             metadata = {}
         source_course = metadata.get("course")
         topic_id = metadata.get("topic_id")
-        if source_course and source_course != course.value:
+        if course and source_course and source_course != course.value:
             continue
-        if topic_ids is not None and (source_course != course.value or topic_id not in topic_ids):
+        if topic_ids is not None and (course is None or source_course != course.value or topic_id not in topic_ids):
             continue
+        try:
+            resolved_course = course or (Course(source_course) if source_course else None)
+        except ValueError:
+            resolved_course = None
         identity = resource.get("segment_id") or (resource.get("document_id"), resource["content"])
         if identity in seen:
             continue
         seen.add(identity)
         snapshots.append({
-            "source_id": f"S{len(snapshots) + 1}", "source_course": course.value,
+            "source_id": f"S{len(snapshots) + 1}", "source_course": resolved_course.value if resolved_course else None,
             "topic_id": topic_id, "document_id": str(resource.get("document_id") or "dify"),
             "source_file": str(resource.get("document_name") or resource.get("dataset_name") or "Dify 课程资料"),
             "title": str(resource.get("document_name") or "Dify 课程资料"),

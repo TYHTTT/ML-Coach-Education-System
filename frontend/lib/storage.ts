@@ -1,10 +1,4 @@
-import {
-  COURSES,
-  type ChatMessage,
-  type Conversation,
-  type Course,
-  type StoredChatState,
-} from "@/lib/types";
+import type { ChatMessage, Conversation, StoredChatState } from "@/lib/types";
 
 const STORAGE_KEY = "course-coach:chat-state:v1";
 const MAX_CONVERSATIONS = 20;
@@ -31,11 +25,10 @@ export function createMessage(
   };
 }
 
-export function createConversation(course: Course): Conversation {
+export function createConversation(): Conversation {
   const now = new Date().toISOString();
   return {
     id: makeId("chat"),
-    course,
     title: "新对话",
     messages: [],
     createdAt: now,
@@ -44,16 +37,11 @@ export function createConversation(course: Course): Conversation {
 }
 
 export function initialChatState(): StoredChatState {
-  const conversation = createConversation("machine_learning");
+  const conversation = createConversation();
   return {
-    selectedCourse: "machine_learning",
     activeConversationId: conversation.id,
     conversations: [conversation],
   };
-}
-
-function isCourse(value: unknown): value is Course {
-  return typeof value === "string" && COURSES.includes(value as Course);
 }
 
 function isMessage(value: unknown): value is ChatMessage {
@@ -72,7 +60,6 @@ function isConversation(value: unknown): value is Conversation {
   const item = value as Partial<Conversation>;
   return (
     typeof item.id === "string" &&
-    isCourse(item.course) &&
     typeof item.title === "string" &&
     Array.isArray(item.messages) &&
     item.messages.every(isMessage) &&
@@ -93,26 +80,24 @@ export function loadChatState(): StoredChatState {
     const conversations = parsed.conversations
       .filter(isConversation)
       .map((conversation) => ({
-        ...conversation,
+        id: conversation.id,
+        title: conversation.title,
+        createdAt: conversation.createdAt,
+        updatedAt: conversation.updatedAt,
+        // A legacy token may be course-scoped; rebuild context from its transcript.
+        conversationToken: "course" in conversation ? undefined : typeof conversation.conversationToken === "string" ? conversation.conversationToken : undefined,
         messages: conversation.messages.slice(-MAX_MESSAGES_PER_CONVERSATION),
       }))
       .slice(0, MAX_CONVERSATIONS);
 
     if (conversations.length === 0) return initialChatState();
 
-    const selectedCourse = isCourse(parsed.selectedCourse)
-      ? parsed.selectedCourse
-      : conversations[0].course;
     const requestedActive = conversations.find(
       (conversation) => conversation.id === parsed.activeConversationId,
     );
-    const active =
-      requestedActive ??
-      conversations.find((conversation) => conversation.course === selectedCourse) ??
-      conversations[0];
+    const active = requestedActive ?? conversations[0];
 
     return {
-      selectedCourse: active.course,
       activeConversationId: active.id,
       conversations,
     };

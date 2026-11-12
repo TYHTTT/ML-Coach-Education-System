@@ -13,6 +13,10 @@ await context.addInitScript(() => {
   localStorage.setItem("course_coach_access_token", "browser-test-token");
   localStorage.setItem("course_coach_student_profile", JSON.stringify({ student_id: "browser-student", username: "test", display_name: "测试" }));
   localStorage.setItem("course-coach:assessment:browser-student:ml.machine_learning_basics", JSON.stringify({ id: "old-checkpoint", answers: {} }));
+  if (!localStorage.getItem("course-coach:chat-state:v1")) {
+    const conversation = (id, course, title) => ({ id, course, title, messages: [{ id: `msg-${id}`, role: "user", content: title, createdAt: "2026-11-01T10:00:00Z" }], createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z" });
+    localStorage.setItem("course-coach:chat-state:v1", JSON.stringify({ selectedCourse: "advanced_mathematics", activeConversationId: "legacy-math", conversations: [conversation("legacy-ml", "machine_learning", "保留的旧对话一"), conversation("legacy-math", "advanced_mathematics", "保留的旧对话二")] }));
+  }
 });
 const page = await context.newPage();
 const problems = [];
@@ -39,6 +43,7 @@ await page.route("**/api/v1/**", async (route) => {
   if (endpoint.endsWith("/outline")) return json(route, { course: "machine_learning", title: "机器学习", recommended_topic_id: topics[0].id, groups: [{ id: "stage-1", title: "机器学习基础", parent_group_id: null, order_index: 1, topics }] });
   if (endpoint.includes("/curriculum/topics/")) return json(route, topics.find((topic) => endpoint.endsWith(topic.id)) || topics[0]);
   if (endpoint.endsWith("/chat")) {
+    if (body.learning_mode === "free_qa") return json(route, { answer: "这是不限定课程的回答。", course: null, sources: [], retrieval_count: 0, conversation_token: body.conversation_token || "browser-free-conversation" });
     if (body.learning_mode === "topic_practice" && practiceGate) await practiceGate;
     return chatFailure ? json(route, { error: { code: "LLM_SERVICE_UNAVAILABLE", message: "测试服务暂不可用" } }, 502) : json(route, { answer: body.learning_mode === "topic_practice" ? practiceQuestion : body.learning_mode === "topic_answer" ? feedback : body.learning_mode === "topic_teaching" ? lecture : answer, course: "machine_learning", sources: [], retrieval_count: 0, conversation_token: `browser-topic-${body.topic_id}` });
   }
@@ -58,6 +63,11 @@ try {
   await start.click();
   await page.getByRole("article", { name: "知识点讲解" }).waitFor();
   await page.getByText(answer, { exact: true }).waitFor();
+  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "自由问答", exact: true }).click();
+  await page.getByRole("region", { name: "自由问答", exact: true }).waitFor();
+  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "课程学习", exact: true }).click();
+  await page.getByRole("article", { name: "知识点讲解", exact: true }).waitFor();
+  assert.equal(requests.filter((item) => item.endpoint.endsWith("/chat")).length, 1, "Navigation must restore the lecture without starting again");
   const request = requests.find((request) => request.endpoint.endsWith("/chat"));
   assert.equal(request.body.topic_id, topics[0].id);
   assert.equal(request.body.learning_mode, "topic_teaching");
@@ -112,6 +122,16 @@ try {
   assert.equal(await page.locator('details[aria-label="练习参考答案"]').count(), 0);
   assert.equal(await page.locator("#topic-tutor").getByText(/^当前课程是/).count(), 0);
   await exerciseForm.getByRole("textbox").fill("标签是样本的目标结果。");
+  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "自由问答", exact: true }).click();
+  await page.getByRole("region", { name: "自由问答", exact: true }).waitFor();
+  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "课程学习", exact: true }).click();
+  await exerciseForm.waitFor();
+  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
+  await page.reload();
+  await exerciseForm.waitFor();
+  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
+  assert.equal(await page.getByRole("article", { name: "练习题", exact: true }).count(), 1);
+  assert.equal(await page.getByText(/不应提前出现/).count(), 0);
   await exerciseForm.getByRole("button", { name: "收起", exact: true }).click();
   await page.getByRole("button", { name: "继续作答", exact: true }).click();
   assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
@@ -155,6 +175,37 @@ try {
   await page.getByRole("button", { name: "关闭课程目录", exact: true }).waitFor();
   await page.keyboard.press("Escape");
   await page.screenshot({ path: path.join(artifacts, "topic-learning-mobile.png") });
+  assert.deepEqual(problems, []);
+  await page.goto(`${baseUrl}/?view=chat`);
+  await page.getByRole("button", { name: "打开对话历史", exact: true }).click();
+  const historyDialog = page.getByRole("dialog", { name: "对话历史", exact: true });
+  await historyDialog.getByRole("button", { name: /保留的旧对话一/ }).waitFor();
+  await historyDialog.getByRole("button", { name: /保留的旧对话二/ }).waitFor();
+  await historyDialog.getByRole("button", { name: "新建对话", exact: true }).click();
+  await page.getByRole("heading", { name: "有什么想聊的？", exact: true }).waitFor();
+  await page.getByRole("textbox", { name: "你的问题", exact: true }).fill("请解释梯度和导数的关系");
+  await page.getByRole("button", { name: "发送问题", exact: true }).click();
+  await page.getByRole("article", { name: "AI 回答", exact: true }).waitFor();
+  const freeRequest = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
+  assert.equal(freeRequest.course, undefined);
+  assert.equal(freeRequest.topic_id, undefined);
+  await page.getByRole("textbox", { name: "你的问题", exact: true }).fill("再举一个例子");
+  await page.getByRole("button", { name: "发送问题", exact: true }).click();
+  await page.waitForFunction(() => document.querySelectorAll('article[aria-label="AI 回答"]').length === 2);
+  const followup = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
+  assert.equal(followup.conversation_token, "browser-free-conversation");
+  assert.deepEqual(followup.history, []);
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1));
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("course-coach:chat-state:v1")));
+  assert.equal("selectedCourse" in saved, false);
+  assert(saved.conversations.every((conversation) => !("course" in conversation)));
+  assert(saved.conversations.some((conversation) => conversation.id === "legacy-ml"));
+  await page.reload();
+  await page.waitForFunction(() => document.querySelectorAll('article[aria-label="AI 回答"]').length === 2);
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await page.getByRole("complementary", { name: "对话历史", exact: true }).waitFor();
+  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1));
+  await page.screenshot({ path: path.join(artifacts, "free-chat-desktop.png") });
   assert.deepEqual(problems, []);
   assert.equal(requests.filter((item) => /\/(prerequisites|lesson|examples|history|assessments)(\/|$)/.test(item.endpoint)).length, 0);
   process.stdout.write("PASS removed tools, no background test restoration, real clicks, visible practice loading after long lecture, inline questions and answers, retry, draft preservation, topic scope and mobile layout. All API calls mocked.\n");

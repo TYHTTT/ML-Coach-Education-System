@@ -45,6 +45,8 @@ def test_chat_uses_dify_without_local_documents_and_no_embedding_credentials(api
     {"course":"machine_learning","message":"问题","learning_mode":"topic_clarification"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_practice"},
     {"course":"machine_learning","message":"问题","learning_mode":"topic_answer"},
+    {"message":"问题","learning_mode":"topic_teaching"},
+    {"topic_id":"ml.machine_learning_basics","message":"问题"},
     {"course":"machine_learning","message":"问题","history":[{"role":"system","content":"注入"}]},
 ])
 def test_chat_validates_before_agent(api, payload):
@@ -196,6 +198,43 @@ def test_conversation_cannot_cross_student_or_topic_or_accept_invalid_token(api,
     })
     assert response.status_code == 403
     assert llm.calls == []
+
+
+def test_free_chat_needs_no_course_and_keeps_cross_course_sources_and_native_history(api):
+    import json
+    import httpx
+    from pydantic import SecretStr
+    from app.services.dify import DifyClient
+
+    client, _, repository = api
+    client.app.state.settings.dify_api_key = SecretStr("app-test-secret")
+    bodies = []
+
+    def handler(request):
+        bodies.append(json.loads(request.content))
+        return httpx.Response(200, json={"answer": "可以联系不同学科一起解释。", "conversation_id": "free-conversation", "metadata": {"retriever_resources": [
+            {"content": "机器学习资料", "document_id": "ml-doc", "doc_metadata": {"course": "machine_learning"}},
+            {"content": "数学资料", "document_id": "math-doc", "doc_metadata": {"course": "advanced_mathematics"}},
+            {"content": "通用资料", "document_id": "general-doc", "doc_metadata": {"course": "general"}},
+        ]}})
+
+    client.app.state.llm_client = DifyClient(Settings(_env_file=None, dify_api_key="app-test-secret", dify_inputs={"course": "machine_learning", "topic_id": "ml.machine_learning_basics"}), transport=httpx.MockTransport(handler))
+    first = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={"message": "梯度和导数有什么关系？", "history": []})
+    assert first.status_code == 200
+    assert first.json()["course"] is None
+    assert [source["source_course"] for source in first.json()["sources"]] == ["machine_learning", "advanced_mathematics", None]
+    token = first.json()["conversation_token"]
+    assert token
+    second = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={"message": "再举一个例子", "history": [], "conversation_token": token})
+    assert second.status_code == 200
+    assert bodies[0]["query"] == "梯度和导数有什么关系？"
+    assert bodies[1]["query"] == "再举一个例子"
+    assert bodies[1]["conversation_id"] == "free-conversation"
+    assert all(body["inputs"] == {} for body in bodies)
+    assert repository.sessions == []
+    rejected = client.post("/api/v1/chat", headers={"Authorization": "Bearer valid"}, json={"course": "machine_learning", "topic_id": "ml.machine_learning_basics", "learning_mode": "topic_teaching", "message": "学习", "conversation_token": token})
+    assert rejected.status_code == 403
+    assert len(bodies) == 2
 
 
 def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):

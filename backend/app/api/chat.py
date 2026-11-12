@@ -29,7 +29,12 @@ async def chat(
             detail=f"history 最多包含 {settings.max_history_messages} 条消息",
         )
     history = [item.model_dump() for item in payload.history[-settings.max_history_messages :]] if settings.max_history_messages else []
-    plain_query = payload.learning_mode in {"topic_teaching", "topic_clarification", "topic_practice", "topic_answer"} and payload.topic_id is not None
+    plain_query = (
+        payload.learning_mode == "free_qa" and payload.topic_id is None
+    ) or (
+        payload.learning_mode in {"topic_teaching", "topic_clarification", "topic_practice", "topic_answer"}
+        and payload.topic_id is not None
+    )
     retrieval_query: str | None = None
     system_prompt: str | None = None
     repository = request.app.state.learning_repository
@@ -37,16 +42,16 @@ async def chat(
     conversation_id = None
     scope = {
         "secret": settings.dify_api_key.get_secret_value(),
-        "student_id": student_id or "", "course": payload.course.value,
+        "student_id": student_id or "", "course": payload.course.value if payload.course else "",
         "topic_id": payload.topic_id or "",
     }
     if payload.conversation_token:
         if not plain_query or not student_id:
-            raise HTTPException(status_code=403, detail="该对话不属于当前学生或知识点，请重新开始学习。")
+            raise HTTPException(status_code=403, detail="该对话不属于当前学生或学习范围，请新建对话。")
         try:
             conversation_id = read_conversation_token(payload.conversation_token, **scope)
         except ValueError:
-            raise HTTPException(status_code=403, detail="对话已过期或不属于当前知识点，请重新开始学习。") from None
+            raise HTTPException(status_code=403, detail="对话已过期或不属于当前学习范围，请重新开始学习或新建对话。") from None
     if payload.topic_id is not None:
         topic = repository.require_topic(payload.topic_id)
         if topic["course"] != payload.course.value:

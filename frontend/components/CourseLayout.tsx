@@ -127,9 +127,9 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
     const allTopics = [...group.topics, ...children.flatMap((child) => child.topics)];
     return <section key={group.id} className="mt-2">
       <button type="button" aria-expanded={opened} aria-controls={`group-${group.id}`} onClick={() => { const next = opened ? [...closedGroups, group.id] : closedGroups.filter((id) => id !== group.id); setClosedGroups(next); persist(next, collapsed); }} className="flex w-full items-center gap-2 rounded-lg px-2 py-2.5 text-left text-xs font-bold text-slate-700 hover:bg-slate-100">
-        <span aria-hidden="true">{opened ? "▾" : "▸"}</span><span className="flex-1">{group.title}</span><span className="font-normal text-slate-400">{allTopics.filter((topic) => topic.status === "mastered").length}/{allTopics.length}</span>
+        <span aria-hidden="true">{opened ? "▾" : "▸"}</span><span className="flex-1">{group.title}</span><span className="shrink-0 font-normal tabular-nums text-slate-400">{allTopics.filter((topic) => topic.status === "mastered").length}/{allTopics.length}</span>
       </button>
-      {opened && <div id={`group-${group.id}`} className={group.parent_group_id ? "ml-2" : ""}>
+      {opened && <div id={`group-${group.id}`} className="ml-3 border-l border-slate-200/80 pl-2">
         {visibleTopics.map((topic) => { const state = topicState(topic); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} title={topic.prerequisite_gap.map((item) => `${item.title}：${item.reason}`).join("\n")} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
           <span className="block font-medium">{topic.title}{topic.is_reference && <span className="ml-1 text-[10px] text-slate-400">↗</span>}</span>
           <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${COURSE_META[topic.owner_course].label}` : ""}</span>
