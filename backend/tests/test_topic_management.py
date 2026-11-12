@@ -21,8 +21,7 @@ def create(client, headers, title, **changes):
 
 @pytest.mark.parametrize("method,suffix", [("GET", ""), ("POST", ""), ("PUT", "/physics.test"),
     ("DELETE", "/physics.test"), ("POST", "/physics.test/restore"), ("PUT", "/order"),
-    ("POST", "/groups/order"), ("PATCH", "/groups/1"), ("POST", "/references"),
-    ("PUT", "/references/ml.test"), ("DELETE", "/references/ml.test")])
+    ("POST", "/groups/order"), ("PATCH", "/groups/1")])
 @pytest.mark.parametrize("token", [None, "student-session"])
 def test_all_topic_operations_require_admin(protected_api, method, suffix, token):
     response = protected_api.request(method, BASE + suffix, json={}, headers={"Authorization": f"Bearer {token}"} if token else {})
@@ -67,27 +66,6 @@ def test_topic_crud_order_move_and_student_sync(api):
 
 
 
-def test_cross_course_reference_preserves_owner_and_orders_with_local_nodes(api):
-    client, app, headers, _, _ = api
-    client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
-    local = create(client, headers, "速度")
-    candidate = next(t for t in client.get("/api/v1/admin/topics", headers=headers).json() if t["course"] == "linear_algebra")
-    ref = candidate["id"]
-    reference = {"topic_id": ref, "stage": 1, "stage_title": "力学"}
-    assert client.post(BASE + "/references", headers=headers, json=reference).status_code == 201
-    assert client.post(BASE + "/references", headers=headers, json=reference).status_code == 409
-    assert client.put(BASE + "/" + ref, headers=headers, json=values("恶意更改")).status_code == 403
-    assert client.delete(BASE + "/" + ref, headers=headers).status_code == 403
-    assert client.put(BASE + "/order", headers=headers, json={"group_id": "stage-1", "topic_ids": [ref, local]}).status_code == 200
-    public = client.get("/api/v1/courses/physics/outline").json()
-    assert len(public["groups"]) == 1 and public["groups"][0]["title"] == "力学"
-    assert [t["id"] for t in public["groups"][0]["topics"]] == [ref, local]
-    assert public["groups"][0]["topics"][0]["owner_course"] == "linear_algebra"
-    assert client.delete(f"/api/v1/admin/courses/linear_algebra/topics/{ref}", headers=headers).status_code == 409
-    assert client.put(BASE + "/references/" + ref, headers=headers, json={**reference, "stage": 2, "stage_title": "数学"}).status_code == 200
-    assert client.delete(BASE + "/references/" + ref, headers=headers).status_code == 200
-    with app.state.learning_repository._connect() as connection:
-        assert connection.execute("SELECT title,active FROM curriculum_topics WHERE id=?", (ref,)).fetchone() == {"title": candidate["title"], "active": 1}
 
 
 def test_inactive_course_can_be_compiled_and_migration_is_idempotent(api):
@@ -125,3 +103,22 @@ def test_topics_have_no_prerequisite_settings_or_learning_restrictions(api):
     assert "locked_count" not in dashboard
     assert "unmet_prerequisites" not in dashboard["current_topic"]
     assert client.delete("/api/v1/admin/courses/machine_learning/topics/ml.linear_regression", headers=headers).status_code == 200
+
+
+def test_cross_course_reference_endpoints_and_fields_are_removed(api):
+    client, app, headers, _, _ = api
+    client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
+    topic_id = create(client, headers, "位置")
+    assert client.get("/api/v1/admin/topics", headers=headers).status_code == 404
+    for method, suffix in [("POST", "/references"), ("PUT", "/references/la.vectors"), ("DELETE", "/references/la.vectors")]:
+        response = client.request(method, BASE + suffix, headers=headers, json={"topic_id": "la.vectors", "stage": 1, "stage_title": "力学"})
+        assert response.status_code in (404, 405)
+    assert client.put(BASE + "/la.vectors", headers=headers, json=values("恶意修改")).status_code == 403
+    assert client.delete(BASE + "/la.vectors", headers=headers).status_code == 403
+    assert client.post(BASE + "/la.vectors/restore", headers=headers).status_code == 403
+    assert client.put(BASE + "/order", headers=headers, json={"group_id": "stage-1", "topic_ids": [topic_id, "la.vectors"]}).status_code == 409
+    assert client.post(BASE, headers=headers, json=values("位置", is_reference=True, topic_id="la.vectors")).status_code == 422
+    admin_topic = client.get(BASE, headers=headers).json()["groups"][0]["topics"][0]
+    student_topic = client.get("/api/v1/courses/physics/outline").json()["groups"][0]["topics"][0]
+    assert not {"is_reference", "owner_title"} & admin_topic.keys()
+    assert not {"is_reference", "owner_course"} & student_topic.keys()

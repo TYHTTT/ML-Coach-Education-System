@@ -25,7 +25,7 @@ page.on("pageerror", (error) => problems.push(error.message));
 const topics = [
   { id: "ml.machine_learning_basics", title: "机器学习基础" },
   { id: "ml.supervised_learning", title: "监督学习与无监督学习" },
-].map((item, index) => ({ ...item, topic_id: item.id, course: "machine_learning", owner_course: "machine_learning", description: "理解数据驱动建模的流程与基本概念。", learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"], stage: 1, stage_title: "机器学习基础", order_index: index, status: "learning", mastery: null, confidence: null, evidence_count: 0, is_reference: false, required_dimensions: ["concept"], dimensions: [] }));
+].map((item, index) => ({ ...item, topic_id: item.id, course: "machine_learning", description: "理解数据驱动建模的流程与基本概念。", learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"], stage: 1, stage_title: "机器学习基础", order_index: index, status: "learning", mastery: null, confidence: null, evidence_count: 0, required_dimensions: ["concept"], dimensions: [] }));
 let chatFailure = false;
 let practiceGate = null;
 let releasePractice;

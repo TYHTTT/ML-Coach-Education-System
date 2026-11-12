@@ -72,7 +72,8 @@ CREATE TABLE IF NOT EXISTS curriculum_topics (
     active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
     created_at TEXT NOT NULL,
     updated_at TEXT NOT NULL,
-    UNIQUE(course, slug)
+    UNIQUE(course, slug),
+    CONSTRAINT curriculum_topics_id_course_key UNIQUE(id, course)
 );
 
 CREATE TABLE IF NOT EXISTS student_topic_states (
@@ -158,9 +159,10 @@ CREATE TABLE IF NOT EXISTS learning_sessions (
 );
 
 CREATE TABLE IF NOT EXISTS topic_placements (
-    course_id TEXT NOT NULL REFERENCES courses(id), topic_id TEXT NOT NULL REFERENCES curriculum_topics(id),
+    course_id TEXT NOT NULL REFERENCES courses(id), topic_id TEXT NOT NULL,
     parent_group_id TEXT NOT NULL, group_title TEXT NOT NULL, order_index INTEGER NOT NULL,
-    is_reference INTEGER NOT NULL DEFAULT 0 CHECK (is_reference IN (0, 1)), PRIMARY KEY(course_id, topic_id)
+    PRIMARY KEY(course_id, topic_id),
+    CONSTRAINT topic_placements_topic_course_fkey FOREIGN KEY(topic_id, course_id) REFERENCES curriculum_topics(id, course)
 );
 
 CREATE INDEX IF NOT EXISTS idx_curriculum_topics_course_stage_order ON curriculum_topics(course, active, stage, order_index);

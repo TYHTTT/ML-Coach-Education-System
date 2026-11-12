@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode, type KeyboardEvent } from "react";
 import { useStudent } from "./StudentProvider";
 import { getCourseOutline } from "@/lib/api";
@@ -10,15 +10,13 @@ import { useCourseCatalog } from "@/components/CourseCatalogProvider";
 import type { CourseOutline, OutlineGroup, OutlineTopic } from "@/lib/types";
 import { statusMeta } from "@/lib/learning";
 
-type CourseContext = { outline: CourseOutline | null; course: Course | null; refresh: () => Promise<void>; topicHref: (topic: Pick<OutlineTopic, "topic_id" | "owner_course">) => string };
+type CourseContext = { outline: CourseOutline | null; course: Course | null; refresh: () => Promise<void>; topicHref: (topic: Pick<OutlineTopic, "topic_id">) => string };
 const OutlineContext = createContext<CourseContext>({ outline: null, course: null, refresh: async () => {}, topicHref: () => "/learn" });
 export const useCourseOutline = () => useContext(OutlineContext);
-/** Kept above the dynamic course segment, so canonical math navigation retains the directory. */
+/** Keep the current course directory mounted while switching knowledge points. */
 export default function CourseLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ course?: string; topicId?: string }>();
-  const searchParams = useSearchParams();
-  const contextualCourse = searchParams.get("course");
-  const rawCourse = contextualCourse || params.course;
+  const rawCourse = params.course;
   const { courses } = useCourseCatalog();
   const course = courses.find((item) => item.id === rawCourse)?.id ?? null;
   const courseName = (id: string) => courses.find((item) => item.id === id)?.title ?? id;
@@ -58,7 +56,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       try {
         const saved = JSON.parse(window.localStorage.getItem(`course-coach:outline:${course}`) || "{}");
         setClosedGroups(Array.isArray(saved.closed) ? saved.closed : []);
-        setCollapsed(Boolean(saved.collapsed)); setLastTopic(typeof saved.lastTopic === "string" ? saved.lastTopic : "");
+        setCollapsed(Boolean(saved.collapsed)); setLastTopic(typeof saved.lastTopic === "string" && saved.lastTopic.startsWith(`/learn/${course}/`) ? saved.lastTopic.split("?")[0] : "");
       } catch { /* Directory remains usable without browser storage. */ }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -72,7 +70,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       setMobileOpen(false);
       try {
         const prior = JSON.parse(window.localStorage.getItem(`course-coach:outline:${course}`) || "{}");
-        window.localStorage.setItem(`course-coach:outline:${course}`, JSON.stringify({ ...prior, lastTopic: window.location.pathname + window.location.search }));
+        window.localStorage.setItem(`course-coach:outline:${course}`, JSON.stringify({ ...prior, lastTopic: window.location.pathname }));
       } catch { /* URL is the authoritative current location. */ }
     }, 0);
     return () => window.clearTimeout(timer);
@@ -85,16 +83,9 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
     return () => { document.body.style.overflow = priorOverflow; };
   }, [mobileOpen]);
   function persist(closed: string[], isCollapsed: boolean) {
-    try { window.localStorage.setItem(`course-coach:outline:${course}`, JSON.stringify({ closed, collapsed: isCollapsed, lastTopic: topicId ? window.location.pathname + window.location.search : lastTopic })); } catch { /* Optional UI preference. */ }
+    try { window.localStorage.setItem(`course-coach:outline:${course}`, JSON.stringify({ closed, collapsed: isCollapsed, lastTopic: topicId ? window.location.pathname : lastTopic })); } catch { /* Optional UI preference. */ }
   }
-  const topicHref = useCallback((topic: Pick<OutlineTopic, "topic_id" | "owner_course">) => {
-    const path = `/learn/${topic.owner_course}/${encodeURIComponent(topic.topic_id)}`;
-    if (!course || topic.owner_course === course) return path;
-    const query = new URLSearchParams({ course });
-    const returnTopic = searchParams.get("return_topic") || (params.course === course ? topicId : "");
-    if (returnTopic) query.set("return_topic", returnTopic);
-    return `${path}?${query}`;
-  }, [course, topicId, params.course, searchParams]);
+  const topicHref = useCallback((topic: Pick<OutlineTopic, "topic_id">) => course ? `/learn/${course}/${encodeURIComponent(topic.topic_id)}` : "/learn", [course]);
   const value = useMemo(() => ({ outline: currentOutline, course, refresh, topicHref }), [currentOutline, course, refresh, topicHref]);
   if (!course) return <OutlineContext.Provider value={value}>{children}</OutlineContext.Provider>;
   function closeMobile() { setMobileOpen(false); mobileButton.current?.focus(); }
@@ -129,8 +120,8 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
       </button>
       {opened && <div id={`group-${group.id}`} className="ml-3 border-l border-slate-200/80 pl-2">
         {visibleTopics.map((topic) => { const state = statusMeta(topic.status); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
-          <span className="block font-medium">{topic.title}{topic.is_reference && <span className="ml-1 text-[10px] text-slate-400">↗</span>}</span>
-          <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${courseName(topic.owner_course)}` : ""}</span>
+          <span className="block font-medium">{topic.title}</span>
+          <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}</span>
         </Link>; })}
         {children.map(renderGroup)}
       </div>}

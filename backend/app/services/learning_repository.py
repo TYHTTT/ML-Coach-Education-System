@@ -216,8 +216,8 @@ class LearningRepository:
                 )
 
             for course, topic in topics:
-                connection.execute("""INSERT INTO topic_placements(course_id,topic_id,parent_group_id,group_title,order_index,is_reference)
-                    VALUES (?,?,?,?,?,0) ON CONFLICT(course_id,topic_id) DO UPDATE SET
+                connection.execute("""INSERT INTO topic_placements(course_id,topic_id,parent_group_id,group_title,order_index)
+                    VALUES (?,?,?,?,?) ON CONFLICT(course_id,topic_id) DO UPDATE SET
                     parent_group_id=excluded.parent_group_id,group_title=excluded.group_title,order_index=excluded.order_index""",
                     (course,topic.id,f"stage-{topic.stage}",topic.stage_title,topic.order_index))
 

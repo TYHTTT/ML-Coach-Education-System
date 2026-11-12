@@ -245,12 +245,10 @@ export interface LearningDashboard {
 export interface OutlineTopic {
   id: string;
   topic_id: string;
-  owner_course: Course;
   title: string;
   description: string;
   learning_objectives: string[];
   order_index: number;
-  is_reference: boolean;
   status: TopicStatus;
   mastery: number | null;
 }

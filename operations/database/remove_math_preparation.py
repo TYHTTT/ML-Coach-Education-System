@@ -15,7 +15,7 @@ from app.core.config import Settings
 from cleanup_retired import _create_backup, _retained_snapshot
 
 SQL_FILE = Path(__file__).with_suffix(".sql")
-TARGET = "course_id='machine_learning' AND is_reference=1 AND parent_group_id ~ '^math-preparation-'"
+TARGET = "course_id='machine_learning' AND parent_group_id ~ '^math-preparation-' AND EXISTS (SELECT 1 FROM curriculum_topics owner WHERE owner.id=t.topic_id AND owner.course<>t.course_id)"
 
 
 def snapshot(connection):
@@ -30,7 +30,7 @@ def snapshot(connection):
 def remove_math_preparation(database_url, *, apply=False, backup_directory=None, pg_dump=None):
     with psycopg.connect(database_url, row_factory=dict_row, connect_timeout=10) as connection:
         connection.execute("SET TRANSACTION READ ONLY")
-        count = connection.execute("SELECT count(*) AS n FROM topic_placements WHERE " + TARGET).fetchone()["n"]
+        count = connection.execute("SELECT count(*) AS n FROM topic_placements t WHERE " + TARGET).fetchone()["n"]
     if not apply or not count:
         return {"applied": False, "removed": 0, "pending": count, "backup": None}
     backup = _create_backup(database_url, backup_directory or SQL_FILE.parent / "backups", pg_dump)
@@ -41,7 +41,7 @@ def remove_math_preparation(database_url, *, apply=False, backup_directory=None,
         connection.execute(sql.SQL("LOCK TABLE {} IN SHARE MODE").format(sql.SQL(",").join(sql.Identifier(t) for t in tables)))
         before = snapshot(connection)
         removed = connection.execute(SQL_FILE.read_text(encoding="utf-8"), prepare=False).rowcount
-        remaining = connection.execute("SELECT count(*) AS n FROM topic_placements WHERE " + TARGET).fetchone()["n"]
+        remaining = connection.execute("SELECT count(*) AS n FROM topic_placements t WHERE " + TARGET).fetchone()["n"]
         if remaining or before != snapshot(connection):
             raise RuntimeError("保留数据校验失败，迁移已回滚。")
     return {"applied": True, "removed": removed, "pending": 0, "backup": str(backup)}

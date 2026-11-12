@@ -125,7 +125,7 @@ def test_deleted_seed_course_is_not_restored_by_restart_or_schema_initialization
         assert any(course["title"] == "我的机器学习" for course in courses)
         assert all(course["id"] != "advanced_mathematics" for course in courses)
         ml = restarted.get("/api/v1/courses/machine_learning/outline").json()
-        assert all(topic["owner_course"] != "advanced_mathematics" for group in ml["groups"] for topic in group["topics"])
+        assert all(not topic["id"].startswith("math.") for group in ml["groups"] for topic in group["topics"])
     root = Path(__file__).resolve().parents[2]
     with app.state.learning_repository._connect() as connection:
         connection.execute_script((root / "operations/database/initialize_postgresql.sql").read_text(encoding="utf-8"))

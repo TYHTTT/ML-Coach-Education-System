@@ -80,12 +80,11 @@ ADMIN_AUTHCODE=填写独立的随机授权码
 
 - 新增或编辑本课程知识点的名称、简介、学习目标、难度、别名和关键词。
 - 新建、重命名和排序章节，将知识点移至其他章节，调整章内学习顺序。
-- 引用其他课程的知识点，调整引用位置或移除引用。知识点内容仍由所属课程维护，学习记录共用。
-- 移除知识点后可恢复，已有学习记录保留。被其他课程引用时，需要先移除对应引用。
+- 移除知识点后可恢复，已有学习记录保留。
 
 编排保存到数据库，学生端重新进入课程时读取最新目录。知识点标识保持稳定；讲解、出题和评价仍由 Dify Agent 负责，这里不维护本地课程正文。停用的课程也可继续编排。
 
-机器学习课程不再自动加入“数学准备”目录；高等数学、线性代数、概率论与统计基础作为独立课程保留。已有数据库可运行以下命令，备份后移除机器学习课程中旧的数学准备引用，保留数学知识点、学习记录及其他手动编排的引用。新部署及重新导入种子数据不会再次生成该分组。
+机器学习课程不再自动加入“数学准备”目录；高等数学、线性代数、概率论与统计基础作为独立课程保留。已有数据库可运行以下命令，备份后移除机器学习课程中旧的数学准备引用，保留数学知识点、学习记录。新部署及重新导入种子数据不会再次生成该分组。
 
 ```powershell
 ./backend/.venv/Scripts/python.exe operations/database/remove_math_preparation.py --apply
@@ -99,11 +98,23 @@ ADMIN_AUTHCODE=填写独立的随机授权码
 ./backend/.venv/Scripts/python.exe operations/database/enable_topic_management.py
 ```
 
+### 课程知识点归属
+
+课程目录仅包含本课程知识点，不再提供跨课程引用、引用位置调整和补学跳转。管理员在课程详情页新增和编辑本课程知识点；数据库使用组合外键校验目录与知识点属于同一课程。
+
+已有数据库执行以下命令，备份后移除全部跨课程目录引用和 `is_reference` 字段，并启用归属约束。课程、知识点正文信息、已有章节排序和学习记录保留。新部署的初始化脚本已包含该约束。
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/remove_course_references.py --apply
+```
+
+省略 `--apply` 只检查；可通过 `--pg-dump` 指定备份程序路径。该清理可重复执行。
+
 ### 移除前置知识点设定
 
-知识点之间不再设置学习依赖，学生可直接开始任意知识点；课程推荐按编排顺序和当前学习状态进行。管理员只维护知识点信息、章节、顺序及跨课程引用，不再设置前置知识点。
+知识点之间不再设置学习依赖，学生可直接开始任意知识点；课程推荐按编排顺序和当前学习状态进行。管理员只维护知识点信息、章节和顺序，不再设置前置知识点。
 
-已有数据库执行以下命令，先生成完整备份，再删除 `topic_prerequisites`、`prerequisite_verifications` 两张表、循环校验函数及 `practice_sets` 中的 `prerequisite_for`、`rule_version` 字段，并将旧 `locked` 状态改为 `not_started`。账户、课程、知识点、引用和历史学习记录保留；事务内校验所有保留数据，失败时回滚。新部署的初始化脚本不再创建这些设定。
+已有数据库执行以下命令，先生成完整备份，再删除 `topic_prerequisites`、`prerequisite_verifications` 两张表、循环校验函数及 `practice_sets` 中的 `prerequisite_for`、`rule_version` 字段，并将旧 `locked` 状态改为 `not_started`。账户、课程、知识点和历史学习记录保留；事务内校验所有保留数据，失败时回滚。新部署的初始化脚本不再创建这些设定。
 
 ```powershell
 ./backend/.venv/Scripts/python.exe operations/database/remove_prerequisites.py --apply
@@ -281,15 +292,12 @@ operations/database/ # 初始化、备份和恢复
 | `GET /api/v1/courses` | 学生端可用课程列表 |
 | `GET`、`POST /api/v1/admin/courses` | 管理员查询、新增课程 |
 | `GET`、`PATCH`、`DELETE /api/v1/admin/courses/{course_id}` | 管理员查看、修改、删除课程 |
-| `GET /api/v1/admin/topics` | 跨课程引用知识点目录 |
 | `GET`、`POST /api/v1/admin/courses/{course_id}/topics` | 查询编排、新增知识点 |
 | `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、移除所属知识点 |
 | `POST /api/v1/admin/courses/{course_id}/topics/{topic_id}/restore` | 恢复知识点 |
 | `PUT /api/v1/admin/courses/{course_id}/topics/order` | 调整章内知识点顺序 |
 | `PATCH /api/v1/admin/courses/{course_id}/topics/groups/{stage}` | 重命名章节 |
 | `POST /api/v1/admin/courses/{course_id}/topics/groups/order` | 调整章节顺序 |
-| `POST /api/v1/admin/courses/{course_id}/topics/references` | 添加跨课程引用 |
-| `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/references/{topic_id}` | 移动、移除跨课程引用 |
 | `GET /api/v1/curriculum/topics`、`topics/{topic_id}` | 知识点列表与详情 |
 | `GET /api/v1/courses/{course}/outline` | 分组课程目录 |
 | `GET /api/v1/learning/dashboard` | 课程概览和历史成绩 |

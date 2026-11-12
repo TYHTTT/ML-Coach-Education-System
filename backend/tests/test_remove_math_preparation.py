@@ -31,8 +31,7 @@ def test_default_ml_directory_has_no_automatic_math_references(postgres_test_dat
     outline = client.get("/api/v1/courses/machine_learning/outline").json()
     assert len(outline["groups"]) == 7
     topics = [topic for group in outline["groups"] for topic in group["topics"]]
-    assert len(topics) == 30 and all(t["owner_course"] == "machine_learning" for t in topics)
-    assert all(not t["is_reference"] for t in topics)
+    assert len(topics) == 30 and all(t["id"].startswith("ml.") for t in topics)
     assert all("数学准备" not in group["title"] for group in outline["groups"])
     for course, count in [("advanced_mathematics", 23), ("linear_algebra", 10), ("probability_statistics", 11)]:
         math = client.get(f"/api/v1/courses/{course}/outline").json()
@@ -46,12 +45,16 @@ def legacy_preparation(postgres_test_database_url):
     student = repository.register_student(username="math_cleanup", display_name="测试", password="test-password")
     repository.update_topic_state(student["id"], "math.gradient", status="learning", evidence_count=1, mastery=0.67)
     with repository._connect() as connection:
+        connection.execute("ALTER TABLE topic_placements DROP CONSTRAINT topic_placements_topic_course_fkey")
+        connection.execute("ALTER TABLE topic_placements ADD COLUMN is_reference integer NOT NULL DEFAULT 0")
         connection.execute("""INSERT INTO topic_placements(course_id,topic_id,parent_group_id,group_title,order_index,is_reference) VALUES
             ('machine_learning','math.gradient','math-preparation-advanced_mathematics','数学准备 · 高等数学',1,1),
             ('machine_learning','la.vectors','math-preparation-linear_algebra','数学准备 · 线性代数',2,1),
             ('machine_learning','prob.basics','stage-8','手动编排章节',1,1),
             ('advanced_mathematics','la.vectors','math-preparation-linear_algebra','其他课程中的引用',1,1)""")
-    return postgres_test_database_url, repository, student
+    yield postgres_test_database_url, repository, student
+    with repository._connect() as connection:
+        connection.execute_script((ROOT / "operations/database/remove_course_references.sql").read_text(encoding="utf-8"))
 
 
 def test_migration_removes_only_legacy_ml_placements_and_does_not_reseed(legacy_preparation, monkeypatch, tmp_path):
