@@ -14,6 +14,7 @@ from app import __version__
 from app.api.chat import router as chat_router
 from app.api.admins import router as admins_router
 from app.api.courses import router as courses_router, admin_router as admin_courses_router
+from app.api.topic_management import router as topic_management_router
 from app.api.curriculum import router as curriculum_router
 from app.api.health import router as health_router
 from app.api.learning import router as learning_router
@@ -88,7 +89,7 @@ def create_app(
         CORSMiddleware,
         allow_origins=app_settings.cors_origins,
         allow_credentials=True,
-        allow_methods=["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
         allow_headers=["Authorization", "Content-Type"],
     )
 
@@ -131,6 +132,7 @@ def create_app(
     app.include_router(admins_router)
     app.include_router(courses_router)
     app.include_router(admin_courses_router)
+    app.include_router(topic_management_router)
     app.include_router(curriculum_router)
     app.include_router(learning_router)
     app.include_router(course_content_router)

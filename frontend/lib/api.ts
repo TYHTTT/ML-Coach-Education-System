@@ -184,8 +184,8 @@ export function getAdminCourses(token: string, filters: { q: string; status: str
   return request<CourseList>(`/api/v1/admin/courses?${params}`, { headers: studentHeaders(token), signal });
 }
 
-export function getAdminCourse(token: string, id: string): Promise<CourseDetail> {
-  return request<CourseDetail>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { headers: studentHeaders(token) });
+export function getAdminCourse(token: string, id: string, signal?: AbortSignal): Promise<CourseDetail> {
+  return request<CourseDetail>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { headers: studentHeaders(token), signal });
 }
 
 export function createCourse(token: string, payload: CourseInput): Promise<CourseRecord> {

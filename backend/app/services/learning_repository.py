@@ -347,7 +347,7 @@ class LearningRepository:
                 FROM curriculum_topics t
                 JOIN courses owner_course ON owner_course.id=t.course AND owner_course.active=1 AND owner_course.deleted_at IS NULL
                 {join}
-                WHERE t.id = ?
+                WHERE t.id = ? AND t.active = 1
                 """,
                 tuple(params),
             ).fetchone()

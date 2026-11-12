@@ -17,7 +17,7 @@ def outline(course: Course, request: Request, authorization: str | None = Header
     with repository._connect() as connection:
         placements = [dict(row) for row in connection.execute("""SELECT p.*,t.title,t.description,t.course AS owner_course,owner.title AS owner_title
             FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id JOIN courses owner ON owner.id=t.course AND owner.active=1 AND owner.deleted_at IS NULL
-            WHERE p.course_id=? AND t.active=1 ORDER BY p.is_reference DESC,p.order_index""", (course.value,))]
+            WHERE p.course_id=? AND t.active=1 ORDER BY CASE WHEN p.parent_group_id ~ '^math-preparation-' THEN 0 ELSE 1 END, CASE WHEN p.parent_group_id ~ '^math-preparation-' THEN p.parent_group_id ELSE '' END, CASE WHEN p.parent_group_id ~ '^math-preparation-' THEN 0 WHEN p.parent_group_id ~ '^stage-[0-9]+$' THEN split_part(p.parent_group_id,'-',2)::integer ELSE t.stage END,p.order_index,t.id""", (course.value,))]
         topic_ids = [placement["topic_id"] for placement in placements]
         topics = {
             row["id"]: repository._topic_record(row)
@@ -69,7 +69,7 @@ def outline(course: Course, request: Request, authorization: str | None = Header
         row["required_competencies"] = repository._load_json(row.pop("required_competencies_json"), [])
         prerequisites.setdefault(topic_id, []).append(row)
     groups: dict[str, dict] = {}
-    if any(item["is_reference"] for item in placements):
+    if any(item["parent_group_id"].startswith("math-preparation-") for item in placements):
         groups["math-preparation"] = {"id":"math-preparation","title":"数学准备","parent_group_id":None,"order_index":0,"topics":[]}
     recommended = None
     for placement in placements:
@@ -94,7 +94,7 @@ def outline(course: Course, request: Request, authorization: str | None = Header
             if not satisfied:
                 unmet.append(edge)
         group_id = placement["parent_group_id"]
-        group = groups.setdefault(group_id, {"id":group_id,"title":"数学准备 · " + placement["owner_title"] if placement["is_reference"] else placement["group_title"],"parent_group_id":"math-preparation" if placement["is_reference"] else None,"order_index":len(groups),"topics":[]})
+        group = groups.setdefault(group_id, {"id":group_id,"title":"数学准备 · " + placement["owner_title"] if group_id.startswith("math-preparation-") else placement["group_title"],"parent_group_id":"math-preparation" if group_id.startswith("math-preparation-") else None,"order_index":len(groups),"topics":[]})
         status = state["status"] if state and state["status"]!="locked" else "not_started"
         group["topics"].append({"id":topic_id,"topic_id":topic_id,"owner_course":placement["owner_course"],
             "title":topic["title"],"description":topic["description"],"learning_objectives":topic["learning_objectives"],

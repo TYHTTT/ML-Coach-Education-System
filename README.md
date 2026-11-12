@@ -58,7 +58,9 @@ ADMIN_AUTHCODE=填写独立的随机授权码
 
 ### 课程管理
 
-管理员可新增、查看、编辑和删除课程，支持按课程名称或标识搜索、启用状态筛选和分页。可维护名称、简介、展示状态和排序；课程标识用于课程链接，创建后保持不变。停用课程可重新启用。
+课程列表支持按课程名称或标识搜索、启用状态筛选和分页。点击课程所在行即可进入独立详情页 `/admin/courses/{course_id}`；列表不再显示操作按钮。课程基本信息编辑、删除和知识点编排均在详情页完成。可维护名称、简介、展示状态和排序；课程标识用于课程链接，创建后保持不变。停用课程可重新启用。
+
+点击“新增课程”进入独立创建页面，保存后直接进入新课程详情，可继续添加和编排知识点。
 
 删除采用逻辑删除：课程从管理员和学生课程列表移除，已有知识点、前置关系和学生学习记录保留。删除的课程不再接受新的学习请求，旧标识不再用于创建另一门课程。删除前会显示确认框。
 
@@ -71,6 +73,24 @@ ADMIN_AUTHCODE=填写独立的随机授权码
 ```
 
 迁移新增课程简介、排序、时间和删除标记，将原有四门课程的固定约束改为课程表外键；保留现有账户和学习记录，可重复执行。
+
+### 知识点编排
+
+点击课程列表中的课程，进入详情页后即可在“知识点编排”区域操作。旧知识点编排页面链接会自动跳转到对应课程详情。
+
+- 新增或编辑本课程知识点的名称、简介、学习目标、难度、别名和关键词。
+- 新建、重命名和排序章节，将知识点移至其他章节，调整章内学习顺序。
+- 选择必需前置知识点，保存时检查循环依赖；原有推荐关系和未修改的前置规则会保留。
+- 引用其他课程的知识点，调整引用位置或移除引用。知识点内容仍由所属课程维护，学习记录共用。
+- 移除知识点后可恢复，已有学习记录保留。被其他知识点依赖或被其他课程引用时，需要先解除对应关系。
+
+编排保存到数据库，学生端重新进入课程时读取最新目录。知识点标识保持稳定；讲解、出题和评价仍由 Dify Agent 负责，这里不维护本地课程正文。停用的课程也可继续编排。
+
+已有数据库执行以下幂等迁移，允许管理停用课程中的知识点；不新增表，不修改已有记录（新部署初始化脚本已包含）：
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/enable_topic_management.py
+```
 
 ## Dify 应用要求
 
@@ -242,6 +262,15 @@ operations/database/ # 初始化、备份和恢复
 | `GET /api/v1/courses` | 学生端可用课程列表 |
 | `GET`、`POST /api/v1/admin/courses` | 管理员查询、新增课程 |
 | `GET`、`PATCH`、`DELETE /api/v1/admin/courses/{course_id}` | 管理员查看、修改、删除课程 |
+| `GET /api/v1/admin/topics` | 可选前置知识点及跨课程引用目录 |
+| `GET`、`POST /api/v1/admin/courses/{course_id}/topics` | 查询编排、新增知识点 |
+| `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、移除所属知识点 |
+| `POST /api/v1/admin/courses/{course_id}/topics/{topic_id}/restore` | 恢复知识点 |
+| `PUT /api/v1/admin/courses/{course_id}/topics/order` | 调整章内知识点顺序 |
+| `PATCH /api/v1/admin/courses/{course_id}/topics/groups/{stage}` | 重命名章节 |
+| `POST /api/v1/admin/courses/{course_id}/topics/groups/order` | 调整章节顺序 |
+| `POST /api/v1/admin/courses/{course_id}/topics/references` | 添加跨课程引用 |
+| `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/references/{topic_id}` | 移动、移除跨课程引用 |
 | `GET /api/v1/curriculum/topics`、`topics/{topic_id}` | 知识点列表与详情 |
 | `GET /api/v1/courses/{course}/outline` | 分组课程目录 |
 | `GET /api/v1/learning/dashboard` | 课程概览和历史成绩 |
