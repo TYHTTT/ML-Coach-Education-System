@@ -23,7 +23,6 @@ class TopicWrite(StageWrite):
     aliases: list[str] = Field(default_factory=list, max_length=30)
     retrieval_keywords: list[str] = Field(default_factory=list, max_length=30)
     difficulty: Literal["easy", "medium", "hard"] = "medium"
-    prerequisite_ids: list[TopicId] = Field(default_factory=list, max_length=100)
 
     @field_validator("title")
     @classmethod
@@ -38,11 +37,6 @@ class TopicWrite(StageWrite):
             raise ValueError("每项内容需为 1 到 500 个字符")
         return list(dict.fromkeys(value.strip() for value in values))
 
-    @field_validator("prerequisite_ids")
-    @classmethod
-    def unique_prerequisites(cls, values):
-        if len(values) != len(set(values)): raise ValueError("前置知识点不能重复")
-        return values
 
 
 class ReferenceWrite(StageWrite):

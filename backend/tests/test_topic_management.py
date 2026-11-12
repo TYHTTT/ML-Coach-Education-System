@@ -10,7 +10,7 @@ BASE = "/api/v1/admin/courses/physics/topics"
 def values(title, **changes):
     return {"title": title, "description": "知识点简介", "stage": 1, "stage_title": "力学",
             "learning_objectives": ["理解概念"], "aliases": [], "retrieval_keywords": [],
-            "difficulty": "easy", "prerequisite_ids": [], **changes}
+            "difficulty": "easy", **changes}
 
 
 def create(client, headers, title, **changes):
@@ -36,7 +36,7 @@ def test_topic_crud_order_move_and_student_sync(api):
     b = create(client, headers, "速度")
     c = create(client, headers, "能量", stage=2, stage_title="能量基础")
     assert client.post("/api/v1/learning/topics/" + a + "/start", headers=student_headers).status_code == 200
-    updated = client.put(BASE + "/" + a, headers=headers, json=values("位移", aliases=["位置变化"], prerequisite_ids=[]))
+    updated = client.put(BASE + "/" + a, headers=headers, json=values("位移", aliases=["位置变化"]))
     assert updated.status_code == 200
     ordered = client.put(BASE + "/order", headers=headers, json={"group_id": "stage-1", "topic_ids": [b, a]})
     assert ordered.status_code == 200
@@ -65,30 +65,6 @@ def test_topic_crud_order_move_and_student_sync(api):
     assert client.get("/api/v1/curriculum/topics/" + a, headers=student_headers).status_code == 200
 
 
-def test_prerequisites_cycles_and_removal_are_transactional(api):
-    client, app, headers, _, _ = api
-    client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
-    a = create(client, headers, "位置")
-    b = create(client, headers, "速度", prerequisite_ids=[a])
-    assert client.delete(BASE + "/" + a, headers=headers).status_code == 409
-    assert client.put(BASE + "/" + a, headers=headers, json=values("不应保存", prerequisite_ids=[b])).status_code == 409
-    assert client.put(BASE + "/" + a, headers=headers, json=values("不应保存", prerequisite_ids=[a])).status_code == 422
-    assert client.put(BASE + "/" + a, headers=headers, json=values("不应保存", prerequisite_ids=["physics.missing"])).status_code == 422
-    current = client.get(BASE, headers=headers).json()
-    assert [t["title"] for t in current["groups"][0]["topics"]] == ["位置", "速度"]
-    with app.state.learning_repository._connect() as connection:
-        connection.execute("UPDATE topic_prerequisites SET reason='保留说明',required_mastery=0.8 WHERE topic_id=?", (b,))
-        connection.execute("INSERT INTO topic_prerequisites(topic_id,prerequisite_topic_id,relation_type) VALUES (?,?,'related')", (b, a))
-    assert client.put(BASE + "/" + b, headers=headers, json=values("速度", prerequisite_ids=[a])).status_code == 200
-    with app.state.learning_repository._connect() as connection:
-        rows = connection.execute("SELECT reason,required_mastery,relation_type FROM topic_prerequisites WHERE topic_id=?", (b,)).fetchall()
-        assert len(rows) == 2
-        assert next(r for r in rows if r["relation_type"] == "required")["reason"] == "保留说明"
-    assert client.delete(BASE + "/" + b, headers=headers).status_code == 200
-    assert client.delete(BASE + "/" + a, headers=headers).status_code == 200
-    assert client.post(BASE + "/" + b + "/restore", headers=headers).status_code == 409
-    assert client.post(BASE + "/" + a + "/restore", headers=headers).status_code == 200
-    assert client.post(BASE + "/" + b + "/restore", headers=headers).status_code == 200
 
 
 def test_cross_course_reference_preserves_owner_and_orders_with_local_nodes(api):
@@ -130,3 +106,22 @@ def test_inactive_course_can_be_compiled_and_migration_is_idempotent(api):
     client.delete("/api/v1/admin/courses/physics", headers=headers)
     assert client.get(BASE, headers=headers).status_code == 404
     assert client.post(BASE, headers=headers, json=values("不能添加")).status_code == 404
+
+
+def test_topics_have_no_prerequisite_settings_or_learning_restrictions(api):
+    client, app, headers, student_headers, _ = api
+    client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
+    a = create(client, headers, "位置")
+    b = create(client, headers, "速度")
+    rejected = client.put(BASE + "/" + b, headers=headers, json=values("速度", prerequisite_ids=[a]))
+    assert rejected.status_code == 422
+    assert client.post("/api/v1/learning/topics/" + b + "/start", headers=student_headers).status_code == 200
+    assert client.delete(BASE + "/" + a, headers=headers).status_code == 200
+    detail = client.get("/api/v1/curriculum/topics/" + b, headers=student_headers).json()
+    assert not {"prerequisites", "locked_reason"} & detail.keys()
+    outline = client.get("/api/v1/courses/physics/outline", headers=student_headers).json()
+    assert "prerequisite_gap" not in outline["groups"][0]["topics"][0]
+    dashboard = client.get("/api/v1/learning/dashboard?course=physics", headers=student_headers).json()
+    assert "locked_count" not in dashboard
+    assert "unmet_prerequisites" not in dashboard["current_topic"]
+    assert client.delete("/api/v1/admin/courses/machine_learning/topics/ml.linear_regression", headers=headers).status_code == 200

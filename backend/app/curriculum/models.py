@@ -1,23 +1,8 @@
 from __future__ import annotations
 
-from typing import Literal
-
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core.types import Course
-
-
-class PrerequisiteSeed(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    topic_id: str = Field(min_length=1)
-    required_mastery: float = Field(default=0.8, ge=0, le=1)
-    relation_type: Literal["required", "recommended", "related"] = "required"
-    reason: str = "掌握这一基础有助于完成当前知识点的正式验收。"
-    required_competencies: list[str] = Field(default_factory=list)
-    scope: Literal["topic", "lesson_section"] = "topic"
-    section_id: str = ""
-    rule_version: str = "content-v1"
 
 
 class TopicSeed(BaseModel):
@@ -36,7 +21,6 @@ class TopicSeed(BaseModel):
     difficulty: str = Field(pattern=r"^(easy|medium|hard)$")
     required_dimensions: list[str] = Field(min_length=1)
     active: bool = True
-    prerequisites: list[PrerequisiteSeed] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validate_unique_lists(self) -> "TopicSeed":
@@ -49,12 +33,6 @@ class TopicSeed(BaseModel):
             values = getattr(self, field_name)
             if len(values) != len(set(values)):
                 raise ValueError(f"{self.id}.{field_name} 不能包含重复项")
-        prerequisite_ids = [item.topic_id for item in self.prerequisites]
-        keys = [(item.topic_id, item.relation_type, item.scope, item.section_id) for item in self.prerequisites]
-        if len(keys) != len(set(keys)):
-            raise ValueError(f"{self.id}.prerequisites 不能包含重复项")
-        if self.id in prerequisite_ids:
-            raise ValueError(f"{self.id} 不能依赖自身")
         return self
 
 

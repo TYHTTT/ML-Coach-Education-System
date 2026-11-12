@@ -13,11 +13,6 @@ import { statusMeta } from "@/lib/learning";
 type CourseContext = { outline: CourseOutline | null; course: Course | null; refresh: () => Promise<void>; topicHref: (topic: Pick<OutlineTopic, "topic_id" | "owner_course">) => string };
 const OutlineContext = createContext<CourseContext>({ outline: null, course: null, refresh: async () => {}, topicHref: () => "/learn" });
 export const useCourseOutline = () => useContext(OutlineContext);
-function topicState(topic: Pick<OutlineTopic, "status" | "prerequisite_gap">) {
-  if (topic.prerequisite_gap.length && topic.status !== "mastered") return { label: "待完成前置学习", symbol: "!" };
-  return statusMeta(topic.status);
-}
-
 /** Kept above the dynamic course segment, so canonical math navigation retains the directory. */
 export default function CourseLayout({ children }: { children: ReactNode }) {
   const params = useParams<{ course?: string; topicId?: string }>();
@@ -133,7 +128,7 @@ export default function CourseLayout({ children }: { children: ReactNode }) {
         <span aria-hidden="true">{opened ? "▾" : "▸"}</span><span className="flex-1">{group.title}</span><span className="shrink-0 font-normal tabular-nums text-slate-400">{allTopics.filter((topic) => topic.status === "mastered").length}/{allTopics.length}</span>
       </button>
       {opened && <div id={`group-${group.id}`} className="ml-3 border-l border-slate-200/80 pl-2">
-        {visibleTopics.map((topic) => { const state = topicState(topic); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} title={topic.prerequisite_gap.map((item) => `${item.title}：${item.reason}`).join("\n")} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
+        {visibleTopics.map((topic) => { const state = statusMeta(topic.status); const active = topic.topic_id === topicId; return <Link key={topic.topic_id} href={topicHref(topic)} prefetch={false} aria-current={active ? "page" : undefined} onClick={closeMobile} className={`my-1 block rounded-xl border px-3 py-2.5 text-sm ${active ? "border-indigo-200 bg-indigo-50 text-indigo-900" : "border-transparent text-slate-600 hover:bg-slate-50"}`}>
           <span className="block font-medium">{topic.title}{topic.is_reference && <span className="ml-1 text-[10px] text-slate-400">↗</span>}</span>
           <span className="mt-1 block text-[10px] text-slate-500"><span aria-hidden="true">{state.symbol}</span> {state.label}{topic.is_reference ? ` · ${courseName(topic.owner_course)}` : ""}</span>
         </Link>; })}

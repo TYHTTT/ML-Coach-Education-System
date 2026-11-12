@@ -25,7 +25,7 @@ page.on("pageerror", (error) => problems.push(error.message));
 const topics = [
   { id: "ml.machine_learning_basics", title: "机器学习基础" },
   { id: "ml.supervised_learning", title: "监督学习与无监督学习" },
-].map((item, index) => ({ ...item, topic_id: item.id, course: "machine_learning", owner_course: "machine_learning", description: "理解数据驱动建模的流程与基本概念。", learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"], stage: 1, stage_title: "机器学习基础", order_index: index, status: "learning", mastery: null, confidence: null, evidence_count: 0, prerequisites: [], prerequisite_gap: [], is_reference: false, required_dimensions: ["concept"], dimensions: [] }));
+].map((item, index) => ({ ...item, topic_id: item.id, course: "machine_learning", owner_course: "machine_learning", description: "理解数据驱动建模的流程与基本概念。", learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"], stage: 1, stage_title: "机器学习基础", order_index: index, status: "learning", mastery: null, confidence: null, evidence_count: 0, is_reference: false, required_dimensions: ["concept"], dimensions: [] }));
 let chatFailure = false;
 let practiceGate = null;
 let releasePractice;
@@ -208,6 +208,6 @@ try {
   assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1));
   await page.screenshot({ path: path.join(artifacts, "free-chat-desktop.png") });
   assert.deepEqual(problems, []);
-  assert.equal(requests.filter((item) => /\/(prerequisites|lesson|examples|history|assessments)(\/|$)/.test(item.endpoint)).length, 0);
+  assert.equal(requests.filter((item) => /\/(lesson|examples|history|assessments)(\/|$)/.test(item.endpoint)).length, 0);
   process.stdout.write("PASS removed tools, no background test restoration, real clicks, visible practice loading after long lecture, inline questions and answers, retry, draft preservation, topic scope and mobile layout. All API calls mocked.\n");
 } finally { await browser.close(); }

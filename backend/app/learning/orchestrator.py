@@ -17,7 +17,6 @@ _STARTED_INCOMPLETE = frozenset(
 )
 _VALID_STATUSES = frozenset(
     {
-        "locked",
         "not_started",
         "learning",
         "practicing",
@@ -34,7 +33,6 @@ class TopicRecommendationCandidate:
     status: LearningStatus
     stage: int
     order_index: int
-    unlocked: bool
 
     def __post_init__(self) -> None:
         if not self.topic_id.strip():
@@ -53,7 +51,6 @@ class LearningOrchestratorInput:
     gate: MasteryGateResult
     all_course_topics_mastered: bool = False
     teaching_complete: bool = True
-    unmet_prerequisite_ids: tuple[str, ...] = ()
     candidates: tuple[TopicRecommendationCandidate, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
@@ -63,8 +60,6 @@ class LearningOrchestratorInput:
             raise ValueError(f"unsupported learning status: {self.current_topic_status}")
         if self.current_stage < 0:
             raise ValueError("current_stage must not be negative")
-        if any(not topic_id.strip() for topic_id in self.unmet_prerequisite_ids):
-            raise ValueError("unmet_prerequisite_ids must not contain empty values")
 
 
 def recommend_topic(
@@ -84,7 +79,7 @@ def recommend_topic(
         (
             item
             for item in topics
-            if item.status in _STARTED_INCOMPLETE and item.unlocked
+            if item.status in _STARTED_INCOMPLETE
         ),
         key=lambda item: (item.stage, item.order_index, item.topic_id),
     )
@@ -95,8 +90,7 @@ def recommend_topic(
         (
             item
             for item in topics
-            if item.unlocked
-            and item.status == "not_started"
+            if item.status == "not_started"
             and item.stage == current_stage
         ),
         key=lambda item: (item.order_index, item.topic_id),
@@ -108,8 +102,7 @@ def recommend_topic(
         (
             item
             for item in topics
-            if item.unlocked
-            and item.status == "not_started"
+            if item.status == "not_started"
             and item.stage > current_stage
         ),
         key=lambda item: (item.stage, item.order_index, item.topic_id),
@@ -121,8 +114,7 @@ def decide_next_action(state: LearningOrchestratorInput) -> LearningDecision:
     """Choose the next learning action from explicit state only.
 
     The function neither calls an LLM nor mutates/persists status.  The caller is
-    responsible for marking a topic mastered and unlocking successors after a
-    passed Gate.
+    responsible for marking a topic mastered after a passed Gate.
     """
 
     if state.all_course_topics_mastered:
@@ -132,32 +124,10 @@ def decide_next_action(state: LearningOrchestratorInput) -> LearningDecision:
             recommended_topic_id=None,
         )
 
-    gate_missing_prerequisites = (
-        state.gate.requirements.prerequisites_mastered.details
-        if not state.gate.requirements.prerequisites_mastered.passed
-        else []
-    )
-    if (
-        state.unmet_prerequisite_ids
-        or gate_missing_prerequisites
-        or state.current_topic_status == "locked"
-    ):
-        missing = list(state.unmet_prerequisite_ids) or gate_missing_prerequisites
-        reason = (
-            f"请先通过前置知识点：{', '.join(missing)}"
-            if missing
-            else "当前知识点仍被前置条件锁定"
-        )
-        return LearningDecision(
-            next_action="study_prerequisite",
-            reasons=[reason],
-            recommended_topic_id=missing[0] if missing else None,
-        )
-
     if state.current_topic_status == "not_started":
         return LearningDecision(
             next_action="start_learning",
-            reasons=["当前知识点已经解锁但尚未开始学习"],
+            reasons=["当前知识点尚未开始学习"],
             recommended_topic_id=state.current_topic_id,
         )
 
@@ -243,8 +213,6 @@ def decide_next_action(state: LearningOrchestratorInput) -> LearningDecision:
             f"{requirements.dimension_coverage.current} 个必需维度，至少需要 "
             f"{requirements.dimension_coverage.required} 个"
         )
-    if not requirements.prerequisites_mastered.passed:
-        reasons.append("仍有前置知识点未达到通过标准")
     if not reasons:
         reasons.append("需要继续积累有效学习证据")
     return LearningDecision(

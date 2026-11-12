@@ -8,8 +8,6 @@ from app.core.types import Course
 from app.curriculum.models import CurriculumSeed
 from app.curriculum.seed import CurriculumSeedError, seed_curriculum
 from app.curriculum.validation import (
-    CurriculumCycleError,
-    CrossCourseDependencyError,
     validate_curriculum,
 )
 from app.services.learning_repository import LearningRepository
@@ -18,7 +16,6 @@ from app.services.learning_repository import LearningRepository
 def _topic(
     topic_id: str,
     order: int,
-    prerequisites: list[str] | None = None,
 ) -> dict:
     return {
         "id": topic_id,
@@ -34,10 +31,6 @@ def _topic(
         "difficulty": "easy",
         "required_dimensions": ["concept"],
         "active": True,
-        "prerequisites": [
-            {"topic_id": dependency, "required_mastery": 0.8}
-            for dependency in prerequisites or []
-        ],
     }
 
 
@@ -67,45 +60,12 @@ def test_default_seed_is_complete_and_idempotent(repository: LearningRepository)
             "SELECT id FROM curriculum_topics GROUP BY id HAVING COUNT(*) > 1"
         ).fetchall()
         assert ids == []
+        placements = connection.execute("SELECT count(*) AS count FROM topic_placements").fetchone()["count"]
+        assert placements == 74
 
 
-def test_cycle_reports_concrete_path() -> None:
-    seed = CurriculumSeed.model_validate(
-        {
-            "course": "machine_learning",
-            "topics": [
-                _topic("ml.a", 1, ["ml.b"]),
-                _topic("ml.b", 2, ["ml.c"]),
-                _topic("ml.c", 3, ["ml.a"]),
-            ],
-        }
-    )
-
-    with pytest.raises(CurriculumCycleError) as caught:
-        validate_curriculum([seed])
-
-    assert caught.value.cycle[0] == caught.value.cycle[-1]
-    assert set(caught.value.cycle[:-1]) == {"ml.a", "ml.b", "ml.c"}
-    assert " -> " in str(caught.value)
 
 
-def test_cross_course_prerequisite_is_allowed(repository: LearningRepository) -> None:
-    ml_seed = CurriculumSeed.model_validate(
-        {
-            "course": "machine_learning",
-            "topics": [_topic("ml.a", 1, ["math.a"])],
-        }
-    )
-    math_seed = CurriculumSeed.model_validate(
-        {
-            "course": "advanced_mathematics",
-            "topics": [_topic("math.a", 1)],
-        }
-    )
-
-    validate_curriculum([ml_seed, math_seed])
-    repository.upsert_curriculum([ml_seed, math_seed])
-    assert repository.list_prerequisites("ml.a")[0]["id"] == "math.a"
 
 
 def test_seed_failure_does_not_partially_replace_database(
@@ -115,14 +75,14 @@ def test_seed_failure_does_not_partially_replace_database(
     invalid = {
         "course": "machine_learning",
         "topics": [
-            _topic("ml.a", 1, ["ml.b"]),
-            _topic("ml.b", 2, ["ml.a"]),
+            _topic("ml.a", 1),
+            {**_topic("ml.b", 2), "id": "invalid.id"},
         ],
     }
-    path = tmp_path / "cycle.json"
+    path = tmp_path / "invalid.json"
     path.write_text(json.dumps(invalid), encoding="utf-8")
 
-    with pytest.raises(CurriculumSeedError, match="循环依赖"):
+    with pytest.raises(CurriculumSeedError, match="前缀无效"):
         seed_curriculum(repository, [path])
 
     assert len(repository.list_topics(Course.MACHINE_LEARNING)) == 30

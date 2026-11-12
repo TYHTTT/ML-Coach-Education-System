@@ -16,7 +16,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--seed",
         action="append",
         type=Path,
-        help="自定义 Seed JSON；可重复传入。省略时导入四门课程及其前置关系",
+        help="自定义 Seed JSON；可重复传入。省略时导入四门课程目录",
     )
     return parser
 

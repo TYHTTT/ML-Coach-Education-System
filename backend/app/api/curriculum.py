@@ -11,7 +11,6 @@ from app.schemas.curriculum import (
     CurriculumResponse,
     CurriculumStageResponse,
     DimensionStateResponse,
-    PrerequisiteResponse,
     TopicDetailResponse,
     TopicSummaryResponse,
 )
@@ -29,7 +28,6 @@ def _student_view(
     repository: LearningRepository,
     topic: dict,
     student_id: str | None,
-    unmet_prerequisites: list[dict] | None = None,
 ) -> dict:
     if student_id is None:
         return {
@@ -37,26 +35,18 @@ def _student_view(
             "mastery": None,
             "mastery_display": None,
             "confidence": None,
-            "locked_reason": None,
         }
 
-    unmet = unmet_prerequisites if unmet_prerequisites is not None else repository.get_unmet_prerequisites(student_id, topic["id"])
     stored_status = topic.get("state_status")
     status = stored_status or "not_started"
-    if status == "locked":
-        status = "not_started"
-    started = stored_status not in (None, "locked", "not_started")
+    started = stored_status not in (None, "not_started")
     mastery = topic.get("state_mastery") if started else None
     confidence = topic.get("state_confidence") if started else None
-    locked_reason = None
-    if unmet:
-        locked_reason = "尚需掌握：" + "、".join(item["title"] for item in unmet)
     return {
         "status": status,
         "mastery": mastery,
         "mastery_display": _mastery_display(mastery),
         "confidence": confidence,
-        "locked_reason": locked_reason,
     }
 
 
@@ -64,7 +54,6 @@ def _summary(
     repository: LearningRepository,
     topic: dict,
     student_id: str | None,
-    unmet_prerequisites: list[dict] | None = None,
 ) -> TopicSummaryResponse:
     return TopicSummaryResponse(
         id=topic["id"],
@@ -72,8 +61,7 @@ def _summary(
         title=topic["title"],
         order_index=topic["order_index"],
         description=topic["description"],
-        prerequisites=[PrerequisiteResponse.model_validate(item) for item in topic["prerequisites"]],
-        **_student_view(repository, topic, student_id, unmet_prerequisites),
+        **_student_view(repository, topic, student_id),
     )
 
 
@@ -86,9 +74,6 @@ def list_topics(
     repository = learning_repository_from_request(request)
     student_id = student_id_from_authorization(authorization, repository)
     topics = repository.list_topics(course, student_id=student_id)
-    prerequisite_statuses = repository.prerequisite_statuses(
-        student_id, [topic["id"] for topic in topics]
-    ) if student_id is not None else {}
     grouped: OrderedDict[int, CurriculumStageResponse] = OrderedDict()
     for topic in topics:
         stage = grouped.setdefault(
@@ -97,11 +82,7 @@ def list_topics(
                 stage=topic["stage"], title=topic["stage_title"], topics=[]
             ),
         )
-        unmet = [
-            item for item in prerequisite_statuses.get(topic["id"], [])
-            if item["relation_type"] == "required" and item["scope"] == "topic" and not item["satisfied"]
-        ] if student_id is not None else None
-        stage.topics.append(_summary(repository, topic, student_id, unmet))
+        stage.topics.append(_summary(repository, topic, student_id))
     return CurriculumResponse(course=course, stages=list(grouped.values()))
 
 

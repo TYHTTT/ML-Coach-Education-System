@@ -17,7 +17,6 @@ class Repository:
         if token != "valid": raise StudentNotFoundError()
         return {"id":"student-one"}
     def create_learning_session(self, **kwargs): self.sessions.append(kwargs)
-    def list_prerequisites(self, topic_id): return []
 
 
 @pytest.fixture

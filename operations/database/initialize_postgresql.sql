@@ -75,20 +75,6 @@ CREATE TABLE IF NOT EXISTS curriculum_topics (
     UNIQUE(course, slug)
 );
 
-CREATE TABLE IF NOT EXISTS topic_prerequisites (
-    topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE CASCADE,
-    prerequisite_topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE RESTRICT,
-    required_mastery REAL NOT NULL DEFAULT 0.8 CHECK (required_mastery BETWEEN 0 AND 1),
-    relation_type TEXT NOT NULL DEFAULT 'required' CHECK (relation_type IN ('required', 'recommended', 'related')),
-    reason TEXT NOT NULL DEFAULT '掌握这一基础有助于完成当前知识点的正式验收。',
-    required_competencies_json TEXT NOT NULL DEFAULT '[]',
-    scope TEXT NOT NULL DEFAULT 'topic' CHECK (scope IN ('topic', 'lesson_section')),
-    section_id TEXT NOT NULL DEFAULT '',
-    rule_version TEXT NOT NULL DEFAULT 'content-v1',
-    PRIMARY KEY(topic_id, prerequisite_topic_id, relation_type, scope, section_id),
-    CHECK(topic_id <> prerequisite_topic_id)
-);
-
 CREATE TABLE IF NOT EXISTS student_topic_states (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     topic_id TEXT NOT NULL REFERENCES curriculum_topics(id) ON DELETE CASCADE,
@@ -97,7 +83,7 @@ CREATE TABLE IF NOT EXISTS student_topic_states (
     evidence_count INTEGER NOT NULL DEFAULT 0 CHECK (evidence_count >= 0), attempt_count INTEGER NOT NULL DEFAULT 0 CHECK (attempt_count >= 0),
     practice_set_count INTEGER NOT NULL DEFAULT 0 CHECK (practice_set_count >= 0), checkpoint_count INTEGER NOT NULL DEFAULT 0 CHECK (checkpoint_count >= 0),
     latest_score REAL, best_score REAL, latest_checkpoint_score REAL,
-    status TEXT NOT NULL DEFAULT 'not_started' CHECK (status IN ('locked', 'not_started', 'learning', 'practicing', 'needs_remediation', 'ready_for_checkpoint', 'mastered')),
+    status TEXT NOT NULL DEFAULT 'not_started' CHECK (status IN ('not_started', 'learning', 'practicing', 'needs_remediation', 'ready_for_checkpoint', 'mastered')),
     started_at TEXT, last_practiced_at TEXT, mastered_at TEXT, updated_at TEXT NOT NULL,
     PRIMARY KEY (student_id, topic_id)
 );
@@ -121,8 +107,6 @@ CREATE TABLE IF NOT EXISTS practice_sets (
     requested_difficulty TEXT NOT NULL CHECK (requested_difficulty IN ('adaptive', 'easy', 'medium', 'hard')),
     source_snapshot_json TEXT NOT NULL, target_misconception_tags_json TEXT NOT NULL DEFAULT '[]', created_at TEXT NOT NULL, submitted_at TEXT,
     purpose TEXT NOT NULL DEFAULT 'legacy',
-    prerequisite_for TEXT REFERENCES curriculum_topics(id),
-    rule_version TEXT NOT NULL DEFAULT 'legacy',
     required_dimensions_snapshot_json TEXT
 );
 
@@ -179,15 +163,7 @@ CREATE TABLE IF NOT EXISTS topic_placements (
     is_reference INTEGER NOT NULL DEFAULT 0 CHECK (is_reference IN (0, 1)), PRIMARY KEY(course_id, topic_id)
 );
 
-CREATE TABLE IF NOT EXISTS prerequisite_verifications (
-    student_id TEXT NOT NULL REFERENCES students(id), dependent_topic_id TEXT NOT NULL REFERENCES curriculum_topics(id),
-    prerequisite_topic_id TEXT NOT NULL REFERENCES curriculum_topics(id), competency TEXT NOT NULL,
-    rule_version TEXT NOT NULL, assessment_id TEXT NOT NULL REFERENCES practice_sets(id), verified_at TEXT NOT NULL,
-    PRIMARY KEY(student_id, dependent_topic_id, prerequisite_topic_id, competency, rule_version)
-);
-
 CREATE INDEX IF NOT EXISTS idx_curriculum_topics_course_stage_order ON curriculum_topics(course, active, stage, order_index);
-CREATE INDEX IF NOT EXISTS idx_topic_prerequisites_prerequisite ON topic_prerequisites(prerequisite_topic_id);
 CREATE INDEX IF NOT EXISTS idx_student_topic_states_topic_status ON student_topic_states(topic_id, status);
 CREATE INDEX IF NOT EXISTS idx_student_topic_states_student_status ON student_topic_states(student_id, status);
 CREATE INDEX IF NOT EXISTS idx_student_dimension_states_topic ON student_dimension_states(topic_id, dimension);
@@ -212,23 +188,3 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS trg_curriculum_registered_course ON curriculum_topics;
 CREATE TRIGGER trg_curriculum_registered_course BEFORE INSERT OR UPDATE ON curriculum_topics
 FOR EACH ROW EXECUTE FUNCTION enforce_registered_course();
-
-CREATE OR REPLACE FUNCTION prevent_required_prerequisite_cycle() RETURNS trigger AS $$
-BEGIN
-    IF NEW.relation_type = 'required' AND EXISTS (
-        WITH RECURSIVE ancestors(id) AS (
-            SELECT NEW.prerequisite_topic_id
-            UNION
-            SELECT prerequisite_topic_id FROM topic_prerequisites p JOIN ancestors a ON p.topic_id = a.id
-            WHERE p.relation_type = 'required'
-        ) SELECT 1 FROM ancestors WHERE id = NEW.topic_id
-    ) THEN
-        RAISE EXCEPTION 'required_prerequisite_cycle';
-    END IF;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_required_cycle ON topic_prerequisites;
-CREATE TRIGGER trg_required_cycle BEFORE INSERT OR UPDATE ON topic_prerequisites
-FOR EACH ROW EXECUTE FUNCTION prevent_required_prerequisite_cycle();

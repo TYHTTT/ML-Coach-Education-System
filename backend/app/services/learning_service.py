@@ -41,7 +41,6 @@ class LearningService:
         self.repository.require_student(student_id)
         topic = self.repository.require_topic(topic_id, student_id=student_id)
         state = self.repository.get_topic_state(student_id, topic_id)
-        unmet = self.repository.get_unmet_prerequisites(student_id, topic_id)
         status = self._status(state)
         dimensions = {
             item["dimension"]: {
@@ -71,19 +70,11 @@ class LearningService:
             ),
             "confidence": float(state["confidence"]) if state else 0.0,
             "dimensions": dimensions,
-            "locked_reason": (
-                "建议先学习：" + "、".join(item["title"] for item in unmet)
-                if unmet
-                else None
-            ),
         }
 
     def dashboard(self, *, student_id: str, course: Course) -> dict[str, Any]:
         self.repository.require_student(student_id)
         topics = self.repository.list_topics(course, student_id=student_id)
-        prerequisite_statuses = self.repository.prerequisite_statuses(
-            student_id, [topic["id"] for topic in topics]
-        )
         views: list[dict[str, Any]] = []
         for topic in topics:
             state = (
@@ -96,10 +87,6 @@ class LearningService:
                 if topic["state_status"] is not None
                 else None
             )
-            unmet = [
-                item for item in prerequisite_statuses[topic["id"]]
-                if item["relation_type"] == "required" and item["scope"] == "topic" and not item["satisfied"]
-            ]
             views.append(
                 {
                     "id": topic["id"],
@@ -114,7 +101,6 @@ class LearningService:
                         else None
                     ),
                     "confidence": float(state["confidence"]) if state else 0.0,
-                    "unmet_prerequisites": [item["id"] for item in unmet],
                 }
             )
         current = self._current_topic(views)
@@ -136,7 +122,6 @@ class LearningService:
                     status=item["status"],
                     stage=int(item["stage"]),
                     order_index=int(item["order_index"]),
-                    unlocked=item["status"] != "locked",
                 )
                 for item in views
             )
@@ -149,7 +134,6 @@ class LearningService:
                     all_course_topics_mastered=all(
                         item["status"] == "mastered" for item in views
                     ),
-                    unmet_prerequisite_ids=tuple(current["unmet_prerequisites"]),
                     candidates=candidates,
                 )
             ).model_dump()
@@ -162,7 +146,6 @@ class LearningService:
                 "needs_remediation",
                 "ready_for_checkpoint",
                 "not_started",
-                "locked",
             )
         }
         stages: dict[tuple[int, str], list[dict[str, Any]]] = {}
@@ -182,7 +165,6 @@ class LearningService:
                 )
             ),
             "not_started_count": counts["not_started"],
-            "locked_count": counts["locked"],
             "current_topic": current,
             "recommended_topic_id": decision.get("recommended_topic_id"),
             "next_action": decision["next_action"],
@@ -228,14 +210,9 @@ class LearningService:
                         topic["id"],
                     )
                 ),
-                prerequisite_masteries=self.repository.get_prerequisite_masteries(
-                    student_id,
-                    topic["id"],
-                ),
             ),
             MasteryGateConfig(
                 mastery_threshold=self.settings.mastery_gate_threshold,
-                prerequisite_mastery_threshold=self.settings.prerequisite_mastery_threshold,
                 minimum_valid_attempts=self.settings.mastery_min_valid_attempts,
                 checkpoint_score_threshold=self.settings.mastery_checkpoint_score,
                 minimum_dimension_coverage=self.settings.mastery_min_dimension_coverage,
@@ -246,7 +223,7 @@ class LearningService:
     def _status(state) -> str:
         if state is not None and state["status"] == "mastered":
             return "mastered"
-        return state["status"] if state is not None and state["status"] != "locked" else "not_started"
+        return state["status"] if state is not None else "not_started"
 
     @staticmethod
     def _current_topic(views: list[dict[str, Any]]) -> dict[str, Any] | None:

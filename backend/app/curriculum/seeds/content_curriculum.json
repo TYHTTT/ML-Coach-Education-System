@@ -25,8 +25,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.dot_product",
@@ -50,8 +49,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.norm_distance",
@@ -75,8 +73,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.matrix_multiplication",
@@ -100,8 +97,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.transpose",
@@ -125,8 +121,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.linear_systems",
@@ -150,8 +145,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.rank",
@@ -175,8 +169,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.projection",
@@ -200,8 +193,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.eigenvectors",
@@ -225,8 +217,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "la.svd",
@@ -250,8 +241,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         }
       ]
     },
@@ -280,8 +270,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.conditional_probability",
@@ -305,8 +294,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.bayes",
@@ -330,8 +318,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.independence",
@@ -355,8 +342,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.distributions",
@@ -380,8 +366,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.expectation_variance",
@@ -405,8 +390,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.covariance",
@@ -430,8 +414,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.bernoulli",
@@ -455,8 +438,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.normal",
@@ -480,8 +462,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.likelihood",
@@ -505,8 +486,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "prob.entropy_gini",
@@ -530,8 +510,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         }
       ]
     },
@@ -560,8 +539,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "math.chain_rule",
@@ -585,8 +563,7 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         },
         {
           "id": "math.gradient",
@@ -610,1070 +587,9 @@
             "calculation",
             "application"
           ],
-          "active": true,
-          "prerequisites": []
+          "active": true
         }
       ]
     }
-  ],
-  "relations": {
-    "math.functions": [],
-    "math.exponential_logarithmic": [
-      {
-        "topic_id": "math.functions",
-        "relation_type": "required",
-        "reason": "需要能运用函数与变量完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.functions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "math.derivative_definition": [
-      {
-        "topic_id": "math.functions",
-        "relation_type": "required",
-        "reason": "需要能运用函数与变量完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.functions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.function_limits",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "math.derivative_rules": [
-      {
-        "topic_id": "math.derivative_definition",
-        "relation_type": "required",
-        "reason": "需要能运用导数与变化率完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.derivative_definition.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "math.chain_rule": [
-      {
-        "topic_id": "math.derivative_rules",
-        "relation_type": "required",
-        "reason": "需要能运用求导法则完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.derivative_rules.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "math.partial_derivatives": [
-      {
-        "topic_id": "math.derivative_rules",
-        "relation_type": "required",
-        "reason": "需要能运用求导法则完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.derivative_rules.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "math.gradient": [
-      {
-        "topic_id": "math.partial_derivatives",
-        "relation_type": "required",
-        "reason": "需要能运用偏导数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.partial_derivatives.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.vectors": [],
-    "la.dot_product": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.norm_distance": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.matrix_multiplication": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.transpose": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.linear_systems": [
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "required",
-        "reason": "需要能运用矩阵乘法与维度完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.matrix_multiplication.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.rank": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.projection": [
-      {
-        "topic_id": "la.dot_product",
-        "relation_type": "required",
-        "reason": "需要能运用向量内积完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.dot_product.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.eigenvectors": [
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "required",
-        "reason": "需要能运用矩阵乘法与维度完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.matrix_multiplication.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "la.svd": [
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "required",
-        "reason": "需要能运用矩阵乘法与维度完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.matrix_multiplication.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.eigenvectors",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.basics": [],
-    "prob.conditional_probability": [
-      {
-        "topic_id": "prob.basics",
-        "relation_type": "required",
-        "reason": "需要能运用概率基本概念完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.basics.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.bayes": [
-      {
-        "topic_id": "prob.conditional_probability",
-        "relation_type": "required",
-        "reason": "需要能运用条件概率完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.conditional_probability.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.independence": [
-      {
-        "topic_id": "prob.basics",
-        "relation_type": "required",
-        "reason": "需要能运用概率基本概念完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.basics.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.distributions": [
-      {
-        "topic_id": "prob.basics",
-        "relation_type": "required",
-        "reason": "需要能运用概率基本概念完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.basics.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.expectation_variance": [
-      {
-        "topic_id": "prob.distributions",
-        "relation_type": "required",
-        "reason": "需要能运用随机变量与概率分布完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.distributions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.covariance": [
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "required",
-        "reason": "需要能运用期望与方差完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.expectation_variance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.bernoulli": [
-      {
-        "topic_id": "prob.distributions",
-        "relation_type": "required",
-        "reason": "需要能运用随机变量与概率分布完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.distributions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.normal": [
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "required",
-        "reason": "需要能运用期望与方差完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.expectation_variance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.likelihood": [
-      {
-        "topic_id": "prob.bernoulli",
-        "relation_type": "required",
-        "reason": "需要能运用伯努利分布完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.bernoulli.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.independence",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "prob.entropy_gini": [
-      {
-        "topic_id": "prob.distributions",
-        "relation_type": "required",
-        "reason": "需要能运用随机变量与概率分布完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.distributions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.exponential_logarithmic",
-        "relation_type": "required",
-        "reason": "需要能运用指数函数与对数函数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.exponential_logarithmic.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.machine_learning_basics": [],
-    "ml.supervised_unsupervised": [
-      {
-        "topic_id": "ml.machine_learning_basics",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.dataset_split": [
-      {
-        "topic_id": "ml.supervised_unsupervised",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.bias_variance": [
-      {
-        "topic_id": "ml.dataset_split",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.overfitting_underfitting": [
-      {
-        "topic_id": "ml.bias_variance",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.linear_regression": [
-      {
-        "topic_id": "la.dot_product",
-        "relation_type": "required",
-        "reason": "需要能运用向量内积完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.dot_product.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "required",
-        "reason": "矩阵形式的Xw需要检查样本矩阵、参数向量的维度。",
-        "required_competencies": [
-          "la.matrix_multiplication.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "matrix_form",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.derivative_rules",
-        "relation_type": "required",
-        "reason": "损失对参数的求导需要基本求导法则。",
-        "required_competencies": [
-          "math.derivative_rules.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "gradient_derivation",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.chain_rule",
-        "relation_type": "required",
-        "reason": "复合平方误差求导需要链式法则。",
-        "required_competencies": [
-          "math.chain_rule.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "gradient_derivation",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.loss_function": [
-      {
-        "topic_id": "ml.linear_regression",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.gradient_descent": [
-      {
-        "topic_id": "math.derivative_definition",
-        "relation_type": "required",
-        "reason": "需要能运用导数与变化率完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.derivative_definition.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.chain_rule",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.gradient",
-        "relation_type": "required",
-        "reason": "多参数更新方向由损失函数对各参数的偏导组成。",
-        "required_competencies": [
-          "math.gradient.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "multiple_parameters",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.chain_rule",
-        "relation_type": "required",
-        "reason": "复合损失的梯度推导需要链式法则。",
-        "required_competencies": [
-          "math.chain_rule.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "composite_loss",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.regularization": [
-      {
-        "topic_id": "ml.loss_function",
-        "relation_type": "required",
-        "reason": "需要能运用损失函数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.loss_function.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.norm_distance",
-        "relation_type": "required",
-        "reason": "需要能运用向量范数与欧氏距离完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.norm_distance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.gradient_descent",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.bias_variance",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.sigmoid": [
-      {
-        "topic_id": "math.functions",
-        "relation_type": "required",
-        "reason": "需要能运用函数与变量完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.functions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.exponential_logarithmic",
-        "relation_type": "required",
-        "reason": "需要能运用指数函数与对数函数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.exponential_logarithmic.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.derivative_rules",
-        "relation_type": "required",
-        "reason": "Sigmoid求导需要基本法则。",
-        "required_competencies": [
-          "math.derivative_rules.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "derivation",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.chain_rule",
-        "relation_type": "required",
-        "reason": "指数复合函数求导需要链式法则。",
-        "required_competencies": [
-          "math.chain_rule.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "derivation",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.logistic_regression": [
-      {
-        "topic_id": "la.dot_product",
-        "relation_type": "required",
-        "reason": "需要能运用向量内积完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.dot_product.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.sigmoid",
-        "relation_type": "required",
-        "reason": "需要能运用Sigmoid完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.sigmoid.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.conditional_probability",
-        "relation_type": "required",
-        "reason": "需要能运用条件概率完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.conditional_probability.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.gradient_descent",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.bernoulli",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.cross_entropy": [
-      {
-        "topic_id": "math.exponential_logarithmic",
-        "relation_type": "required",
-        "reason": "需要能运用指数函数与对数函数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "math.exponential_logarithmic.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.distributions",
-        "relation_type": "required",
-        "reason": "需要能运用随机变量与概率分布完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.distributions.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.entropy_gini",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.bernoulli",
-        "relation_type": "required",
-        "reason": "二分类形式对应伯努利标签概率。",
-        "required_competencies": [
-          "prob.bernoulli.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "binary_form",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.likelihood",
-        "relation_type": "required",
-        "reason": "极大似然推导需要区分似然与概率。",
-        "required_competencies": [
-          "prob.likelihood.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "likelihood_derivation",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.classification_metrics": [
-      {
-        "topic_id": "prob.conditional_probability",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.knn": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.norm_distance",
-        "relation_type": "required",
-        "reason": "需要能运用向量范数与欧氏距离完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.norm_distance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.decision_tree": [
-      {
-        "topic_id": "ml.supervised_unsupervised",
-        "relation_type": "required",
-        "reason": "需要能运用分类或回归的基本概念完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.supervised_unsupervised.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.entropy_gini",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.random_forest": [
-      {
-        "topic_id": "ml.decision_tree",
-        "relation_type": "required",
-        "reason": "需要能运用决策树完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.decision_tree.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.gbdt": [
-      {
-        "topic_id": "ml.decision_tree",
-        "relation_type": "required",
-        "reason": "需要能运用决策树完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.decision_tree.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.loss_function",
-        "relation_type": "required",
-        "reason": "需要能运用损失函数完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.loss_function.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.derivative_definition",
-        "relation_type": "required",
-        "reason": "用负梯度拟合残差的推导需要导数。",
-        "required_competencies": [
-          "math.derivative_definition.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "gradient_boosting",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.xgboost": [
-      {
-        "topic_id": "ml.gbdt",
-        "relation_type": "required",
-        "reason": "需要能运用梯度提升决策树完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.gbdt.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.taylor_formula",
-        "relation_type": "required",
-        "reason": "二阶目标近似需要二阶导数与泰勒展开。",
-        "required_competencies": [
-          "math.taylor_formula.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "second_order_objective",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.margin": [
-      {
-        "topic_id": "la.dot_product",
-        "relation_type": "required",
-        "reason": "需要能运用向量内积完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.dot_product.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.norm_distance",
-        "relation_type": "required",
-        "reason": "需要能运用向量范数与欧氏距离完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.norm_distance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.svm": [
-      {
-        "topic_id": "la.dot_product",
-        "relation_type": "required",
-        "reason": "需要能运用向量内积完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.dot_product.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.norm_distance",
-        "relation_type": "required",
-        "reason": "需要能运用向量范数与欧氏距离完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.norm_distance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.margin",
-        "relation_type": "required",
-        "reason": "需要能运用分类间隔完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.margin.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "math.derivative_applications",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.kernel": [
-      {
-        "topic_id": "ml.svm",
-        "relation_type": "required",
-        "reason": "需要能运用支持向量机完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.svm.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.soft_margin": [
-      {
-        "topic_id": "ml.svm",
-        "relation_type": "required",
-        "reason": "需要能运用支持向量机完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.svm.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "ml.regularization",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.kmeans": [
-      {
-        "topic_id": "la.vectors",
-        "relation_type": "required",
-        "reason": "需要能运用标量、向量与矩阵完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.vectors.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.norm_distance",
-        "relation_type": "required",
-        "reason": "需要能运用向量范数与欧氏距离完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.norm_distance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.expectation_variance",
-        "relation_type": "required",
-        "reason": "需要能运用期望与方差完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.expectation_variance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.pca": [
-      {
-        "topic_id": "la.matrix_multiplication",
-        "relation_type": "required",
-        "reason": "需要能运用矩阵乘法与维度完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.matrix_multiplication.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.projection",
-        "relation_type": "required",
-        "reason": "需要能运用正交与投影完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "la.projection.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "prob.covariance",
-        "relation_type": "required",
-        "reason": "需要能运用协方差完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "prob.covariance.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.svd",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      },
-      {
-        "topic_id": "la.eigenvectors",
-        "relation_type": "required",
-        "reason": "特征分解路径用协方差矩阵特征向量确定主方向。",
-        "required_competencies": [
-          "la.eigenvectors.foundation"
-        ],
-        "scope": "lesson_section",
-        "section_id": "eigendecomposition",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.clustering_evaluation": [
-      {
-        "topic_id": "ml.kmeans",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.cross_validation": [
-      {
-        "topic_id": "ml.dataset_split",
-        "relation_type": "required",
-        "reason": "需要能运用训练、验证与测试集划分完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.dataset_split.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.feature_engineering": [
-      {
-        "topic_id": "ml.dataset_split",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.hyperparameter_tuning": [
-      {
-        "topic_id": "ml.cross_validation",
-        "relation_type": "required",
-        "reason": "需要能运用交叉验证完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.cross_validation.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.data_leakage": [
-      {
-        "topic_id": "ml.dataset_split",
-        "relation_type": "required",
-        "reason": "需要能运用训练、验证与测试集划分完成当前内容中的计算、条件判断和结果解释。",
-        "required_competencies": [
-          "ml.dataset_split.foundation"
-        ],
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ],
-    "ml.imbalanced_learning": [
-      {
-        "topic_id": "ml.classification_metrics",
-        "relation_type": "recommended",
-        "reason": "有助于拓展理解，可以在学习中按需补充。",
-        "scope": "topic",
-        "rule_version": "content-v1"
-      }
-    ]
-  },
-  "math_preparation_topic_ids": [
-    "math.functions",
-    "math.exponential_logarithmic",
-    "math.derivative_definition",
-    "math.derivative_rules",
-    "math.chain_rule",
-    "math.partial_derivatives",
-    "math.gradient",
-    "math.derivative_applications",
-    "math.taylor_formula",
-    "la.vectors",
-    "la.dot_product",
-    "la.norm_distance",
-    "la.matrix_multiplication",
-    "la.transpose",
-    "la.linear_systems",
-    "la.rank",
-    "la.projection",
-    "la.eigenvectors",
-    "la.svd",
-    "prob.basics",
-    "prob.conditional_probability",
-    "prob.bayes",
-    "prob.independence",
-    "prob.distributions",
-    "prob.expectation_variance",
-    "prob.covariance",
-    "prob.bernoulli",
-    "prob.normal",
-    "prob.likelihood",
-    "prob.entropy_gini"
   ]
 }

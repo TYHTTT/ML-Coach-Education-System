@@ -42,7 +42,6 @@ class Settings(BaseSettings):
     max_message_length: int = Field(default=8000, ge=1, le=100_000)
 
     mastery_gate_threshold: float = Field(default=0.80, ge=0, le=1)
-    prerequisite_mastery_threshold: float = Field(default=0.80, ge=0, le=1)
     mastery_min_valid_attempts: int = Field(default=3, ge=1)
     mastery_checkpoint_score: float = Field(default=80, ge=0, le=100)
     mastery_min_dimension_coverage: int = Field(default=3, ge=1)

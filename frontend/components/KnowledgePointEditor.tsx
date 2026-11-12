@@ -15,8 +15,6 @@ export default function KnowledgePointEditor({ topic, reference, course, groups,
   const chapters = groups.filter((g) => g.stage !== null);
   const initial = chapters.find((g) => g.id === topic?.parent_group_id) ?? chapters[0];
   const [chapter, setChapter] = useState(initial?.id ?? "new");
-  const [selected, setSelected] = useState(topic?.prerequisite_ids ?? []);
-  const [filter, setFilter] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const ref = useRef<HTMLElement>(null);
@@ -31,12 +29,11 @@ export default function KnowledgePointEditor({ topic, reference, course, groups,
       await onSave(reference ? { topic_id: topic?.id ?? String(data.get("topic_id")), stage, stage_title } : {
         title: String(data.get("title")).trim(), description: String(data.get("description")).trim(), stage, stage_title,
         learning_objectives: lines(data.get("learning_objectives")), aliases: lines(data.get("aliases")), retrieval_keywords: lines(data.get("retrieval_keywords")),
-        difficulty: String(data.get("difficulty")) as TopicValues["difficulty"], prerequisite_ids: selected,
+        difficulty: String(data.get("difficulty")) as TopicValues["difficulty"],
       });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "保存失败"); }
     finally { setSaving(false); }
   }
-  const candidates = catalog.filter((t) => t.id !== topic?.id && `${t.title} ${t.course_title} ${t.id}`.toLowerCase().includes(filter.toLowerCase()));
   return <section ref={ref} className="mt-6 scroll-mt-4 rounded-2xl border border-indigo-200 bg-white p-5 sm:p-6" aria-label="知识点编辑器">
     <h2 className="text-lg font-bold text-slate-900">{reference ? topic ? "调整引用位置" : "引用其他课程知识点" : topic ? "编辑知识点" : "新增知识点"}</h2>
     <form onSubmit={submit} className="mt-5"><fieldset disabled={saving} className="grid gap-4 sm:grid-cols-2">
@@ -46,7 +43,6 @@ export default function KnowledgePointEditor({ topic, reference, course, groups,
       {!reference && <>
         <label className="text-sm text-slate-700 sm:col-span-2">知识点简介<textarea name="description" rows={3} maxLength={2000} defaultValue={topic?.description} className={fieldClass} /></label>
         <label className="text-sm text-slate-700 sm:col-span-2">学习目标（每行一项）<textarea name="learning_objectives" rows={3} defaultValue={topic?.learning_objectives.join("\n")} className={fieldClass} /></label>
-        <div className="sm:col-span-2"><p className="text-sm font-medium text-slate-700">必需前置知识点</p><input aria-label="筛选前置知识点" placeholder="按名称或课程筛选" value={filter} onChange={(e) => setFilter(e.target.value)} className={fieldClass} /><div className="mt-2 max-h-48 overflow-y-auto rounded-xl border border-slate-200 p-3">{candidates.map((t) => <label key={t.id} className="flex items-start gap-2 py-1.5 text-sm text-slate-600"><input type="checkbox" className="mt-1 accent-indigo-600" checked={selected.includes(t.id)} onChange={(e) => setSelected(e.target.checked ? [...selected, t.id] : selected.filter((id) => id !== t.id))} />{t.title}<span className="text-xs text-slate-400">{t.course_title}</span></label>)}{selected.filter((id) => !catalog.some((t) => t.id === id)).map((id) => <label key={id} className="flex gap-2 py-1 text-sm text-amber-700"><input type="checkbox" checked onChange={() => setSelected(selected.filter((key) => key !== id))} />{id}（已不可用，取消选择后保存）</label>)}{!candidates.length && <p className="text-sm text-slate-400">没有匹配的知识点</p>}</div></div>
         <details className="sm:col-span-2"><summary className="cursor-pointer text-sm font-medium text-slate-600">更多设置</summary><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm text-slate-700">别名（每行一项）<textarea name="aliases" rows={3} defaultValue={topic?.aliases.join("\n")} className={fieldClass} /></label><label className="text-sm text-slate-700">检索关键词（每行一项）<textarea name="retrieval_keywords" rows={3} defaultValue={topic?.retrieval_keywords.join("\n")} className={fieldClass} /></label><label className="text-sm text-slate-700">难度<select name="difficulty" defaultValue={topic?.difficulty ?? "medium"} className={fieldClass}><option value="easy">基础</option><option value="medium">进阶</option><option value="hard">较难</option></select></label></div></details>
       </>}
     </fieldset>{error && <p role="alert" className="mt-4 rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</p>}<div className="mt-5 flex justify-end gap-3"><button type="button" disabled={saving} onClick={onCancel} className={actionClass}>取消</button><button type="submit" disabled={saving} className={primaryClass}>{saving ? "正在保存…" : "保存编排"}</button></div></form>

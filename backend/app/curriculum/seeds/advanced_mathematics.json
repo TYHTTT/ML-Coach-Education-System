@@ -6,159 +6,140 @@
       "description": "复习函数的定义域、值域、表示、基本性质和复合运算。",
       "learning_objectives": ["确定常见函数的定义域和值域", "分析函数的单调性、奇偶性、周期性和有界性"],
       "aliases": ["函数基础", "一元函数"], "retrieval_keywords": ["函数", "定义域", "值域", "复合函数", "反函数", "单调性"],
-      "difficulty": "easy", "required_dimensions": ["concept", "calculation", "application"], "active": true, "prerequisites": []
+      "difficulty": "easy", "required_dimensions": ["concept", "calculation", "application"], "active": true
     },
     {
       "id": "math.sequence_limits", "slug": "sequence_limits", "title": "数列极限", "stage": 1, "stage_title": "函数与极限", "order_index": 2,
       "description": "理解数列极限的定义、性质和常用判定方法。",
       "learning_objectives": ["用 ε-N 语言表述数列极限", "使用极限运算法则和夹逼准则计算极限"],
       "aliases": ["序列极限", "数列收敛"], "retrieval_keywords": ["数列极限", "ε-N", "收敛", "夹逼准则", "单调有界"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true,
-      "prerequisites": [{"topic_id": "math.functions", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true
     },
     {
       "id": "math.function_limits", "slug": "function_limits", "title": "函数极限", "stage": 1, "stage_title": "函数与极限", "order_index": 3,
       "description": "掌握函数在有限点和无穷远处的极限及计算方法。",
       "learning_objectives": ["区分单侧极限与双侧极限", "运用等价无穷小和两个重要极限"],
       "aliases": ["函数的极限", "极限计算"], "retrieval_keywords": ["函数极限", "单侧极限", "无穷小", "等价替换", "重要极限"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.sequence_limits", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.continuity", "slug": "continuity", "title": "连续性", "stage": 1, "stage_title": "函数与极限", "order_index": 4,
       "description": "理解函数连续、间断点分类和闭区间连续函数性质。",
       "learning_objectives": ["用极限判断函数在一点连续", "分类间断点并应用介值定理"],
       "aliases": ["函数连续", "连续函数"], "retrieval_keywords": ["连续", "间断点", "介值定理", "零点定理", "闭区间"],
-      "difficulty": "medium", "required_dimensions": ["concept", "theorem_condition", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.function_limits", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "theorem_condition", "calculation", "application"], "active": true
     },
     {
       "id": "math.derivative_definition", "slug": "derivative_definition", "title": "导数定义", "stage": 2, "stage_title": "一元函数微分学", "order_index": 5,
       "description": "从差商极限理解导数、左右导数和几何物理意义。",
       "learning_objectives": ["使用定义计算简单函数导数", "判断可导、连续及左右导数的关系"],
       "aliases": ["导数的定义", "差商极限"], "retrieval_keywords": ["导数定义", "差商", "增量", "左右导数", "切线斜率", "瞬时变化率"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.continuity", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.derivative_rules", "slug": "derivative_rules", "title": "求导法则", "stage": 2, "stage_title": "一元函数微分学", "order_index": 6,
       "description": "掌握基本函数、四则运算、复合函数、隐函数和参数方程求导。",
       "learning_objectives": ["正确使用乘积、商和链式法则", "完成隐函数及高阶导数计算"],
       "aliases": ["微分法", "导数公式"], "retrieval_keywords": ["求导法则", "链式法则", "隐函数求导", "高阶导数", "微分"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_definition", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true
     },
     {
       "id": "math.mean_value_theorem", "slug": "mean_value_theorem", "title": "微分中值定理", "stage": 2, "stage_title": "一元函数微分学", "order_index": 7,
       "description": "掌握罗尔、拉格朗日和柯西中值定理的条件、结论与应用。",
       "learning_objectives": ["核对并陈述各中值定理的适用条件", "构造辅助函数证明等式或不等式"],
       "aliases": ["中值定理", "拉格朗日中值定理"], "retrieval_keywords": ["罗尔定理", "拉格朗日中值定理", "柯西中值定理", "辅助函数", "闭区间连续"],
-      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_rules", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "application"], "active": true
     },
     {
       "id": "math.taylor_formula", "slug": "taylor_formula", "title": "泰勒公式", "stage": 2, "stage_title": "一元函数微分学", "order_index": 8,
       "description": "理解泰勒多项式、余项及局部近似。",
       "learning_objectives": ["写出常见函数的泰勒展开", "利用余项估计近似误差或计算极限"],
       "aliases": ["Taylor 公式", "泰勒展开"], "retrieval_keywords": ["泰勒公式", "泰勒展开", "麦克劳林", "余项", "局部近似"],
-      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.mean_value_theorem", "required_mastery": 0.8}, {"topic_id": "math.derivative_rules", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.derivative_applications", "slug": "derivative_applications", "title": "导数应用", "stage": 2, "stage_title": "一元函数微分学", "order_index": 9,
       "description": "运用导数研究单调性、极值、凹凸性、渐近线和最优化。",
       "learning_objectives": ["通过导数绘制函数性态", "建立并求解一元最优化模型"],
       "aliases": ["导数的应用", "函数性态"], "retrieval_keywords": ["单调区间", "极值", "最值", "凹凸性", "拐点", "渐近线"],
-      "difficulty": "medium", "required_dimensions": ["concept", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_rules", "required_mastery": 0.8}, {"topic_id": "math.mean_value_theorem", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "calculation", "application"], "active": true
     },
     {
       "id": "math.indefinite_integral", "slug": "indefinite_integral", "title": "不定积分", "stage": 3, "stage_title": "一元函数积分学", "order_index": 10,
       "description": "理解原函数与不定积分，掌握基本积分公式。",
       "learning_objectives": ["判断原函数族并写出积分常数", "使用基本积分表计算不定积分"],
       "aliases": ["原函数", "不定积分法"], "retrieval_keywords": ["不定积分", "原函数", "积分常数", "基本积分公式"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_definition", "required_mastery": 0.8}, {"topic_id": "math.derivative_rules", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation"], "active": true
     },
     {
       "id": "math.definite_integral", "slug": "definite_integral", "title": "定积分", "stage": 3, "stage_title": "一元函数积分学", "order_index": 11,
       "description": "从黎曼和理解定积分定义、性质及几何意义。",
       "learning_objectives": ["用分割求和描述定积分", "运用定积分的线性、区间可加性和估值性质"],
       "aliases": ["黎曼积分", "定积分定义"], "retrieval_keywords": ["定积分", "黎曼和", "积分区间", "可积", "几何意义"],
-      "difficulty": "medium", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation"], "active": true,
-      "prerequisites": [{"topic_id": "math.indefinite_integral", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation"], "active": true
     },
     {
       "id": "math.fundamental_theorem_of_calculus", "slug": "fundamental_theorem_of_calculus", "title": "微积分基本定理", "stage": 3, "stage_title": "一元函数积分学", "order_index": 12,
       "description": "理解变上限积分求导与牛顿-莱布尼茨公式。",
       "learning_objectives": ["陈述定理条件并计算变上限积分导数", "用原函数计算定积分"],
       "aliases": ["牛顿莱布尼茨公式", "FTC"], "retrieval_keywords": ["微积分基本定理", "牛顿莱布尼茨", "变上限积分", "原函数"],
-      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.definite_integral", "required_mastery": 0.8}, {"topic_id": "math.derivative_definition", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.integration_methods", "slug": "integration_methods", "title": "积分方法", "stage": 3, "stage_title": "一元函数积分学", "order_index": 13,
       "description": "掌握换元、分部、部分分式及常见有理化积分方法。",
       "learning_objectives": ["根据被积函数结构选择积分方法", "正确处理换元边界和分部积分"],
       "aliases": ["积分技巧", "换元积分与分部积分"], "retrieval_keywords": ["换元积分", "分部积分", "部分分式", "有理函数积分", "三角积分"],
-      "difficulty": "hard", "required_dimensions": ["derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.indefinite_integral", "required_mastery": 0.8}, {"topic_id": "math.derivative_rules", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.integral_applications", "slug": "integral_applications", "title": "定积分应用", "stage": 3, "stage_title": "一元函数积分学", "order_index": 14,
       "description": "使用微元法计算面积、体积、弧长及物理量。",
       "learning_objectives": ["建立几何量的积分表达式", "根据问题选择直角坐标或参数表示"],
       "aliases": ["定积分的应用", "微元法"], "retrieval_keywords": ["面积", "旋转体体积", "弧长", "微元法", "定积分应用"],
-      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.definite_integral", "required_mastery": 0.8}, {"topic_id": "math.integration_methods", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.partial_derivatives", "slug": "partial_derivatives", "title": "偏导数", "stage": 4, "stage_title": "多元函数微分学", "order_index": 15,
       "description": "理解多元函数、偏导数、高阶偏导和几何意义。",
       "learning_objectives": ["计算一阶和二阶偏导数", "解释偏导数作为坐标方向变化率"],
       "aliases": ["偏微分", "多元函数偏导"], "retrieval_keywords": ["偏导数", "多元函数", "高阶偏导", "混合偏导", "变化率"],
-      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_rules", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.total_differential", "slug": "total_differential", "title": "全微分", "stage": 4, "stage_title": "多元函数微分学", "order_index": 16,
       "description": "理解全微分、可微性、线性近似和多元链式法则。",
       "learning_objectives": ["判断偏导存在与可微之间的关系", "使用全微分进行误差估计和近似计算"],
       "aliases": ["全微分与可微", "线性近似"], "retrieval_keywords": ["全微分", "可微", "线性近似", "多元链式法则", "误差估计"],
-      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.partial_derivatives", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.multivariable_extrema", "slug": "multivariable_extrema", "title": "多元函数极值", "stage": 4, "stage_title": "多元函数微分学", "order_index": 17,
       "description": "掌握无约束极值判别和拉格朗日乘数法。",
       "learning_objectives": ["用驻点和 Hessian 判别二元函数极值", "建立并求解条件极值问题"],
       "aliases": ["多元极值", "条件极值"], "retrieval_keywords": ["多元函数极值", "Hessian", "驻点", "拉格朗日乘数", "条件极值"],
-      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.total_differential", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "theorem_condition", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.double_integral", "slug": "double_integral", "title": "二重积分", "stage": 5, "stage_title": "多重积分与微分方程基础", "order_index": 18,
       "description": "理解二重积分并掌握直角坐标和极坐标下的累次积分。",
       "learning_objectives": ["根据积分区域建立累次积分", "正确进行极坐标变换并包含雅可比因子"],
       "aliases": ["二重积分法", "二维积分"], "retrieval_keywords": ["二重积分", "积分区域", "累次积分", "极坐标", "雅可比"],
-      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.definite_integral", "required_mastery": 0.8}, {"topic_id": "math.partial_derivatives", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.triple_integral", "slug": "triple_integral", "title": "三重积分", "stage": 5, "stage_title": "多重积分与微分方程基础", "order_index": 19,
       "description": "掌握三重积分的累次计算及柱面、球面坐标变换。",
       "learning_objectives": ["描述空间区域并确定积分次序", "在柱面或球面坐标下建立积分"],
       "aliases": ["三维积分", "三重积分法"], "retrieval_keywords": ["三重积分", "空间区域", "柱面坐标", "球面坐标", "体积元"],
-      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.double_integral", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     },
     {
       "id": "math.first_order_ode", "slug": "first_order_ode", "title": "一阶微分方程", "stage": 5, "stage_title": "多重积分与微分方程基础", "order_index": 20,
       "description": "掌握可分离变量、一阶线性等基础常微分方程。",
       "learning_objectives": ["识别并求解可分离变量方程", "使用常数变易或积分因子求解一阶线性方程"],
       "aliases": ["一阶 ODE", "一阶常微分方程"], "retrieval_keywords": ["一阶微分方程", "可分离变量", "一阶线性方程", "积分因子", "初值问题"],
-      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true,
-      "prerequisites": [{"topic_id": "math.derivative_rules", "required_mastery": 0.8}, {"topic_id": "math.integration_methods", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "derivation", "calculation", "application"], "active": true
     }
   ]
 }

@@ -110,7 +110,6 @@ export interface StoredChatState {
 }
 
 export const TOPIC_STATUSES = [
-  "locked",
   "not_started",
   "learning",
   "practicing",
@@ -122,7 +121,6 @@ export const TOPIC_STATUSES = [
 export type TopicStatus = (typeof TOPIC_STATUSES)[number];
 
 export type NextAction =
-  | "study_prerequisite"
   | "start_learning"
   | "teach"
   | "practice"
@@ -153,15 +151,6 @@ export interface AuthenticatedAdmin extends Administrator {
   access_token: string;
 }
 
-export interface TopicPrerequisite {
-  id?: string;
-  topic_id?: string;
-  title: string;
-  required_mastery?: number;
-  status?: TopicStatus;
-  mastery?: number | null;
-}
-
 export interface DimensionProgress {
   dimension: string;
   label?: string;
@@ -176,7 +165,6 @@ export interface CurriculumTopicSummary {
   title: string;
   order_index?: number;
   description?: string;
-  prerequisites: TopicPrerequisite[];
   status: TopicStatus;
   mastery: number | null;
   mastery_display?: string | null;
@@ -184,7 +172,6 @@ export interface CurriculumTopicSummary {
   evidence_count?: number;
   attempt_count?: number;
   latest_score?: number | null;
-  locked_reason?: string | null;
 }
 
 export interface CurriculumTopic extends CurriculumTopicSummary {
@@ -233,7 +220,6 @@ export interface DashboardTopic {
   status: TopicStatus;
   mastery: number | null;
   confidence: number | null;
-  unmet_prerequisites: string[];
 }
 
 export interface DashboardStage {
@@ -248,7 +234,6 @@ export interface LearningDashboard {
   mastered_count: number;
   learning_count: number;
   not_started_count: number;
-  locked_count: number;
   current_topic: DashboardTopic | null;
   recommended_topic_id: string | null;
   next_action: NextAction;
@@ -268,7 +253,6 @@ export interface OutlineTopic {
   is_reference: boolean;
   status: TopicStatus;
   mastery: number | null;
-  prerequisite_gap: { id: string; title: string; reason: string }[];
 }
 
 export interface OutlineGroup {

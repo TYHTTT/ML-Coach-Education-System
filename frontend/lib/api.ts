@@ -251,19 +251,6 @@ function normalizeTopic(payload: unknown): CurriculumTopic {
     retrieval_keywords: strings(body.retrieval_keywords),
     difficulty: String(body.difficulty ?? "medium"),
     required_dimensions: strings(body.required_dimensions),
-    prerequisites: Array.isArray(body.prerequisites)
-      ? body.prerequisites.map((item) => {
-          const prerequisite = asRecord(item);
-          return {
-            id: typeof prerequisite.id === "string" ? prerequisite.id : undefined,
-            topic_id: typeof prerequisite.topic_id === "string" ? prerequisite.topic_id : undefined,
-            title: String(prerequisite.title ?? prerequisite.id ?? "前置知识点"),
-            required_mastery: typeof prerequisite.required_mastery === "number" ? prerequisite.required_mastery : undefined,
-            status: typeof prerequisite.status === "string" ? prerequisite.status as CurriculumTopic["status"] : undefined,
-            mastery: typeof prerequisite.mastery === "number" ? prerequisite.mastery : null,
-          };
-        })
-      : [],
     status: (typeof body.status === "string" ? body.status : "not_started") as CurriculumTopic["status"],
     mastery: typeof body.mastery === "number" ? body.mastery : null,
     mastery_display: typeof body.mastery_display === "string" ? body.mastery_display : null,
@@ -271,7 +258,6 @@ function normalizeTopic(payload: unknown): CurriculumTopic {
     evidence_count: typeof body.evidence_count === "number" ? body.evidence_count : undefined,
     attempt_count: typeof body.attempt_count === "number" ? body.attempt_count : undefined,
     latest_score: typeof body.latest_score === "number" ? body.latest_score : null,
-    locked_reason: typeof body.locked_reason === "string" ? body.locked_reason : null,
     dimensions,
     active: typeof body.active === "boolean" ? body.active : undefined,
     created_at: typeof body.created_at === "string" ? body.created_at : undefined,
@@ -310,7 +296,6 @@ export async function getLearningDashboard(
     mastered_count: Number(body.mastered_count ?? 0),
     learning_count: Number(body.learning_count ?? 0),
     not_started_count: Number(body.not_started_count ?? 0),
-    locked_count: Number(body.locked_count ?? 0),
     current_topic: body.current_topic && typeof body.current_topic === "object"
       ? body.current_topic as LearningDashboard["current_topic"]
       : null,

@@ -3,7 +3,7 @@ import { request } from "@/lib/api";
 export interface TopicValues {
   title: string; description: string; stage: number; stage_title: string;
   learning_objectives: string[]; aliases: string[]; retrieval_keywords: string[];
-  difficulty: "easy" | "medium" | "hard"; prerequisite_ids: string[];
+  difficulty: "easy" | "medium" | "hard";
 }
 export interface ManagedTopic extends TopicValues {
   id: string; course: string; owner_title: string; is_reference: boolean; active: boolean; available: boolean;

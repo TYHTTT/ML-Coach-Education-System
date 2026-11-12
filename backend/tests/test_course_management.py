@@ -99,7 +99,7 @@ def test_dynamic_course_topics_can_be_studied_and_delete_preserves_records(api):
     seed = CurriculumSeed.model_validate({"course": "physics", "topics": [{
         "id": "physics.motion", "slug": "motion", "title": "运动", "stage": 1, "stage_title": "力学", "order_index": 1,
         "description": "运动基础", "learning_objectives": ["理解速度"], "aliases": [], "retrieval_keywords": ["速度"],
-        "difficulty": "easy", "required_dimensions": ["concept"], "prerequisites": [],
+        "difficulty": "easy", "required_dimensions": ["concept"],
     }]})
     app.state.learning_repository.upsert_curriculum([seed])
     assert client.post("/api/v1/learning/topics/physics.motion/start", headers=student_headers).status_code == 200

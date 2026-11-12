@@ -13,7 +13,6 @@ from pydantic import (
 
 
 LearningStatus = Literal[
-    "locked",
     "not_started",
     "learning",
     "practicing",
@@ -22,7 +21,6 @@ LearningStatus = Literal[
     "mastered",
 ]
 LearningAction = Literal[
-    "study_prerequisite",
     "start_learning",
     "continue_learning",
     "practice",
@@ -51,7 +49,6 @@ class MasteryGateRequirements(StrictModel):
     checkpoint_score: RequirementStatus
     dimension_coverage: RequirementStatus
     critical_misconceptions: RequirementStatus
-    prerequisites_mastered: RequirementStatus
 
 
 class MasteryGateResult(StrictModel):

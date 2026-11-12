@@ -9,7 +9,6 @@ from app.core.types import Course
 
 
 TopicStatus = Literal[
-    "locked",
     "not_started",
     "learning",
     "practicing",
@@ -17,20 +16,6 @@ TopicStatus = Literal[
     "ready_for_checkpoint",
     "mastered",
 ]
-
-
-class PrerequisiteResponse(BaseModel):
-    id: str
-    slug: str
-    title: str
-    required_mastery: float
-    course: Course | None = None
-    relation_type: Literal["required", "recommended", "related"] = "required"
-    reason: str = ""
-    required_competencies: list[str] = []
-    scope: Literal["topic", "lesson_section"] = "topic"
-    section_id: str = ""
-    rule_version: str = "content-v1"
 
 
 class TopicSummaryResponse(BaseModel):
@@ -43,8 +28,6 @@ class TopicSummaryResponse(BaseModel):
     mastery: float | None = None
     mastery_display: str | None = None
     confidence: float | None = None
-    prerequisites: list[PrerequisiteResponse]
-    locked_reason: str | None = None
 
 
 class CurriculumStageResponse(BaseModel):

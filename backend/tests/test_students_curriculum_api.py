@@ -94,7 +94,7 @@ def test_curriculum_response_hides_unstarted_beta_prior(postgres_test_database_u
     assert first["mastery"] is None
     assert first["mastery_display"] is None
     assert second["status"] == "not_started"
-    assert second["locked_reason"] is None
+    assert "locked_reason" not in second and "prerequisites" not in second
 
 
 def test_topic_detail_exposes_objectives_and_empty_dimension_state(postgres_test_database_url) -> None:

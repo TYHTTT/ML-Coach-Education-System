@@ -29,7 +29,6 @@ def gate(
             ),
             checkpoint_dimensions=dimensions,
             unresolved_critical_misconception_count=critical,
-            prerequisite_masteries={},
         )
     )
 
@@ -45,15 +44,6 @@ def state(**overrides: object) -> LearningOrchestratorInput:
     return LearningOrchestratorInput(**values)  # type: ignore[arg-type]
 
 
-def test_locked_studies_prerequisite() -> None:
-    decision = decide_next_action(
-        state(
-            current_topic_status="locked",
-            unmet_prerequisite_ids=("ml.gradient_descent",),
-        )
-    )
-    assert decision.next_action == "study_prerequisite"
-    assert decision.recommended_topic_id == "ml.gradient_descent"
 
 
 def test_not_started_starts_learning() -> None:
@@ -101,7 +91,7 @@ def test_failed_checkpoint_remediates() -> None:
 def test_passed_gate_continues_to_recommended_topic() -> None:
     candidates = (
         TopicRecommendationCandidate(
-            "ml.sigmoid", "not_started", stage=3, order_index=2, unlocked=True
+            "ml.sigmoid", "not_started", stage=3, order_index=2
         ),
     )
     decision = decide_next_action(state(gate=gate(), candidates=candidates))
@@ -117,10 +107,10 @@ def test_all_topics_mastered_completes_course() -> None:
 
 def test_recommendation_priority_is_deterministic() -> None:
     candidates = [
-        TopicRecommendationCandidate("next-stage", "not_started", 4, 1, True),
-        TopicRecommendationCandidate("same-stage", "not_started", 3, 3, True),
-        TopicRecommendationCandidate("in-progress", "learning", 2, 5, True),
-        TopicRecommendationCandidate("current", "needs_remediation", 3, 2, True),
+        TopicRecommendationCandidate("next-stage", "not_started", 4, 1),
+        TopicRecommendationCandidate("same-stage", "not_started", 3, 3),
+        TopicRecommendationCandidate("in-progress", "learning", 2, 5),
+        TopicRecommendationCandidate("current", "needs_remediation", 3, 2),
     ]
     assert (
         recommend_topic(candidates, current_topic_id="current", current_stage=3)

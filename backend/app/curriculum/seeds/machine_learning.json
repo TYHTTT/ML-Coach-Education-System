@@ -6,239 +6,210 @@
       "description": "理解机器学习的基本任务、数据驱动建模流程和常用术语。",
       "learning_objectives": ["说明机器学习与规则程序的区别", "识别特征、标签、模型和训练等基本概念"],
       "aliases": ["ML 基础", "机器学习概论"], "retrieval_keywords": ["机器学习", "训练", "模型", "特征", "标签"],
-      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "application"], "active": true, "prerequisites": []
+      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.supervised_unsupervised", "slug": "supervised_unsupervised", "title": "监督学习与无监督学习", "stage": 1, "stage_title": "机器学习基础", "order_index": 2,
       "description": "区分监督学习、无监督学习及其典型任务。",
       "learning_objectives": ["根据标签信息区分学习范式", "为实际问题选择合适的学习范式"],
       "aliases": ["监督与无监督", "学习范式"], "retrieval_keywords": ["监督学习", "无监督学习", "标签", "分类", "聚类"],
-      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.machine_learning_basics", "required_mastery": 0.8}]
+      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.dataset_split", "slug": "dataset_split", "title": "数据集划分", "stage": 1, "stage_title": "机器学习基础", "order_index": 3,
       "description": "掌握训练集、验证集、测试集的职责和正确划分方式。",
       "learning_objectives": ["解释三类数据集的用途", "避免测试信息进入模型选择过程"],
       "aliases": ["训练验证测试集", "数据划分"], "retrieval_keywords": ["训练集", "验证集", "测试集", "holdout", "数据划分"],
-      "difficulty": "easy", "required_dimensions": ["concept", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}]
+      "difficulty": "easy", "required_dimensions": ["concept", "engineering", "application"], "active": true
     },
     {
       "id": "ml.bias_variance", "slug": "bias_variance", "title": "偏差与方差", "stage": 1, "stage_title": "机器学习基础", "order_index": 4,
       "description": "理解泛化误差中的偏差、方差及二者的权衡。",
       "learning_objectives": ["解释高偏差和高方差的表现", "根据误差特征提出改进方向"],
       "aliases": ["偏差方差权衡", "Bias-Variance"], "retrieval_keywords": ["偏差", "方差", "泛化误差", "欠拟合", "过拟合"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.machine_learning_basics", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.overfitting_underfitting", "slug": "overfitting_underfitting", "title": "过拟合与欠拟合", "stage": 1, "stage_title": "机器学习基础", "order_index": 5,
       "description": "识别过拟合与欠拟合，并理解常见诊断和缓解策略。",
       "learning_objectives": ["通过训练与验证表现诊断拟合问题", "选择合适的正则化或模型复杂度策略"],
       "aliases": ["过拟合欠拟合", "拟合问题"], "retrieval_keywords": ["过拟合", "欠拟合", "泛化", "模型复杂度", "学习曲线"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.bias_variance", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.linear_regression", "slug": "linear_regression", "title": "线性回归", "stage": 2, "stage_title": "基础模型与训练", "order_index": 6,
       "description": "理解线性回归模型、参数含义和基本假设。",
       "learning_objectives": ["写出线性回归的模型形式", "解释系数和预测值的含义"],
       "aliases": ["最小二乘回归", "Linear Regression"], "retrieval_keywords": ["线性回归", "最小二乘", "回归系数", "残差", "预测"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.loss_function", "slug": "loss_function", "title": "损失函数", "stage": 2, "stage_title": "基础模型与训练", "order_index": 7,
       "description": "理解损失函数如何量化预测误差并形成优化目标。",
       "learning_objectives": ["区分单样本损失与经验风险", "解释损失函数与模型训练的关系"],
       "aliases": ["代价函数", "目标函数"], "retrieval_keywords": ["损失函数", "代价函数", "经验风险", "均方误差", "目标函数"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true,
-      "prerequisites": [{"topic_id": "ml.linear_regression", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true
     },
     {
       "id": "ml.gradient_descent", "slug": "gradient_descent", "title": "梯度下降", "stage": 2, "stage_title": "基础模型与训练", "order_index": 8,
       "description": "掌握梯度下降的更新规则、学习率作用和收敛直觉。",
       "learning_objectives": ["根据梯度写出参数更新公式", "分析学习率过大或过小的影响"],
       "aliases": ["GD", "梯度法"], "retrieval_keywords": ["梯度下降", "学习率", "梯度", "迭代", "收敛"],
-      "difficulty": "medium", "required_dimensions": ["mathematics", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.loss_function", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["mathematics", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.regularization", "slug": "regularization", "title": "正则化", "stage": 2, "stage_title": "基础模型与训练", "order_index": 9,
       "description": "理解 L1、L2 正则化控制模型复杂度的机制。",
       "learning_objectives": ["比较 L1 与 L2 正则化", "解释正则化强度对拟合的影响"],
       "aliases": ["正则项", "L1 L2"], "retrieval_keywords": ["正则化", "L1", "L2", "权重衰减", "模型复杂度"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true,
-      "prerequisites": [{"topic_id": "ml.gradient_descent", "required_mastery": 0.8}, {"topic_id": "ml.overfitting_underfitting", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true
     },
     {
       "id": "ml.logistic_regression", "slug": "logistic_regression", "title": "逻辑回归", "stage": 3, "stage_title": "分类", "order_index": 10,
       "description": "理解逻辑回归的概率输出、线性决策边界和训练过程。",
       "learning_objectives": ["解释逻辑回归为何用于分类", "从线性得分理解分类概率和决策边界"],
       "aliases": ["逻辑斯谛回归", "Logistic Regression"], "retrieval_keywords": ["逻辑回归", "逻辑斯谛", "分类概率", "logit", "决策边界"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.gradient_descent", "required_mastery": 0.8}, {"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.sigmoid", "slug": "sigmoid", "title": "Sigmoid 函数", "stage": 3, "stage_title": "分类", "order_index": 11,
       "description": "掌握 Sigmoid 函数的形式、导数和概率映射性质。",
       "learning_objectives": ["计算 Sigmoid 值及导数", "解释其在二分类概率建模中的作用"],
       "aliases": ["S 形函数", "Logistic 函数"], "retrieval_keywords": ["Sigmoid", "Logistic 函数", "概率映射", "导数", "饱和"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true,
-      "prerequisites": [{"topic_id": "ml.logistic_regression", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true
     },
     {
       "id": "ml.cross_entropy", "slug": "cross_entropy", "title": "交叉熵", "stage": 3, "stage_title": "分类", "order_index": 12,
       "description": "理解二分类交叉熵、极大似然和梯度优化之间的关系。",
       "learning_objectives": ["写出二分类交叉熵", "解释交叉熵与伯努利似然的等价关系"],
       "aliases": ["对数损失", "Log Loss"], "retrieval_keywords": ["交叉熵", "对数损失", "极大似然", "伯努利分布", "负对数似然"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.sigmoid", "required_mastery": 0.8}, {"topic_id": "ml.loss_function", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.classification_metrics", "slug": "classification_metrics", "title": "分类评价指标", "stage": 3, "stage_title": "分类", "order_index": 13,
       "description": "掌握混淆矩阵、准确率、精确率、召回率、F1 和 ROC-AUC。",
       "learning_objectives": ["根据混淆矩阵计算常用指标", "根据业务代价选择评价指标"],
       "aliases": ["分类指标", "混淆矩阵指标"], "retrieval_keywords": ["准确率", "精确率", "召回率", "F1", "ROC", "AUC", "混淆矩阵"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.logistic_regression", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "engineering", "application"], "active": true
     },
     {
       "id": "ml.knn", "slug": "knn", "title": "K 近邻", "stage": 4, "stage_title": "经典机器学习模型", "order_index": 14,
       "description": "理解 K 近邻的距离投票、超参数和计算特点。",
       "learning_objectives": ["描述 KNN 预测流程", "分析 K 值、距离度量和特征缩放的影响"],
       "aliases": ["KNN", "k近邻法"], "retrieval_keywords": ["KNN", "K近邻", "距离度量", "投票", "特征缩放"],
-      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "easy", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.decision_tree", "slug": "decision_tree", "title": "决策树", "stage": 4, "stage_title": "经典机器学习模型", "order_index": 15,
       "description": "理解决策树的递归划分、纯度指标和剪枝。",
       "learning_objectives": ["解释信息增益或基尼指数", "分析树深度与过拟合的关系"],
       "aliases": ["分类回归树", "CART"], "retrieval_keywords": ["决策树", "信息增益", "基尼指数", "划分", "剪枝"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true,
-      "prerequisites": [{"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}, {"topic_id": "ml.overfitting_underfitting", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true
     },
     {
       "id": "ml.random_forest", "slug": "random_forest", "title": "随机森林", "stage": 4, "stage_title": "经典机器学习模型", "order_index": 16,
       "description": "理解 Bagging、样本随机性和特征随机性如何组成随机森林。",
       "learning_objectives": ["解释随机森林降低方差的机制", "说明袋外样本和特征重要性的用途"],
       "aliases": ["RF", "随机森林模型"], "retrieval_keywords": ["随机森林", "Bagging", "Bootstrap", "袋外样本", "特征随机"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.decision_tree", "required_mastery": 0.8}, {"topic_id": "ml.bias_variance", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.gbdt", "slug": "gbdt", "title": "梯度提升决策树", "stage": 4, "stage_title": "经典机器学习模型", "order_index": 17,
       "description": "理解提升法用加法模型逐步拟合负梯度的机制。",
       "learning_objectives": ["解释 GBDT 的逐轮训练过程", "理解负梯度与残差拟合的关系"],
       "aliases": ["GBDT", "梯度提升树"], "retrieval_keywords": ["GBDT", "梯度提升", "Boosting", "负梯度", "弱学习器"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true,
-      "prerequisites": [{"topic_id": "ml.decision_tree", "required_mastery": 0.8}, {"topic_id": "ml.gradient_descent", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true
     },
     {
       "id": "ml.xgboost", "slug": "xgboost", "title": "XGBoost", "stage": 4, "stage_title": "经典机器学习模型", "order_index": 18,
       "description": "理解 XGBoost 的二阶目标、正则项和工程优化。",
       "learning_objectives": ["说明 XGBoost 相对 GBDT 的关键改进", "解释二阶近似和树复杂度正则项"],
       "aliases": ["极端梯度提升", "XGB"], "retrieval_keywords": ["XGBoost", "二阶泰勒", "正则化", "增益", "Boosting"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.gbdt", "required_mastery": 0.8}, {"topic_id": "ml.regularization", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.margin", "slug": "margin", "title": "分类间隔", "stage": 5, "stage_title": "支持向量机", "order_index": 19,
       "description": "理解线性分类器的函数间隔、几何间隔和最大间隔思想。",
       "learning_objectives": ["计算点到超平面的几何间隔", "解释最大间隔与泛化的关系"],
       "aliases": ["几何间隔", "Margin"], "retrieval_keywords": ["间隔", "几何间隔", "超平面", "分类边界", "最大间隔"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true,
-      "prerequisites": [{"topic_id": "ml.linear_regression", "required_mastery": 0.8}, {"topic_id": "ml.logistic_regression", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism"], "active": true
     },
     {
       "id": "ml.svm", "slug": "svm", "title": "支持向量机", "stage": 5, "stage_title": "支持向量机", "order_index": 20,
       "description": "掌握硬间隔 SVM 的原始问题、对偶思想和支持向量。",
       "learning_objectives": ["写出最大间隔优化目标", "解释支持向量为何决定分类面"],
       "aliases": ["SVM", "支持向量分类器"], "retrieval_keywords": ["支持向量机", "SVM", "对偶", "拉格朗日乘子", "支持向量"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.margin", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.kernel", "slug": "kernel", "title": "核方法", "stage": 5, "stage_title": "支持向量机", "order_index": 21,
       "description": "理解核技巧以隐式高维映射处理非线性分类。",
       "learning_objectives": ["解释核技巧避免显式映射的原因", "识别常用核函数和参数影响"],
       "aliases": ["核技巧", "Kernel Trick"], "retrieval_keywords": ["核函数", "核技巧", "特征映射", "RBF", "非线性"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.svm", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.soft_margin", "slug": "soft_margin", "title": "软间隔 SVM", "stage": 5, "stage_title": "支持向量机", "order_index": 22,
       "description": "理解松弛变量和惩罚参数在不可完全分数据中的作用。",
       "learning_objectives": ["写出软间隔优化目标", "解释 C 参数对间隔与误分类的权衡"],
       "aliases": ["软间隔", "松弛变量"], "retrieval_keywords": ["软间隔", "松弛变量", "惩罚参数", "C参数", "合页损失"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true,
-      "prerequisites": [{"topic_id": "ml.svm", "required_mastery": 0.8}, {"topic_id": "ml.regularization", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering"], "active": true
     },
     {
       "id": "ml.kmeans", "slug": "kmeans", "title": "K-Means 聚类", "stage": 6, "stage_title": "无监督学习", "order_index": 23,
       "description": "掌握 K-Means 的目标函数、迭代步骤和局限。",
       "learning_objectives": ["执行一次分配与更新步骤", "分析初始化、K 值和尺度的影响"],
       "aliases": ["K均值", "K-Means"], "retrieval_keywords": ["K-Means", "K均值", "聚类中心", "簇内平方和", "初始化"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.pca", "slug": "pca", "title": "主成分分析", "stage": 6, "stage_title": "无监督学习", "order_index": 24,
       "description": "理解 PCA 以最大方差方向进行线性降维。",
       "learning_objectives": ["解释主成分的方差最大化含义", "说明协方差矩阵特征分解与 PCA 的关系"],
       "aliases": ["PCA", "主成分降维"], "retrieval_keywords": ["PCA", "主成分", "降维", "协方差矩阵", "特征向量", "方差"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.linear_regression", "required_mastery": 0.8}, {"topic_id": "ml.supervised_unsupervised", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mathematics", "mechanism", "application"], "active": true
     },
     {
       "id": "ml.clustering_evaluation", "slug": "clustering_evaluation", "title": "聚类评价", "stage": 6, "stage_title": "无监督学习", "order_index": 25,
       "description": "掌握内部与外部聚类评价指标及使用前提。",
       "learning_objectives": ["区分轮廓系数等内部指标与外部指标", "解释评价指标可能产生的偏好"],
       "aliases": ["聚类指标", "聚类有效性"], "retrieval_keywords": ["聚类评价", "轮廓系数", "簇内距离", "簇间距离", "ARI"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.kmeans", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mathematics", "engineering", "application"], "active": true
     },
     {
       "id": "ml.cross_validation", "slug": "cross_validation", "title": "交叉验证", "stage": 7, "stage_title": "机器学习工程", "order_index": 26,
       "description": "理解 K 折交叉验证及其在模型选择中的正确用法。",
       "learning_objectives": ["描述 K 折交叉验证流程", "避免交叉验证中的数据泄漏"],
       "aliases": ["CV", "K折验证"], "retrieval_keywords": ["交叉验证", "K折", "模型选择", "验证误差", "分层采样"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.dataset_split", "required_mastery": 0.8}, {"topic_id": "ml.bias_variance", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.feature_engineering", "slug": "feature_engineering", "title": "特征工程", "stage": 7, "stage_title": "机器学习工程", "order_index": 27,
       "description": "理解特征构造、编码、缩放、缺失值处理和管道化。",
       "learning_objectives": ["针对数据类型选择特征处理方式", "使用训练数据拟合预处理步骤"],
       "aliases": ["特征处理", "Feature Engineering"], "retrieval_keywords": ["特征工程", "编码", "标准化", "缺失值", "特征构造", "Pipeline"],
-      "difficulty": "medium", "required_dimensions": ["concept", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.machine_learning_basics", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "engineering", "application"], "active": true
     },
     {
       "id": "ml.hyperparameter_tuning", "slug": "hyperparameter_tuning", "title": "超参数调优", "stage": 7, "stage_title": "机器学习工程", "order_index": 28,
       "description": "掌握网格、随机搜索等调参方法及正确验证流程。",
       "learning_objectives": ["区分参数与超参数", "设计不污染测试集的调参流程"],
       "aliases": ["模型调参", "HPO"], "retrieval_keywords": ["超参数", "网格搜索", "随机搜索", "贝叶斯优化", "模型选择"],
-      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.cross_validation", "required_mastery": 0.8}]
+      "difficulty": "medium", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.data_leakage", "slug": "data_leakage", "title": "数据泄漏", "stage": 7, "stage_title": "机器学习工程", "order_index": 29,
       "description": "识别目标泄漏、时间泄漏和预处理泄漏并建立防护流程。",
       "learning_objectives": ["判断常见数据泄漏场景", "通过切分顺序和管道设计避免泄漏"],
       "aliases": ["标签泄漏", "Data Leakage"], "retrieval_keywords": ["数据泄漏", "目标泄漏", "时间泄漏", "预处理", "测试集污染"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.dataset_split", "required_mastery": 0.8}, {"topic_id": "ml.feature_engineering", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     },
     {
       "id": "ml.imbalanced_learning", "slug": "imbalanced_learning", "title": "不平衡学习", "stage": 7, "stage_title": "机器学习工程", "order_index": 30,
       "description": "理解类别不平衡对训练和评价的影响及常见应对方案。",
       "learning_objectives": ["选择适合不平衡任务的评价指标", "比较重采样、类别权重和阈值调整"],
       "aliases": ["类别不平衡", "Imbalanced Learning"], "retrieval_keywords": ["类别不平衡", "重采样", "类别权重", "SMOTE", "阈值", "PR-AUC"],
-      "difficulty": "hard", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true,
-      "prerequisites": [{"topic_id": "ml.classification_metrics", "required_mastery": 0.8}, {"topic_id": "ml.dataset_split", "required_mastery": 0.8}]
+      "difficulty": "hard", "required_dimensions": ["concept", "mechanism", "engineering", "application"], "active": true
     }
   ]
 }

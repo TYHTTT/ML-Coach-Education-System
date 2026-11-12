@@ -9,12 +9,6 @@ export const TOPIC_STATUS_META: Record<
   TopicStatus,
   { label: string; symbol: string; badge: string; border: string }
 > = {
-  locked: {
-    label: "待完成前置学习",
-    symbol: "🔒",
-    badge: "border-slate-200 bg-slate-100 text-slate-600",
-    border: "border-slate-200",
-  },
   not_started: {
     label: "未开始",
     symbol: "○",
@@ -54,7 +48,6 @@ export const TOPIC_STATUS_META: Record<
 };
 
 export const NEXT_ACTION_LABELS: Record<string, string> = {
-  study_prerequisite: "先学习前置知识点",
   start_learning: "开始知识点学习",
   teach: "查看针对性讲解",
   practice: "继续主动练习",
@@ -90,7 +83,7 @@ export function hasValidTopicEvidence(
     "status" | "mastery" | "mastery_display" | "confidence" | "evidence_count"
   > & { dimensions?: DimensionProgress[] },
 ): boolean {
-  if (topic.status === "locked" || topic.status === "not_started") return false;
+  if (topic.status === "not_started") return false;
   if (typeof topic.evidence_count === "number") return topic.evidence_count > 0;
   if (topic.mastery_display?.trim() === "尚未评估") return false;
 

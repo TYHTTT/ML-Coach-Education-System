@@ -3,7 +3,6 @@ import re
 from datetime import datetime, timezone
 from uuid import uuid4
 
-import psycopg
 from fastapi import HTTPException
 from psycopg.errors import UniqueViolation
 
@@ -54,25 +53,9 @@ class TopicManagement:
             (str(course), topic_id, group, title, position, int(reference)))
         return position
 
-    @staticmethod
-    def _prerequisites(connection, topic_id, ids):
-        if topic_id in ids: fail("知识点不能将自身设为前置知识点。", 422)
-        if ids:
-            found = connection.execute("""SELECT t.id FROM curriculum_topics t JOIN courses c ON c.id=t.course
-                WHERE t.id=ANY(?) AND t.active=1 AND c.deleted_at IS NULL""", (ids,)).fetchall()
-            if len(found) != len(ids): fail("部分前置知识点不存在或已移除，请刷新后重试。", 422)
-        connection.execute("""DELETE FROM topic_prerequisites WHERE topic_id=? AND relation_type='required'
-            AND scope='topic' AND section_id='' AND NOT (prerequisite_topic_id=ANY(?))""", (topic_id, ids))
-        for dependency in ids:
-            connection.execute("""INSERT INTO topic_prerequisites(topic_id,prerequisite_topic_id,reason)
-                VALUES (?,?,'建议先学习这一知识点。') ON CONFLICT DO NOTHING""", (topic_id, dependency))
 
     @staticmethod
     def _removable(connection, topic_id):
-        dependent = connection.execute("""SELECT t.title FROM topic_prerequisites p JOIN curriculum_topics t ON t.id=p.topic_id
-            JOIN courses c ON c.id=t.course WHERE p.prerequisite_topic_id=? AND p.relation_type='required'
-            AND t.active=1 AND c.deleted_at IS NULL LIMIT 1""", (topic_id,)).fetchone()
-        if dependent: fail(f"“{dependent['title']}”仍依赖此知识点，请先调整前置关系。")
         reference = connection.execute("""SELECT c.title FROM topic_placements p JOIN courses c ON c.id=p.course_id
             WHERE p.topic_id=? AND p.is_reference=1 AND c.deleted_at IS NULL LIMIT 1""", (topic_id,)).fetchone()
         if reference: fail(f"“{reference['title']}”仍引用此知识点，请先移除该课程中的引用。")
@@ -84,22 +67,17 @@ class TopicManagement:
                 c.title AS owner_title,c.active AS owner_active,c.deleted_at AS owner_deleted
                 FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id JOIN courses c ON c.id=t.course
                 WHERE p.course_id=? ORDER BY p.order_index,t.id""", (str(course),)).fetchall()
-            edges = connection.execute("""SELECT p.topic_id,p.prerequisite_topic_id FROM topic_prerequisites p
-                JOIN topic_placements placement ON placement.topic_id=p.topic_id AND placement.course_id=?
-                WHERE p.relation_type='required' AND p.scope='topic' AND p.section_id=''""", (str(course),)).fetchall()
-        requirements = {}
-        for edge in edges: requirements.setdefault(edge["topic_id"], []).append(edge["prerequisite_topic_id"])
         groups, removed = {}, []
         for raw in rows:
             item = dict(raw)
             for key in ("learning_objectives", "aliases", "retrieval_keywords", "required_dimensions"):
                 item[key] = json.loads(item.pop(key + "_json"))
-            item.update(prerequisite_ids=requirements.get(item["id"], []), active=bool(item["active"]),
+            item.update(active=bool(item["active"]),
                         is_reference=bool(item["is_reference"]), available=bool(item["active"] and item["owner_active"] and not item["owner_deleted"]))
             group_id = item["parent_group_id"]
             match = re.fullmatch(r"stage-(\d+)", group_id)
             stage = int(match[1]) if match else None
-            group_title = "数学准备 · " + item["owner_title"] if group_id.startswith("math-preparation-") else item["group_title"]
+            group_title = item["group_title"]
             group = groups.setdefault(group_id, {"id": group_id, "title": group_title, "stage": stage, "topics": []})
             if not item["active"] and not item["is_reference"]:
                 removed.append(item); continue
@@ -114,34 +92,29 @@ class TopicManagement:
                 AND (t.title ILIKE ? OR t.id ILIKE ?) ORDER BY c.sort_order,t.stage,t.order_index LIMIT 1000""", (f"%{query}%", f"%{query}%"))]
 
     def save(self, course, values, topic_id=None):
-        try:
-            with self.database.connect() as connection:
-                connection.execute("SELECT pg_advisory_xact_lock(725498103)")
-                self._course(connection, course, lock=True)
-                if topic_id: self._owned(connection, course, topic_id)
-                else: topic_id = f"{course}.t_{uuid4().hex[:12]}"
-                self._stage(connection, course, values["stage"], values["stage_title"])
-                existing = connection.execute("SELECT id FROM curriculum_topics WHERE id=?", (topic_id,)).fetchone()
-                now = self._now()
-                if not existing:
-                    position = connection.execute("SELECT coalesce(max(order_index),0)+1 AS position FROM curriculum_topics WHERE course=?", (str(course),)).fetchone()["position"]
-                    connection.execute("""INSERT INTO curriculum_topics(id,course,slug,title,stage,stage_title,order_index,description,
-                        learning_objectives_json,aliases_json,retrieval_keywords_json,difficulty,required_dimensions_json,created_at,updated_at)
-                        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (topic_id, str(course), topic_id.split('.',1)[1], values["title"], values["stage"],
-                        values["stage_title"], position, values["description"], json.dumps(values["learning_objectives"]), json.dumps(values["aliases"]),
-                        json.dumps(values["retrieval_keywords"] or [values["title"]]), values["difficulty"], '["concept"]', now, now))
-                else:
-                    connection.execute("""UPDATE curriculum_topics SET title=?,stage=?,stage_title=?,description=?,learning_objectives_json=?,
-                        aliases_json=?,retrieval_keywords_json=?,difficulty=?,updated_at=? WHERE id=?""", (values["title"], values["stage"], values["stage_title"],
-                        values["description"], json.dumps(values["learning_objectives"]), json.dumps(values["aliases"]),
-                        json.dumps(values["retrieval_keywords"] or [values["title"]]), values["difficulty"], now, topic_id))
-                position = self._place(connection, course, topic_id, values["stage"], values["stage_title"], False)
-                connection.execute("UPDATE curriculum_topics SET order_index=? WHERE id=?", (position, topic_id))
-                self._prerequisites(connection, topic_id, values["prerequisite_ids"])
-                connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (now, str(course)))
-        except psycopg.errors.RaiseException as error:
-            if error.diag.message_primary == "required_prerequisite_cycle": fail("前置知识点之间存在循环依赖，无法保存。")
-            raise
+        with self.database.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(725498103)")
+            self._course(connection, course, lock=True)
+            if topic_id: self._owned(connection, course, topic_id)
+            else: topic_id = f"{course}.t_{uuid4().hex[:12]}"
+            self._stage(connection, course, values["stage"], values["stage_title"])
+            existing = connection.execute("SELECT id FROM curriculum_topics WHERE id=?", (topic_id,)).fetchone()
+            now = self._now()
+            if not existing:
+                position = connection.execute("SELECT coalesce(max(order_index),0)+1 AS position FROM curriculum_topics WHERE course=?", (str(course),)).fetchone()["position"]
+                connection.execute("""INSERT INTO curriculum_topics(id,course,slug,title,stage,stage_title,order_index,description,
+                    learning_objectives_json,aliases_json,retrieval_keywords_json,difficulty,required_dimensions_json,created_at,updated_at)
+                    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (topic_id, str(course), topic_id.split('.',1)[1], values["title"], values["stage"],
+                    values["stage_title"], position, values["description"], json.dumps(values["learning_objectives"]), json.dumps(values["aliases"]),
+                    json.dumps(values["retrieval_keywords"] or [values["title"]]), values["difficulty"], '["concept"]', now, now))
+            else:
+                connection.execute("""UPDATE curriculum_topics SET title=?,stage=?,stage_title=?,description=?,learning_objectives_json=?,
+                    aliases_json=?,retrieval_keywords_json=?,difficulty=?,updated_at=? WHERE id=?""", (values["title"], values["stage"], values["stage_title"],
+                    values["description"], json.dumps(values["learning_objectives"]), json.dumps(values["aliases"]),
+                    json.dumps(values["retrieval_keywords"] or [values["title"]]), values["difficulty"], now, topic_id))
+            position = self._place(connection, course, topic_id, values["stage"], values["stage_title"], False)
+            connection.execute("UPDATE curriculum_topics SET order_index=? WHERE id=?", (position, topic_id))
+            connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (now, str(course)))
         return self.outline(course)
 
     def reference(self, course, values, *, move=False):
@@ -170,11 +143,6 @@ class TopicManagement:
             else:
                 self._owned(connection, course, topic_id)
                 if not restore: self._removable(connection, topic_id)
-                if restore:
-                    missing = connection.execute("""SELECT p.prerequisite_topic_id FROM topic_prerequisites p
-                        JOIN curriculum_topics t ON t.id=p.prerequisite_topic_id JOIN courses c ON c.id=t.course
-                        WHERE p.topic_id=? AND p.relation_type='required' AND (t.active=0 OR c.deleted_at IS NOT NULL) LIMIT 1""", (topic_id,)).fetchone()
-                    if missing: fail("请先恢复此知识点所需的前置知识点。")
                 connection.execute("UPDATE curriculum_topics SET active=?,updated_at=? WHERE id=?", (int(restore), self._now(), topic_id))
         return self.outline(course)
 

@@ -43,7 +43,6 @@ function TopicCard({ topic, course }: { topic: CurriculumTopicSummary; course: C
       <div className="mt-4">
         <MasteryBar value={visibleMastery(topic)} compact />
       </div>
-      {topic.locked_reason && <p className="mt-3 text-[11px] leading-5 text-slate-400">{topic.locked_reason}</p>}
     </>
   );
 
@@ -110,7 +109,7 @@ export default function CourseDashboardPage() {
   const activeStage = useMemo(() => {
     if (!currentCurriculum) return null;
     return currentCurriculum.stages.find((stage) =>
-      stage.topics.some((topic) => !["locked", "not_started", "mastered"].includes(topic.status)),
+      stage.topics.some((topic) => !["not_started", "mastered"].includes(topic.status)),
     ) ?? currentCurriculum.stages.find((stage) => stage.topics.some((topic) => topic.status !== "mastered")) ?? null;
   }, [currentCurriculum]);
 
@@ -182,12 +181,11 @@ export default function CourseDashboardPage() {
                   {activeStage && <span className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-semibold text-indigo-700">当前 · 阶段 {activeStage.stage}</span>}
                 </div>
                 <div className="mt-6"><MasteryBar value={progress} label="课程完成度" /></div>
-                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="mt-6 grid grid-cols-3 gap-3">
                   {[
                     ["已掌握", currentDashboard.mastered_count, "text-emerald-700 bg-emerald-50"],
                     ["学习中", currentDashboard.learning_count, "text-indigo-700 bg-indigo-50"],
                     ["可开始", currentDashboard.not_started_count, "text-sky-700 bg-sky-50"],
-                    ["未解锁", currentDashboard.locked_count, "text-slate-600 bg-slate-100"],
                   ].map(([label, value, className]) => (
                     <div key={String(label)} className={`rounded-2xl p-3 ${className}`}>
                       <p className="text-xl font-bold tabular-nums">{value}</p>
@@ -206,7 +204,7 @@ export default function CourseDashboardPage() {
                     {currentDashboard.reasons.slice(0, 3).map((reason) => <li key={reason} className="flex gap-2"><span aria-hidden="true">·</span><span>{reason}</span></li>)}
                   </ul>
                 )}
-                {recommended && recommended.status !== "locked" && (
+                {recommended && (
                   <Link href={`/learn/${course}/${encodeURIComponent(recommended.id)}`} className="mt-6 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 shadow-sm transition hover:bg-indigo-50">
                     继续学习 <ArrowRightIcon className="size-4" />
                   </Link>
