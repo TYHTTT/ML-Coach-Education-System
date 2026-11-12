@@ -49,3 +49,6 @@ docker-compose.override.yml
 tmp/
 temp/
 *.log
+
+# Local database backups contain account and historical data.
+operations/database/backups/

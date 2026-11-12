@@ -146,7 +146,31 @@ npm run build
 
 本地知识库、上传检索、题库、固定正文与例题、前置小测、独立练习测试面板、学习记录面板及其生成、批改、补救接口已移除。课程目录、前置关系、开始学习状态和课程概览仍然保留。Dify 的自然语言反馈不会自动写成本地分数或量化掌握度。
 
-新部署不再创建 `lessons`、`worked_examples`、`content_exposures` 等固定内容表。历史练习表及前置能力记录仍供课程概览只读查询，不再通过本地接口生成新试卷或评价。代码清理不会删除已有数据库数据、浏览器对话或本地资料文件；旧 `documents`、`document_chunks` 和内容表也不会自动删除。
+新部署不创建本地知识库、题库或固定教学内容表。历史练习表及前置能力记录仍供课程概览只读查询，不再通过本地接口生成新试卷或评价。浏览器对话和本地资料文件不受数据库清理影响。
+
+### 清理旧数据库
+
+从项目根目录运行以下命令，默认只列出待删除对象：
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/cleanup_retired.py
+```
+
+确认需要清理时执行：
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/cleanup_retired.py --apply
+```
+
+脚本读取 `backend/.env.local` 的数据库配置，先通过 `pg_dump` 完整备份到 `operations/database/backups/`，再在事务内删除以下停用表：
+
+- `documents`、`document_chunks`：本地知识库与向量片段。
+- `question_bank_items`、`question_bank_topics`、`content_review_events`、`assessment_blueprints`：旧题库与组卷配置。
+- `lessons`、`worked_examples`、`content_exposures`：固定正文、例题与曝光记录。
+
+同时移除旧字段 `practice_sets.blueprint_id` 及 `practice_questions` 的 `bank_item_id`、`item_version`、`solution_steps_json`，并移除本地检索使用的 `vector` 扩展。若扩展或表还有其他依赖，事务会回滚，不会级联删除额外对象。账户、课程、学习状态和仍在读取的历史评估表保留，并校验保留行的数量与内容一致。
+
+需要 PostgreSQL 客户端；不在 PATH 时，可用 `--pg-dump "完整路径/pg_dump.exe"` 指定。备份失败时不会执行删除。重复运行已完成的清理不会再次修改数据。备份文件含账户及历史数据，已在 `.gitignore` 中排除，可通过前述恢复脚本还原。
 
 ## 当前代码结构
 

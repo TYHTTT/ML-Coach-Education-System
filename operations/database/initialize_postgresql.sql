@@ -1,3 +1,5 @@
+-- Fresh installations only. Existing retired objects can be removed with
+-- cleanup_retired.py --apply (automatic backup and transactional verification).
 CREATE TABLE IF NOT EXISTS students (
     id TEXT PRIMARY KEY,
     username TEXT UNIQUE,
