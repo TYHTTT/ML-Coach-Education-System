@@ -10,6 +10,7 @@
     "lint": "eslint . --max-warnings=0",
     "test:browser": "node scripts/browser-smoke.mjs",
     "test:practice-content": "node --experimental-strip-types --test tests/practice-content.test.mjs",
+    "test:knowledge-graph": "node --experimental-strip-types --test tests/knowledge-graph-layout.test.mjs",
     "test:storage": "node --experimental-strip-types --test tests/storage.test.mjs tests/topic-chat-storage.test.mjs"
   },
   "dependencies": {

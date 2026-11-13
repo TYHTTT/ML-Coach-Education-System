@@ -23,6 +23,14 @@ class TopicWrite(StageWrite):
     aliases: list[str] = Field(default_factory=list, max_length=30)
     retrieval_keywords: list[str] = Field(default_factory=list, max_length=30)
     difficulty: Literal["easy", "medium", "hard"] = "medium"
+    related_topic_ids: list[TopicId] | None = Field(default=None, max_length=1000)
+
+    @field_validator("related_topic_ids")
+    @classmethod
+    def unique_related_topics(cls, values):
+        if values is not None and len(values) != len(set(values)):
+            raise ValueError("相关知识点不能重复")
+        return values
 
     @field_validator("title")
     @classmethod

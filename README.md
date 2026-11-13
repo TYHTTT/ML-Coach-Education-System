@@ -119,12 +119,33 @@ npm run typecheck
 npm run lint
 npm run test:practice-content
 npm run test:storage
+npm run test:knowledge-graph
 npm run build
 ```
 
 ## 运行数据说明
 
 业务数据存储在 `DATABASE_URL` 指向的 PostgreSQL 数据库中，课程资料由 Dify 管理。首次部署须在项目根目录执行 `backend/.venv/Scripts/python.exe operations/database/initialize.py`；应用运行时不会创建或修改表结构。
+
+## 相关知识点与知识图谱
+
+学生端顶部“知识图谱”（`/knowledge-graph`）和管理员导航“知识图谱”（`/admin/knowledge-graph`）可查看按课程聚类的节点与连线。每个知识点只归属其所在课程；悬停节点高亮其全部连线和直接关联的知识点，点击可固定选择。支持搜索定位、课程定位、拖动、缩放和适应画布；键盘可用 Tab 选择节点、Enter 固定、Escape 取消。
+
+图谱采用 Obsidian 风格的力导向布局：课程颜色分组、自然聚拢的节点、细连线及随缩放淡入的标签。节点大小随关联数量变化；拖动节点会带动附近节点重新排布，点击后以浮层展示详情。默认浅色画布，可切换深色和全屏，详情浮层不占据固定侧栏。手形光标使用固定黑色描边及白色填充，兼顾两种背景的可见性。布局计算只影响当前页面，不写入数据库或生成新的关联。
+
+学生端显示已启用课程的有效知识点，管理员端还可查看停用课程；已删除课程及已移除知识点不展示，连线仅在两个端点均可见时展示。图谱不自动推断关联，未设置关联的知识点仍显示为独立节点。修改关联后点击“刷新图谱”即可更新，无需重启。
+
+管理员在课程详情的知识点编辑浮窗中，可多选本课程和其他课程的“相关知识点”，支持名称或 ID 搜索、按课程筛选和分页。关联双向保存：A 关联 B 后，编辑 B 也能看到 A。关联不会改变课程目录或学习顺序。
+
+关系保存在独立的 `topic_relations` 表中，按两个稳定知识点 ID 归一化去重，记录 `relation_type='related'` 和创建时间，作为知识图谱的边数据。管理员接口返回 `related_topic_ids` 和带课程信息的 `related_topics`；更新时省略或传 `null` 保留原关联，传 `[]` 清空。不能关联自身或新选择已移除的知识点；已有关联在知识点停用后保留，可在浮窗中移除。
+
+已有数据库启用该功能前，执行以下迁移。脚本会先备份，再新增关联表并校验既有数据；新部署的初始化脚本已包含该表。
+
+```powershell
+./backend/.venv/Scripts/python.exe operations/database/enable_topic_relations.py
+```
+
+可通过 `--pg-dump` 指定 PostgreSQL 备份程序路径。
 
 ## 数据保存与已移除功能
 
@@ -138,7 +159,7 @@ npm run build
 
 ```text
 backend/app/
-  api/             # 问答、账户、课程目录、概览和开始学习
+  api/             # 问答、账户、课程目录、知识图谱、概览和开始学习
   core/            # 环境配置、异常、日志与课程枚举
   curriculum/      # 四门课程目录与幂等同步
   db/              # PostgreSQL 连接
@@ -146,10 +167,10 @@ backend/app/
   schemas/         # 当前请求响应及历史进度类型
   services/        # Dify、会话签名、账户与学习状态
 frontend/
-  app/             # 自由问答、登录、课程学习、设置
+  app/             # 自由问答、登录、课程学习、知识图谱、课程管理、设置
   components/      # 对话、目录、输入及会话状态
   lib/             # 统一 API、类型、存储、参考答案分离
-  tests/           # 存储兼容、对话恢复与答案展示测试
+  tests/           # 存储兼容、对话恢复、答案展示与图谱布局测试
 operations/database/ # 初始化、备份和恢复
 ```
 
@@ -164,8 +185,11 @@ operations/database/ # 初始化、备份和恢复
 | `POST /api/v1/admins/register`、`login`、`logout` | 管理员创建、登录和退出 |
 | `GET /api/v1/admins/me` | 验证当前管理员 |
 | `GET /api/v1/courses` | 学生端可用课程列表 |
+| `GET /api/v1/knowledge-graph` | 学生登录后读取已启用课程的知识图谱 |
+| `GET /api/v1/admin/knowledge-graph` | 管理员读取知识图谱（含停用课程） |
 | `GET`、`POST /api/v1/admin/courses` | 管理员查询、新增课程 |
 | `GET`、`PATCH`、`DELETE /api/v1/admin/courses/{course_id}` | 管理员查看、修改、删除课程 |
+| `GET /api/v1/admin/related-topics` | 搜索相关知识点候选，支持课程、当前节点排除和分页 |
 | `GET`、`POST /api/v1/admin/courses/{course_id}/topics` | 查询编排、新增知识点 |
 | `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、移除所属知识点 |
 | `POST /api/v1/admin/courses/{course_id}/topics/{topic_id}/restore` | 恢复知识点 |

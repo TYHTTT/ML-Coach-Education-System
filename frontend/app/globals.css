@@ -85,6 +85,97 @@ button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visib
   font-size: 1.05em;
 }
 
+/* The graph is its own workspace, with an optional light palette. */
+.knowledge-graph {
+  --graph-bg: #f6f5f3;
+  --graph-panel: rgba(255, 255, 255, 0.94);
+  --graph-border: #e1dfdb;
+  --graph-text: #34323b;
+  --graph-secondary: #62606c;
+  --graph-muted: #8a8791;
+  --graph-label: #62606c;
+  --graph-line: #a5a1ac;
+  --graph-accent: #8064b5;
+  --graph-hover: #efedf2;
+  position: relative;
+  isolation: isolate;
+  height: calc(100svh - 100px);
+  min-height: 520px;
+  overflow: hidden;
+  border: 1px solid var(--graph-border);
+  border-radius: 12px;
+  background: var(--graph-bg);
+  color: var(--graph-text);
+  color-scheme: light;
+}
+
+.knowledge-graph[data-admin="true"] { height: calc(100svh - 128px); }
+.knowledge-graph:fullscreen { height: 100svh; border: 0; border-radius: 0; }
+.knowledge-graph[data-graph-theme="dark"] {
+  --graph-bg: #202020;
+  --graph-panel: rgba(39, 39, 39, 0.94);
+  --graph-border: #393939;
+  --graph-text: #e5e4e8;
+  --graph-secondary: #b3b1ba;
+  --graph-muted: #77767e;
+  --graph-label: #aaa8b1;
+  --graph-line: #75737e;
+  --graph-accent: #c1a4ef;
+  --graph-hover: #333136;
+  color-scheme: dark;
+}
+.knowledge-graph .graph-panel {
+  border: 1px solid var(--graph-border);
+  background: var(--graph-panel);
+  box-shadow: 0 3px 15px rgb(0 0 0 / 7%);
+  backdrop-filter: blur(12px);
+}
+.knowledge-graph .graph-title { color: var(--graph-text); }
+.knowledge-graph .graph-secondary { color: var(--graph-secondary); }
+.knowledge-graph .graph-muted { color: var(--graph-muted); }
+.knowledge-graph .graph-divider { border-color: var(--graph-border); }
+.knowledge-graph .graph-link { color: var(--graph-accent); }
+.knowledge-graph .graph-tool {
+  display: inline-flex;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border-radius: 5px;
+  color: var(--graph-secondary);
+  transition: background 120ms, color 120ms;
+}
+.knowledge-graph .graph-tool:hover,
+.knowledge-graph .graph-result:hover,
+.knowledge-graph .graph-chip:hover { background: var(--graph-hover); color: var(--graph-text); }
+.knowledge-graph .graph-tool[aria-pressed="true"] { color: var(--graph-accent); }
+.knowledge-graph .graph-search { color: var(--graph-muted); }
+.knowledge-graph .graph-search input { color: var(--graph-text); font-size: 12px; }
+.knowledge-graph .graph-search input::placeholder { color: var(--graph-muted); }
+.knowledge-graph .graph-search:focus-within { border-color: var(--graph-accent); }
+.knowledge-graph .graph-search input:focus-visible { outline: 0; }
+.knowledge-graph .graph-chip { background: var(--graph-hover); color: var(--graph-secondary); }
+.knowledge-graph .graph-legend { color: var(--graph-secondary); }
+.knowledge-graph .graph-legend:hover { color: var(--graph-text); }
+.knowledge-graph .graph-node { transition: opacity 150ms; }
+.knowledge-graph .graph-edge { transition: stroke-opacity 150ms, stroke 150ms; }
+/* Explicit cursor artwork keeps its outline through browser/OS theme changes. */
+.knowledge-graph .graph-canvas { cursor: url("/cursors/graph-grab.svg") 10 10, grab; }
+.knowledge-graph .graph-node,
+.knowledge-graph button,
+.knowledge-graph a { cursor: url("/cursors/graph-pointer.svg") 6 2, pointer; }
+.knowledge-graph .graph-canvas:active,
+.knowledge-graph .graph-canvas:active .graph-node { cursor: url("/cursors/graph-grabbing.svg") 10 10, grabbing; }
+.knowledge-graph [data-node-id]:focus-visible { outline: none; }
+.knowledge-graph button:focus-visible,
+.knowledge-graph a:focus-visible { outline-color: var(--graph-accent); }
+@media (max-width: 639px) {
+  .knowledge-graph[data-admin="true"] { height: calc(100svh - 180px); }
+  .knowledge-graph .graph-tool { width: 32px; height: 32px; }
+  .knowledge-graph .graph-fullscreen { display: none; }
+}
+
 .prose table {
   margin: 0;
 }

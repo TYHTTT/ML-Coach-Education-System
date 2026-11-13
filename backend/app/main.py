@@ -20,6 +20,7 @@ from app.api.health import router as health_router
 from app.api.learning import router as learning_router
 from app.api.students import router as students_router
 from app.api.course_content import router as course_content_router
+from app.api.knowledge_graph import router as knowledge_graph_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
@@ -136,6 +137,7 @@ def create_app(
     app.include_router(curriculum_router)
     app.include_router(learning_router)
     app.include_router(course_content_router)
+    app.include_router(knowledge_graph_router)
     return app
 
 

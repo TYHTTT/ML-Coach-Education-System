@@ -2,14 +2,15 @@
 
 import { useState, useRef, useEffect, useId, type FormEvent } from "react";
 import type { ManagedTopic, TopicGroup, TopicValues } from "@/lib/topic-management";
+import RelatedTopicsPicker from "@/components/RelatedTopicsPicker";
 
 export const fieldClass = "mt-1.5 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900";
 export const actionClass = "rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 hover:border-indigo-300 disabled:opacity-40";
 export const primaryClass = "rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-40";
 const lines = (value: FormDataEntryValue | null) => String(value ?? "").split("\n").map((s) => s.trim()).filter(Boolean);
 
-export default function KnowledgePointEditor({ topic, groups, returnFocus, onSave, onCancel }: {
-  topic: ManagedTopic | null; groups: TopicGroup[];
+export default function KnowledgePointEditor({ topic, groups, courseId, returnFocus, onSave, onCancel }: {
+  topic: ManagedTopic | null; groups: TopicGroup[]; courseId: string;
   returnFocus: HTMLElement; onSave: (values: TopicValues) => Promise<void>; onCancel: () => void;
 }) {
   const chapters = groups.filter((g) => g.stage !== null);
@@ -17,6 +18,7 @@ export default function KnowledgePointEditor({ topic, groups, returnFocus, onSav
   const [chapter, setChapter] = useState(initial?.id ?? "new");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [relatedIds, setRelatedIds] = useState(topic?.related_topic_ids ?? []);
   const ref = useRef<HTMLDialogElement>(null);
   const headingId = useId();
   useEffect(() => {
@@ -53,6 +55,7 @@ export default function KnowledgePointEditor({ topic, groups, returnFocus, onSav
         title: String(data.get("title")).trim(), description: String(data.get("description")).trim(), stage, stage_title,
         learning_objectives: lines(data.get("learning_objectives")), aliases: lines(data.get("aliases")), retrieval_keywords: lines(data.get("retrieval_keywords")),
         difficulty: String(data.get("difficulty")) as TopicValues["difficulty"],
+        related_topic_ids: relatedIds,
       });
     } catch (cause) { setError(cause instanceof Error ? cause.message : "保存失败"); }
     finally { setSaving(false); }
@@ -73,8 +76,10 @@ export default function KnowledgePointEditor({ topic, groups, returnFocus, onSav
       </header>
       <div className="min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6"><fieldset disabled={saving} className="grid gap-4 sm:grid-cols-2">
       <label className="text-sm text-slate-700 sm:col-span-2">知识点名称<input name="title" required maxLength={100} defaultValue={topic?.title} className={fieldClass} /></label>
+      <label className="text-sm text-slate-700 sm:col-span-2">知识点 ID<input name="id" readOnly value={topic?.id ?? ""} placeholder="保存后自动生成" aria-describedby={`${headingId}-id-help`} className={`${fieldClass} font-mono read-only:bg-slate-50 read-only:text-slate-600`} /><span id={`${headingId}-id-help`} className="mt-1.5 block text-xs text-slate-500">{topic ? "用于关联学习记录和对话，创建后不可修改，可选中复制。" : "保存知识点时由系统自动生成。"}</span></label>
       <label className="text-sm text-slate-700">所在章节<select aria-label="所在章节" value={chapter} onChange={(e) => setChapter(e.target.value)} className={fieldClass}>{chapters.map((g) => <option key={g.id} value={g.id}>{g.title}</option>)}<option value="new">新建章节</option></select></label>
       {chapter === "new" && <label className="text-sm text-slate-700">新章节名称<input name="stage_title" required maxLength={100} className={fieldClass} /></label>}
+      <RelatedTopicsPicker topicId={topic?.id} courseId={courseId} selected={relatedIds} initialTopics={topic?.related_topics ?? []} onChange={setRelatedIds} />
         <label className="text-sm text-slate-700 sm:col-span-2">知识点简介<textarea name="description" rows={3} maxLength={2000} defaultValue={topic?.description} className={fieldClass} /></label>
         <label className="text-sm text-slate-700 sm:col-span-2">学习目标（每行一项）<textarea name="learning_objectives" rows={3} defaultValue={topic?.learning_objectives.join("\n")} className={fieldClass} /></label>
         <details className="sm:col-span-2"><summary className="cursor-pointer text-sm font-medium text-slate-600">更多设置</summary><div className="mt-3 grid gap-4 sm:grid-cols-2"><label className="text-sm text-slate-700">别名（每行一项）<textarea name="aliases" rows={3} defaultValue={topic?.aliases.join("\n")} className={fieldClass} /></label><label className="text-sm text-slate-700">检索关键词（每行一项）<textarea name="retrieval_keywords" rows={3} defaultValue={topic?.retrieval_keywords.join("\n")} className={fieldClass} /></label><label className="text-sm text-slate-700">难度<select name="difficulty" defaultValue={topic?.difficulty ?? "medium"} className={fieldClass}><option value="easy">基础</option><option value="medium">进阶</option><option value="hard">较难</option></select></label></div></details>

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   GearIcon,
+  GraphIcon,
   SparklesIcon,
   TargetIcon,
 } from "@/components/Icons";
@@ -14,6 +15,7 @@ import { useTopicSessions } from "@/components/TopicSessionsProvider";
 const NAV_ITEMS = [
   { href: "/?view=chat", label: "自由问答", icon: SparklesIcon },
   { href: "/learn", label: "课程学习", icon: TargetIcon },
+  { href: "/knowledge-graph", label: "知识图谱", icon: GraphIcon },
   { href: "/settings", label: "设置", icon: GearIcon },
 ];
 
@@ -39,6 +41,7 @@ export default function LearningShell({ children }: { children: ReactNode }) {
                   key={item.href}
                   href={item.href === "/learn" && !pathname.startsWith("/learn") && lastPath ? lastPath : item.href}
                   aria-current={active ? "page" : undefined}
+                  aria-label={item.label}
                   className={`inline-flex items-center gap-2 rounded-xl px-2.5 py-2 text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 sm:px-3 ${
                     active
                       ? "bg-white text-indigo-700 shadow-sm"

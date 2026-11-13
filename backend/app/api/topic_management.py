@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Request, Path
+from fastapi import APIRouter, Depends, Query, Request, Path
 from app.api.admins import require_admin
 from app.core.types import Course
 from app.schemas.topic_management import TopicId, TopicWrite, TopicOrder, StageRename, StageOrder
@@ -9,6 +9,13 @@ PREFIX = "/api/v1/admin/courses/{course_id}/topics"
 
 
 def service(request: Request): return TopicManagement(request.app.state.settings.database_url)
+
+
+@router.get("/api/v1/admin/related-topics")
+def related_topic_candidates(q: str = Query(default="", max_length=100), course_id: Course | None = None,
+                             exclude_topic_id: TopicId | None = None, page: int = Query(default=1, ge=1),
+                             page_size: int = Query(default=30, ge=1, le=100), manager=Depends(service)):
+    return manager.related_candidates(q, course_id, exclude_topic_id, page, page_size)
 
 
 

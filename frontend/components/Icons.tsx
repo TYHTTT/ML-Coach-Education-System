@@ -23,6 +23,10 @@ export function PlusIcon(props: IconProps) {
   return <IconBase {...props}><path d="M12 5v14M5 12h14" /></IconBase>;
 }
 
+export function GraphIcon(props: IconProps) {
+  return <IconBase {...props}><path d="m7 7 10 1M6 9l4 9M17 10l-5 8" /><circle cx="5" cy="6" r="3" /><circle cx="19" cy="8" r="3" /><circle cx="11" cy="20" r="2.5" /></IconBase>;
+}
+
 export function SparklesIcon(props: IconProps) {
   return <IconBase {...props}><path d="m12 3 1.2 3.8L17 8l-3.8 1.2L12 13l-1.2-3.8L7 8l3.8-1.2L12 3ZM5 14l.8 2.2L8 17l-2.2.8L5 20l-.8-2.2L2 17l2.2-.8L5 14Zm14-2 .8 2.2L22 15l-2.2.8L19 18l-.8-2.2L16 15l2.2-.8L19 12Z" /></IconBase>;
 }

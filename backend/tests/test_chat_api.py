@@ -245,7 +245,7 @@ def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):
         assert client.get(path).status_code == 404
     assert client.post("/api/v1/knowledge/upload").status_code == 404
     assert client.get("/health").json() == {"status":"ok","dify_configured":False}
-    assert "knowledge" not in str(client.get("/openapi.json").json()["paths"])
+    assert not any(path.startswith("/api/v1/knowledge/") for path in client.get("/openapi.json").json()["paths"])
 
 
 def test_unconfigured_agent_returns_clear_503_without_database(monkeypatch):
@@ -304,6 +304,8 @@ def test_openapi_exposes_only_current_features(api):
         "/api/v1/admins/register", "/api/v1/admins/login",
         "/api/v1/admins/me", "/api/v1/admins/logout",
         "/api/v1/courses", "/api/v1/admin/courses", "/api/v1/admin/courses/{course_id}",
+        "/api/v1/admin/related-topics",
+        "/api/v1/knowledge-graph", "/api/v1/admin/knowledge-graph",
         "/api/v1/admin/courses/{course_id}/topics",
         "/api/v1/admin/courses/{course_id}/topics/order",
         "/api/v1/admin/courses/{course_id}/topics/groups/{stage}",

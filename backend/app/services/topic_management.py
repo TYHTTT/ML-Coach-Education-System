@@ -52,6 +52,60 @@ class TopicManagement:
             (str(course), topic_id, group, title, position))
         return position
 
+    @staticmethod
+    def _related(connection, topic_ids):
+        result = {topic_id: [] for topic_id in topic_ids}
+        if not topic_ids:
+            return result
+        rows = connection.execute("""SELECT e.topic_a_id,e.topic_b_id,t.id,t.title,t.course,c.title AS course_title,
+            t.active,c.active AS course_active,c.deleted_at
+            FROM topic_relations e
+            CROSS JOIN LATERAL (VALUES (e.topic_a_id,e.topic_b_id),(e.topic_b_id,e.topic_a_id)) AS pair(topic_id,related_id)
+            JOIN curriculum_topics t ON t.id=pair.related_id JOIN courses c ON c.id=t.course
+            WHERE e.relation_type='related' AND pair.topic_id=ANY(?) ORDER BY t.title,t.id""", (topic_ids,)).fetchall()
+        for row in rows:
+            source = row["topic_b_id"] if row["id"] == row["topic_a_id"] else row["topic_a_id"]
+            result[source].append({"id": row["id"], "title": row["title"], "course": row["course"],
+                                   "course_title": row["course_title"], "course_active": bool(row["course_active"]),
+                                   "available": bool(row["active"] and row["deleted_at"] is None)})
+        return result
+
+    @staticmethod
+    def _save_related(connection, topic_id, ids):
+        if topic_id in ids:
+            fail("不能将知识点自身设为相关知识点。", 422)
+        old = {item["id"] for item in TopicManagement._related(connection, [topic_id])[topic_id]}
+        added = list(set(ids) - old)
+        if added:
+            valid = connection.execute("""SELECT t.id FROM curriculum_topics t JOIN courses c ON c.id=t.course
+                WHERE t.id=ANY(?) AND t.active=1 AND c.deleted_at IS NULL""", (added,)).fetchall()
+            if len(valid) != len(added):
+                fail("部分相关知识点不存在或已移除，请刷新后重试。", 422)
+        connection.execute("""DELETE FROM topic_relations WHERE relation_type='related'
+            AND ((topic_a_id=? AND NOT(topic_b_id=ANY(?))) OR (topic_b_id=? AND NOT(topic_a_id=ANY(?))))""",
+            (topic_id, ids, topic_id, ids))
+        for target in ids:
+            connection.execute("""INSERT INTO topic_relations(topic_a_id,topic_b_id)
+                VALUES (LEAST(?::text,?::text),GREATEST(?::text,?::text)) ON CONFLICT DO NOTHING""",
+                (topic_id, target, topic_id, target))
+
+    def related_candidates(self, query="", course=None, exclude=None, page=1, page_size=30):
+        with self.database.connect() as connection:
+            courses = [dict(row) for row in connection.execute("SELECT id,title,active FROM courses WHERE deleted_at IS NULL ORDER BY sort_order,id")]
+            where = "t.active=1 AND c.deleted_at IS NULL AND (t.title ILIKE ? OR t.id ILIKE ? OR c.title ILIKE ?)"
+            params = [f"%{query}%"] * 3
+            if course is not None:
+                where += " AND t.course=?"; params.append(str(course))
+            if exclude is not None:
+                where += " AND t.id<>?"; params.append(exclude)
+            total = connection.execute("SELECT count(*) AS n FROM curriculum_topics t JOIN courses c ON c.id=t.course WHERE " + where, params).fetchone()["n"]
+            rows = connection.execute("""SELECT t.id,t.title,t.course,c.title AS course_title,c.active AS course_active
+                FROM curriculum_topics t JOIN courses c ON c.id=t.course WHERE """ + where +
+                " ORDER BY c.sort_order,c.id,t.stage,t.order_index,t.id LIMIT ? OFFSET ?", (*params, page_size, (page - 1) * page_size)).fetchall()
+        return {"items": [{**dict(row), "course_active": bool(row["course_active"]), "available": True} for row in rows],
+                "courses": [{**course, "active": bool(course["active"])} for course in courses],
+                "total": total, "page": page, "page_size": page_size}
+
 
 
     def outline(self, course):
@@ -60,12 +114,15 @@ class TopicManagement:
             rows = connection.execute("""SELECT t.*,p.parent_group_id,p.group_title,p.order_index AS placement_order
                 FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id AND t.course=p.course_id
                 WHERE p.course_id=? ORDER BY p.order_index,t.id""", (str(course),)).fetchall()
+            related = self._related(connection, [row["id"] for row in rows])
         groups, removed = {}, []
         for raw in rows:
             item = dict(raw)
             for key in ("learning_objectives", "aliases", "retrieval_keywords", "required_dimensions"):
                 item[key] = json.loads(item.pop(key + "_json"))
             item["active"] = bool(item["active"])
+            item["related_topics"] = related[item["id"]]
+            item["related_topic_ids"] = [topic["id"] for topic in item["related_topics"]]
             group_id = item["parent_group_id"]
             match = re.fullmatch(r"stage-(\d+)", group_id)
             stage = int(match[1]) if match else None
@@ -80,6 +137,8 @@ class TopicManagement:
 
     def save(self, course, values, topic_id=None):
         with self.database.connect() as connection:
+            if values.get("related_topic_ids") is not None:
+                connection.execute("SELECT pg_advisory_xact_lock(725498104)")
             self._course(connection, course, lock=True)
             if topic_id: self._owned(connection, course, topic_id)
             else: topic_id = f"{course}.t_{uuid4().hex[:12]}"
@@ -100,6 +159,8 @@ class TopicManagement:
                     json.dumps(values["retrieval_keywords"] or [values["title"]]), values["difficulty"], now, topic_id))
             position = self._place(connection, course, topic_id, values["stage"], values["stage_title"])
             connection.execute("UPDATE curriculum_topics SET order_index=? WHERE id=?", (position, topic_id))
+            if values.get("related_topic_ids") is not None:
+                self._save_related(connection, topic_id, values["related_topic_ids"])
             connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (now, str(course)))
         return self.outline(course)
 
