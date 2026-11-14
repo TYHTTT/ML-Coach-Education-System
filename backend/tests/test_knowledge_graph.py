@@ -34,7 +34,7 @@ def test_graph_authentication_and_owning_course_clusters(api):
         assert connection.execute("SELECT count(*) AS n FROM topic_relations").fetchone()["n"] == 2
 
 
-def test_graph_excludes_hidden_endpoints_and_restores_edges(api):
+def test_graph_excludes_hidden_courses_and_permanently_deleted_endpoints(api):
     client, _, admin, student, _ = api
     client.post("/api/v1/admin/courses", headers=admin, json=COURSE)
     a = create(client, admin, "位置", related_topic_ids=["la.vectors"])
@@ -49,9 +49,9 @@ def test_graph_excludes_hidden_endpoints_and_restores_edges(api):
     client.delete(BASE + "/" + b, headers=admin)
     assert b not in {n["id"] for n in graph(admin)["nodes"]}
     assert len(graph(admin)["edges"]) == 1
-    client.post(BASE + "/" + b + "/restore", headers=admin)
+    assert client.post(BASE + "/" + b + "/restore", headers=admin).status_code == 404
     client.patch("/api/v1/admin/courses/physics", headers=admin, json={"active": True})
-    assert len(graph(student)["edges"]) == 2
+    assert len(graph(student)["edges"]) == 1
     client.delete("/api/v1/admin/courses/physics", headers=admin)
     for role in (student, admin):
         data = graph(role)

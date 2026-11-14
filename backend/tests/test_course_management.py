@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from app.core.config import Settings
 from app.core.exceptions import AdminUnauthorizedError
 from app.curriculum.models import CurriculumSeed
+from app.curriculum.seed import seed_curriculum
 from app.main import create_app
 from tests.mocks import MockLLMClient
 
@@ -25,8 +26,7 @@ class NoCourses:
 
 
 @pytest.fixture
-def protected_api(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
+def protected_api():
     app = create_app(Settings(_env_file=None), learning_repository=object(), admin_repository=Admins(),
                      course_repository=NoCourses(), llm_client=MockLLMClient())
     with TestClient(app) as client: yield client
@@ -57,6 +57,7 @@ def test_patch_rejects_empty_null_and_identifier_changes(protected_api, payload)
 def api(postgres_test_database_url):
     settings = Settings(_env_file=None, database_url=postgres_test_database_url, admin_authcode=AUTHCODE)
     app = create_app(settings, llm_client=MockLLMClient())
+    seed_curriculum(app.state.learning_repository)
     with TestClient(app) as client:
         admin = client.post("/api/v1/admins/register", json={"username": "course_admin", "password": "test-password", "display_name": "课程管理员", "authcode": AUTHCODE}).json()
         student = app.state.learning_repository.register_student(username="course_student", password="test-password", display_name="课程学生")

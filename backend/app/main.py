@@ -24,7 +24,6 @@ from app.api.knowledge_graph import router as knowledge_graph_router
 from app.core.config import Settings, get_settings
 from app.core.exceptions import AppError
 from app.core.logging import configure_logging
-from app.curriculum.seed import seed_curriculum
 from app.services.dify import DifyClient
 from app.services.learning_repository import LearningRepository
 from app.services.admin_repository import AdminRepository
@@ -56,9 +55,8 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(application: FastAPI):
-        # Initialize only an empty curriculum; administrative changes must
-        # survive restarts. Schema is managed by operations/database scripts.
-        seed_curriculum(app_learning_repository, initialize_only=True)
+        # Curriculum import is explicit: an intentionally empty catalog must
+        # stay empty after permanently deleting its last knowledge point.
         try:
             yield
         finally:

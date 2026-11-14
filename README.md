@@ -46,47 +46,9 @@ npm install
 cd ..
 ```
 
-## 运维初始化
-
-根目录 `operations/` 存放部署、初始化和维护脚本，不会由后端运行时自动执行。首次启动后端前，在项目根目录运行：
-
-```powershell
-.\backend\.venv\Scripts\python.exe .\operations\database\initialize.py
-```
-
-脚本读取 `backend/.env.local` 中的 `DATABASE_URL`，执行 `operations/database/initialize_postgresql.sql` 创建当前全部表、索引、函数和触发器。该脚本面向空数据库；重复执行不会重复创建已有对象，但不会把旧版本数据库升级到当前结构。
-
-## 数据备份与迁移
-
-代码包不包含 PostgreSQL 中的学生和学习记录。需要交付现有数据时，安装 PostgreSQL 客户端工具，并在源端导出，例如：
-
-```powershell
-$env:DATABASE_URL = "postgresql://user:password@host:5432/ml_coach"
-.\operations\database\backup.ps1 -OutputPath .\ml-coach.backup
-```
-
-在接收方创建空的 PostgreSQL 数据库后，使用同样方式设置目标 `DATABASE_URL`，再恢复备份，例如：
-
-```powershell
-$env:DATABASE_URL = "postgresql://user:password@host:5432/ml_coach"
-.\operations\database\restore.ps1 -BackupPath .\ml-coach.backup
-```
-
-恢复会清除目标数据库中的同名对象，目标必须是专用的可覆盖数据库。仅交付空系统时，无需备份和恢复，只执行上面的数据库初始化命令。
-
-## PostgreSQL 架构测试
-
-后端测试默认不会连接数据库。为验证全新 PostgreSQL 数据库的建表脚本，请创建专用空库（不可指向开发或生产库），并运行：
-
-```powershell
-$env:POSTGRES_TEST_DATABASE_URL = "postgresql://user:password@host:5432/ml_coach_test"
-cd backend
-.\.venv\Scripts\python.exe -m pytest -q tests/test_learning_migrations.py
-```
-
-该测试会连续两次执行初始化脚本，并校验核心业务表是否存在。
-
 ## 后端
+
+新数据库先在项目根目录运行 `./backend/.venv/Scripts/python.exe operations/database/initialize.py` 初始化表结构。需要默认课程时，再进入 `backend` 目录执行 `./.venv/Scripts/python.exe -m app.cli.seed_curriculum` 手动导入；该命令会重新写入默认知识点，仅在需要导入时使用。服务启动不再自动导入课程，以免永久删除的知识点在重启后重新出现。
 
 Windows PowerShell：
 
@@ -125,35 +87,13 @@ npm run build
 
 ## 运行数据说明
 
-业务数据存储在 `DATABASE_URL` 指向的 PostgreSQL 数据库中，课程资料由 Dify 管理。首次部署须在项目根目录执行 `backend/.venv/Scripts/python.exe operations/database/initialize.py`；应用运行时不会创建或修改表结构。
+业务数据存储在 `DATABASE_URL` 指向的 PostgreSQL 数据库中，课程资料由 Dify 管理。
 
-## 相关知识点与知识图谱
+管理员删除知识点为永久删除：知识点、目录位置、所有课程中的相关连线、学生学习与维度状态、对应历史练习（题目、提交、作答、错误记录）及相关学习会话在同一事务中清理，无法恢复。其他知识点、课程和账户保留。历史软删除数据会显示在课程详情的“历史待清理知识点”中，可逐项永久删除；恢复接口已移除。浏览器本地聊天和 Dify 远端会话不属于数据库记录，不会由此删除。
 
-学生端顶部“知识图谱”（`/knowledge-graph`）和管理员导航“知识图谱”（`/admin/knowledge-graph`）可查看按课程聚类的节点与连线。每个知识点只归属其所在课程；悬停节点高亮其全部连线和直接关联的知识点，点击可固定选择。支持搜索定位、课程定位、拖动、缩放和适应画布；键盘可用 Tab 选择节点、Enter 固定、Escape 取消。
+课程详情支持“删除章节”，确认浮窗列出本章全部知识点（含历史待清理记录）及数量。确认后整章及其知识点相关数据在同一事务中永久清理；若章节名称、顺序或成员在确认期间变化，请刷新目录并重新确认。删除部分失败时整章操作回滚，其他章节和课程保留。
 
-图谱采用 Obsidian 风格的力导向布局：课程颜色分组、自然聚拢的节点、细连线及随缩放淡入的标签。节点大小随关联数量变化；拖动节点会带动附近节点重新排布，点击后以浮层展示详情。默认浅色画布，可切换深色和全屏，详情浮层不占据固定侧栏。手形光标使用固定黑色描边及白色填充，兼顾两种背景的可见性。布局计算只影响当前页面，不写入数据库或生成新的关联。
-
-学生端显示已启用课程的有效知识点，管理员端还可查看停用课程；已删除课程及已移除知识点不展示，连线仅在两个端点均可见时展示。图谱不自动推断关联，未设置关联的知识点仍显示为独立节点。修改关联后点击“刷新图谱”即可更新，无需重启。
-
-管理员在课程详情的知识点编辑浮窗中，可多选本课程和其他课程的“相关知识点”，支持名称或 ID 搜索、按课程筛选和分页。关联双向保存：A 关联 B 后，编辑 B 也能看到 A。关联不会改变课程目录或学习顺序。
-
-关系保存在独立的 `topic_relations` 表中，按两个稳定知识点 ID 归一化去重，记录 `relation_type='related'` 和创建时间，作为知识图谱的边数据。管理员接口返回 `related_topic_ids` 和带课程信息的 `related_topics`；更新时省略或传 `null` 保留原关联，传 `[]` 清空。不能关联自身或新选择已移除的知识点；已有关联在知识点停用后保留，可在浮窗中移除。
-
-已有数据库启用该功能前，执行以下迁移。脚本会先备份，再新增关联表并校验既有数据；新部署的初始化脚本已包含该表。
-
-```powershell
-./backend/.venv/Scripts/python.exe operations/database/enable_topic_relations.py
-```
-
-可通过 `--pg-dump` 指定 PostgreSQL 备份程序路径。
-
-## 数据保存与已移除功能
-
-自由问答历史保存在当前浏览器的 `localStorage`；知识点对话、会话凭证、草稿和最近学习位置也按学生保存在 `localStorage`。关闭后重开或刷新仍可恢复，清除站点数据、使用无痕模式或更换浏览器会影响恢复。聊天没有后端同步功能，数据库备份也不包含浏览器聊天或 Dify 配置。
-
-本地知识库、上传检索、题库、固定正文与例题、前置小测、独立练习测试面板、学习记录面板及其生成、批改、补救接口已移除。课程目录、开始学习状态和课程概览仍然保留。Dify 的自然语言反馈不会自动写成本地分数或量化掌握度。
-
-新部署不创建本地知识库、题库或固定教学内容表。历史练习表仍供课程概览只读查询，不再通过本地接口生成新试卷或评价。浏览器对话和本地资料文件不受数据库清理影响。
+管理员可点击章节标题或箭头折叠、展开知识点列表，也可使用“展开全部／收起全部”。折叠后保留章节数量及操作按钮；当前页面内调整章节顺序、保存或刷新目录时会保留对应章节的折叠状态。
 
 ## 当前代码结构
 
@@ -191,10 +131,10 @@ operations/database/ # 初始化、备份和恢复
 | `GET`、`PATCH`、`DELETE /api/v1/admin/courses/{course_id}` | 管理员查看、修改、删除课程 |
 | `GET /api/v1/admin/related-topics` | 搜索相关知识点候选，支持课程、当前节点排除和分页 |
 | `GET`、`POST /api/v1/admin/courses/{course_id}/topics` | 查询编排、新增知识点 |
-| `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、移除所属知识点 |
-| `POST /api/v1/admin/courses/{course_id}/topics/{topic_id}/restore` | 恢复知识点 |
+| `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、永久删除所属知识点及数据库相关数据 |
 | `PUT /api/v1/admin/courses/{course_id}/topics/order` | 调整章内知识点顺序 |
 | `PATCH /api/v1/admin/courses/{course_id}/topics/groups/{stage}` | 重命名章节 |
+| `DELETE /api/v1/admin/courses/{course_id}/topics/groups/{stage}` | 永久删除章节及其知识点，需提交确认的 `title` 和 `topic_ids` |
 | `POST /api/v1/admin/courses/{course_id}/topics/groups/order` | 调整章节顺序 |
 | `GET /api/v1/curriculum/topics`、`topics/{topic_id}` | 知识点列表与详情 |
 | `GET /api/v1/courses/{course}/outline` | 分组课程目录 |

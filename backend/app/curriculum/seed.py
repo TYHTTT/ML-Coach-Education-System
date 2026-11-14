@@ -34,14 +34,7 @@ def load_seed(path: str | Path) -> CurriculumSeed:
 def seed_curriculum(
     repository: LearningRepository,
     seed_paths: Sequence[str | Path] | None = None,
-    *,
-    initialize_only: bool = False,
 ) -> dict[str, int]:
-    if initialize_only:
-        with repository._connect() as connection:
-            existing = connection.execute("SELECT course,count(*) AS count FROM curriculum_topics GROUP BY course").fetchall()
-        if existing:
-            return {row["course"]: row["count"] for row in existing}
     seeds = [load_seed(path) for path in (seed_paths or DEFAULT_SEED_PATHS)]
     if seed_paths is None:
         configuration = json.loads((SEED_DIRECTORY / "content_curriculum.json").read_text(encoding="utf-8"))

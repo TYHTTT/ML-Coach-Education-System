@@ -79,3 +79,14 @@ class StageOrder(BaseModel):
     def unique_groups(cls, value):
         if len(value) != len(set(value)): raise ValueError("章节不能重复")
         return value
+
+
+class StageDelete(StageRename):
+    # Match the reviewed chapter before performing an irreversible bulk delete.
+    topic_ids: list[TopicId] = Field(min_length=1, max_length=1000)
+
+    @field_validator("topic_ids")
+    @classmethod
+    def unique_topics(cls, value):
+        if len(value) != len(set(value)): raise ValueError("待删除的知识点不能重复")
+        return value

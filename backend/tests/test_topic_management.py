@@ -20,7 +20,7 @@ def create(client, headers, title, **changes):
 
 
 @pytest.mark.parametrize("method,suffix", [("GET", ""), ("POST", ""), ("PUT", "/physics.test"),
-    ("DELETE", "/physics.test"), ("POST", "/physics.test/restore"), ("PUT", "/order"),
+    ("DELETE", "/physics.test"), ("PUT", "/order"),
     ("POST", "/groups/order"), ("PATCH", "/groups/1")])
 @pytest.mark.parametrize("token", [None, "student-session"])
 def test_all_topic_operations_require_admin(protected_api, method, suffix, token):
@@ -58,10 +58,10 @@ def test_topic_crud_order_move_and_student_sync(api):
     assert client.post("/api/v1/learning/topics/" + a + "/start", headers=student_headers).status_code == 404
     assert client.post("/api/v1/chat", headers=student_headers, json={"course": "physics", "topic_id": a, "message": "继续"}).status_code == 404
     with app.state.learning_repository._connect() as connection:
-        assert connection.execute("SELECT count(*) AS n FROM student_topic_states WHERE student_id=? AND topic_id=?", (student["id"], a)).fetchone()["n"] == 1
-    restored = client.post(BASE + "/" + a + "/restore", headers=headers)
-    assert restored.status_code == 200 and restored.json()["removed_topics"] == []
-    assert client.get("/api/v1/curriculum/topics/" + a, headers=student_headers).status_code == 200
+        assert connection.execute("SELECT count(*) AS n FROM student_topic_states WHERE student_id=? AND topic_id=?", (student["id"], a)).fetchone()["n"] == 0
+        assert connection.execute("SELECT count(*) AS n FROM curriculum_topics WHERE id=?", (a,)).fetchone()["n"] == 0
+    assert client.post(BASE + "/" + a + "/restore", headers=headers).status_code == 404
+    assert client.delete(BASE + "/" + a, headers=headers).status_code == 404
 
 
 
@@ -115,7 +115,7 @@ def test_cross_course_reference_endpoints_and_fields_are_removed(api):
         assert response.status_code in (404, 405)
     assert client.put(BASE + "/la.vectors", headers=headers, json=values("恶意修改")).status_code == 403
     assert client.delete(BASE + "/la.vectors", headers=headers).status_code == 403
-    assert client.post(BASE + "/la.vectors/restore", headers=headers).status_code == 403
+    assert client.post(BASE + "/la.vectors/restore", headers=headers).status_code == 404
     assert client.put(BASE + "/order", headers=headers, json={"group_id": "stage-1", "topic_ids": [topic_id, "la.vectors"]}).status_code == 409
     assert client.post(BASE, headers=headers, json=values("位置", is_reference=True, topic_id="la.vectors")).status_code == 422
     admin_topic = client.get(BASE, headers=headers).json()["groups"][0]["topics"][0]

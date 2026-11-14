@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Request, Path
 from app.api.admins import require_admin
 from app.core.types import Course
-from app.schemas.topic_management import TopicId, TopicWrite, TopicOrder, StageRename, StageOrder
+from app.schemas.topic_management import TopicId, TopicWrite, TopicOrder, StageRename, StageOrder, StageDelete
 from app.services.topic_management import TopicManagement
 
 router = APIRouter(tags=["topic-management"], dependencies=[Depends(require_admin)])
@@ -41,6 +41,11 @@ def rename_group(course_id: Course, payload: StageRename, stage: int = Path(ge=1
     return manager.rename_stage(course_id, stage, payload.title)
 
 
+@router.delete(PREFIX + "/groups/{stage}")
+def remove_group(course_id: Course, payload: StageDelete, stage: int = Path(ge=1, le=999), manager=Depends(service)):
+    return manager.remove_stage(course_id, stage, payload.title, payload.topic_ids)
+
+
 @router.post(PREFIX + "/groups/order")
 def reorder_groups(course_id: Course, payload: StageOrder, manager=Depends(service)):
     return manager.reorder_stages(course_id, payload.group_ids)
@@ -54,8 +59,3 @@ def update(course_id: Course, topic_id: TopicId, payload: TopicWrite, manager=De
 @router.delete(PREFIX + "/{topic_id}")
 def remove(course_id: Course, topic_id: TopicId, manager=Depends(service)):
     return manager.remove(course_id, topic_id)
-
-
-@router.post(PREFIX + "/{topic_id}/restore")
-def restore(course_id: Course, topic_id: TopicId, manager=Depends(service)):
-    return manager.remove(course_id, topic_id, restore=True)

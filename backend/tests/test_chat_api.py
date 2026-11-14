@@ -20,8 +20,7 @@ class Repository:
 
 
 @pytest.fixture
-def api(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
+def api():
     llm = MockLLMClient()
     repo = Repository()
     app = create_app(Settings(_env_file=None, app_env="test", max_history_messages=0), llm_client=llm, learning_repository=repo)
@@ -248,8 +247,7 @@ def test_local_knowledge_routes_are_removed_and_health_has_no_secrets(api):
     assert not any(path.startswith("/api/v1/knowledge/") for path in client.get("/openapi.json").json()["paths"])
 
 
-def test_unconfigured_agent_returns_clear_503_without_database(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
+def test_unconfigured_agent_returns_clear_503_without_database():
     app = create_app(Settings(_env_file=None), learning_repository=Repository())
     with TestClient(app) as client:
         response = client.post("/api/v1/chat",json={"course":"machine_learning","message":"问题"})
@@ -311,7 +309,6 @@ def test_openapi_exposes_only_current_features(api):
         "/api/v1/admin/courses/{course_id}/topics/groups/{stage}",
         "/api/v1/admin/courses/{course_id}/topics/groups/order",
         "/api/v1/admin/courses/{course_id}/topics/{topic_id}",
-        "/api/v1/admin/courses/{course_id}/topics/{topic_id}/restore",
         "/api/v1/curriculum/topics", "/api/v1/curriculum/topics/{topic_id}",
         "/api/v1/courses/{course}/outline", "/api/v1/learning/dashboard",
         "/api/v1/learning/topics/{topic_id}/start",

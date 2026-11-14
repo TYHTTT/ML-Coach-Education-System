@@ -80,7 +80,7 @@ class TopicManagement:
             valid = connection.execute("""SELECT t.id FROM curriculum_topics t JOIN courses c ON c.id=t.course
                 WHERE t.id=ANY(?) AND t.active=1 AND c.deleted_at IS NULL""", (added,)).fetchall()
             if len(valid) != len(added):
-                fail("部分相关知识点不存在或已移除，请刷新后重试。", 422)
+                fail("部分相关知识点不存在或不可用，请刷新后重试。", 422)
         connection.execute("""DELETE FROM topic_relations WHERE relation_type='related'
             AND ((topic_a_id=? AND NOT(topic_b_id=ANY(?))) OR (topic_b_id=? AND NOT(topic_a_id=ANY(?))))""",
             (topic_id, ids, topic_id, ids))
@@ -165,11 +165,53 @@ class TopicManagement:
         return self.outline(course)
 
 
-    def remove(self, course, topic_id, *, restore=False):
+    @staticmethod
+    def _delete_topics(connection, topic_ids):
+        """Clean one topic or an entire chapter inside the caller's transaction."""
+        connection.execute("SELECT id FROM curriculum_topics WHERE id=ANY(?) ORDER BY id FOR UPDATE", (topic_ids,)).fetchall()
+        # Block new historical questions/submissions while their parent sets go away.
+        connection.execute("SELECT id FROM practice_sets WHERE topic_id=ANY(?) ORDER BY id FOR UPDATE", (topic_ids,)).fetchall()
+        connection.execute("""SELECT q.id FROM practice_questions q JOIN practice_sets s ON s.id=q.practice_set_id
+            WHERE s.topic_id=ANY(?) ORDER BY q.id FOR UPDATE OF q""", (topic_ids,)).fetchall()
+        # Attempts restrict deletion of their questions, so remove them first.
+        connection.execute("""DELETE FROM practice_attempts WHERE question_id IN
+            (SELECT q.id FROM practice_questions q JOIN practice_sets s ON s.id=q.practice_set_id WHERE s.topic_id=ANY(?))""", (topic_ids,))
+        # Sets cascade to questions, submissions, their attempts and misconception events.
+        connection.execute("DELETE FROM practice_sets WHERE topic_id=ANY(?)", (topic_ids,))
+        connection.execute("DELETE FROM misconception_events WHERE topic_id=ANY(?)", (topic_ids,))
+        connection.execute("DELETE FROM student_dimension_states WHERE topic_id=ANY(?)", (topic_ids,))
+        connection.execute("DELETE FROM student_topic_states WHERE topic_id=ANY(?)", (topic_ids,))
+        # Explicit deletion avoids leaving SET NULL sessions behind.
+        connection.execute("DELETE FROM learning_sessions WHERE topic_id=ANY(?)", (topic_ids,))
+        connection.execute("DELETE FROM topic_relations WHERE topic_a_id=ANY(?) OR topic_b_id=ANY(?)", (topic_ids, topic_ids))
+        connection.execute("DELETE FROM topic_placements WHERE topic_id=ANY(?)", (topic_ids,))
+        connection.execute("DELETE FROM curriculum_topics WHERE id=ANY(?)", (topic_ids,))
+
+    def remove(self, course, topic_id):
         with self.database.connect() as connection:
+            # Use the same lock order as relation edits, including cross-course edges.
+            connection.execute("SELECT pg_advisory_xact_lock(725498104)")
             self._course(connection, course, lock=True)
             self._owned(connection, course, topic_id)
-            connection.execute("UPDATE curriculum_topics SET active=?,updated_at=? WHERE id=?", (int(restore), self._now(), topic_id))
+            self._delete_topics(connection, [topic_id])
+            connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (self._now(), str(course)))
+        return self.outline(course)
+
+    def remove_stage(self, course, stage, title, topic_ids):
+        with self.database.connect() as connection:
+            connection.execute("SELECT pg_advisory_xact_lock(725498104)")
+            self._course(connection, course, lock=True)
+            rows = connection.execute("""SELECT p.topic_id,p.group_title FROM topic_placements p
+                JOIN curriculum_topics t ON t.id=p.topic_id AND t.course=p.course_id
+                WHERE p.course_id=? AND p.parent_group_id=? ORDER BY p.topic_id""", (str(course), f"stage-{stage}")).fetchall()
+            if not rows:
+                fail("章节不存在，请刷新目录后重试。", 404)
+            # Stage numbers can change after reordering. Never delete another chapter
+            # or unseen members added/moved by a different administrator.
+            if {row["topic_id"] for row in rows} != set(topic_ids) or {row["group_title"] for row in rows} != {title}:
+                fail("章节名称或知识点已变化，请刷新目录后重新确认删除。")
+            self._delete_topics(connection, [row["topic_id"] for row in rows])
+            connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (self._now(), str(course)))
         return self.outline(course)
 
     def reorder(self, course, group_id, ids):

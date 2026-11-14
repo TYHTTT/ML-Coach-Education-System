@@ -79,22 +79,21 @@ def test_relation_validation_rolls_back_metadata_and_new_topics(api):
             connection.execute("INSERT INTO topic_relations(topic_a_id,topic_b_id) VALUES (?,?)", (a, a))
 
 
-def test_removed_related_points_are_preserved_but_cannot_be_newly_selected(api):
+def test_deleted_related_points_are_erased_and_cannot_be_selected_again(api):
     client, _, headers, _, _ = api
     client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
     a = create(client, headers, "位置")
     b = create(client, headers, "速度", related_topic_ids=[a])
     assert client.delete(BASE + "/" + b, headers=headers).status_code == 200
-    related = point(client, headers, a)["related_topics"][0]
-    assert related["id"] == b and related["available"] is False
-    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[b])).status_code == 200
+    assert point(client, headers, a)["related_topics"] == []
+    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[b])).status_code == 422
     assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[])).status_code == 200
     assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[b])).status_code == 422
-    assert client.post(BASE + "/" + b + "/restore", headers=headers).status_code == 200
-    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[b, "la.vectors"])).status_code == 200
+    assert client.post(BASE + "/" + b + "/restore", headers=headers).status_code == 404
+    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=["la.vectors"])).status_code == 200
     assert client.delete("/api/v1/admin/courses/linear_algebra", headers=headers).status_code == 204
     assert next(t for t in point(client, headers, a)["related_topics"] if t["id"] == "la.vectors")["available"] is False
-    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=[b, "la.vectors"])).status_code == 200
+    assert client.put(BASE + "/" + a, headers=headers, json=values("位置", related_topic_ids=["la.vectors"])).status_code == 200
 
 
 def test_related_candidates_support_cross_course_search_paging_and_exclusion(api):

@@ -44,8 +44,7 @@ class FakeAdmins:
 
 
 @pytest.fixture
-def api(monkeypatch):
-    monkeypatch.setattr("app.main.seed_curriculum", lambda repository, **kwargs: None)
+def api():
     repository = FakeAdmins()
     app = create_app(Settings(_env_file=None, app_env="test", admin_authcode=AUTHCODE),
                      llm_client=MockLLMClient(), learning_repository=object(), admin_repository=repository)
