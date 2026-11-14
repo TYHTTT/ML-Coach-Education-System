@@ -55,7 +55,9 @@ class Settings(BaseSettings):
 
     @property
     def cors_origins(self) -> list[str]:
-        return [item.strip() for item in self.frontend_origin.split(",") if item.strip()]
+        return [
+            item.strip() for item in self.frontend_origin.split(",") if item.strip()
+        ]
 
 
 @lru_cache(maxsize=1)

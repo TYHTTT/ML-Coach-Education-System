@@ -28,7 +28,13 @@ export interface CourseList {
 }
 
 export interface CourseDetail extends CourseRecord {
-  topics: { id: string; title: string; stage: number; stage_title: string; active: boolean }[];
+  topics: {
+    id: string;
+    title: string;
+    stage: number;
+    stage_title: string;
+    active: boolean;
+  }[];
 }
 
 /** Display fallbacks for stored citations and course symbols, not the active catalog. */
@@ -48,8 +54,18 @@ export const COURSE_META: Record<
     description: "极限、微积分与定理",
     accent: "cyan",
   },
-  linear_algebra: { label: "线性代数", shortLabel: "Ax", description: "向量、矩阵与几何", accent: "violet" },
-  probability_statistics: { label: "概率论与统计基础", shortLabel: "P", description: "概率、分布与统计", accent: "amber" },
+  linear_algebra: {
+    label: "线性代数",
+    shortLabel: "Ax",
+    description: "向量、矩阵与几何",
+    accent: "violet",
+  },
+  probability_statistics: {
+    label: "概率论与统计基础",
+    shortLabel: "P",
+    description: "概率、分布与统计",
+    accent: "amber",
+  },
 };
 
 export interface Source {
@@ -84,7 +100,12 @@ export interface ChatRequest {
   history: ChatHistoryItem[];
   topic_id?: string;
   conversation_token?: string;
-  learning_mode?: "free_qa" | "topic_teaching" | "topic_clarification" | "topic_practice" | "topic_answer";
+  learning_mode?:
+    | "free_qa"
+    | "topic_teaching"
+    | "topic_clarification"
+    | "topic_practice"
+    | "topic_answer";
 }
 
 export interface ChatResponse {

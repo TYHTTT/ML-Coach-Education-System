@@ -75,7 +75,7 @@ def test_migration_is_backed_up_idempotent_and_preserves_learning_data(legacy_da
     seed_curriculum(repository)
     with psycopg.connect(url, row_factory=dict_row) as connection:
         assert not any(migration.inspect(connection).values())
-        assert len(migration.retained_snapshot(connection)) == 15
+        assert len(migration.retained_snapshot(connection)) == 16
 
 
 def test_backup_failure_leaves_all_settings_and_state_unchanged(legacy_database, monkeypatch):

@@ -34,10 +34,13 @@ class TopicManagement:
         return dict(row)
 
     @staticmethod
-    def _stage(connection, course, stage, title):
-        row = connection.execute("SELECT group_title FROM topic_placements WHERE course_id=? AND parent_group_id=? LIMIT 1", (str(course), f"stage-{stage}")).fetchone()
-        if row and row["group_title"] != title:
+    def _stage(connection, course, stage, title, *, required=False):
+        row = connection.execute("SELECT title FROM course_chapters WHERE course_id=? AND stage=?", (str(course), stage)).fetchone()
+        if row and row["title"] != title:
             fail("目标章节已存在，请使用现有名称，或通过“重命名章节”修改。")
+        if row is None:
+            if required: fail("所在章节已变化或被删除，请刷新目录后重试。")
+            connection.execute("INSERT INTO course_chapters(course_id,stage,title) VALUES (?,?,?)", (str(course), stage, title))
 
     @staticmethod
     def _place(connection, course, topic_id, stage, title):
@@ -111,11 +114,13 @@ class TopicManagement:
     def outline(self, course):
         with self.database.connect() as connection:
             record = self._course(connection, course)
+            chapters = connection.execute("SELECT stage,title FROM course_chapters WHERE course_id=? ORDER BY stage", (str(course),)).fetchall()
             rows = connection.execute("""SELECT t.*,p.parent_group_id,p.group_title,p.order_index AS placement_order
                 FROM topic_placements p JOIN curriculum_topics t ON t.id=p.topic_id AND t.course=p.course_id
                 WHERE p.course_id=? ORDER BY p.order_index,t.id""", (str(course),)).fetchall()
             related = self._related(connection, [row["id"] for row in rows])
-        groups, removed = {}, []
+        groups = {f"stage-{chapter['stage']}": {"id": f"stage-{chapter['stage']}", "title": chapter["title"], "stage": chapter["stage"], "topics": []} for chapter in chapters}
+        removed = []
         for raw in rows:
             item = dict(raw)
             for key in ("learning_objectives", "aliases", "retrieval_keywords", "required_dimensions"):
@@ -134,6 +139,16 @@ class TopicManagement:
         ordered = sorted(groups.values(), key=lambda group: (group["stage"] is not None, group["stage"] or 0, group["id"]))
         return {"course": {"id": record["id"], "title": record["title"], "active": bool(record["active"])}, "groups": ordered, "removed_topics": removed}
 
+    def create_stage(self, course, title):
+        with self.database.connect() as connection:
+            self._course(connection, course, lock=True)
+            stage = connection.execute("SELECT coalesce(max(stage),0)+1 AS stage FROM course_chapters WHERE course_id=?", (str(course),)).fetchone()["stage"]
+            if stage > 999:
+                fail("章节数量或编号已达上限，请整理章节后重试。")
+            connection.execute("INSERT INTO course_chapters(course_id,stage,title) VALUES (?,?,?)", (str(course), stage, title))
+            connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (self._now(), str(course)))
+        return self.outline(course)
+
 
     def save(self, course, values, topic_id=None):
         with self.database.connect() as connection:
@@ -142,7 +157,7 @@ class TopicManagement:
             self._course(connection, course, lock=True)
             if topic_id: self._owned(connection, course, topic_id)
             else: topic_id = f"{course}.t_{uuid4().hex[:12]}"
-            self._stage(connection, course, values["stage"], values["stage_title"])
+            self._stage(connection, course, values["stage"], values["stage_title"], required=values.get("existing_stage", False))
             existing = connection.execute("SELECT id FROM curriculum_topics WHERE id=?", (topic_id,)).fetchone()
             now = self._now()
             if not existing:
@@ -201,16 +216,18 @@ class TopicManagement:
         with self.database.connect() as connection:
             connection.execute("SELECT pg_advisory_xact_lock(725498104)")
             self._course(connection, course, lock=True)
+            chapter = connection.execute("SELECT title FROM course_chapters WHERE course_id=? AND stage=?", (str(course), stage)).fetchone()
+            if chapter is None:
+                fail("章节不存在，请刷新目录后重试。", 404)
             rows = connection.execute("""SELECT p.topic_id,p.group_title FROM topic_placements p
                 JOIN curriculum_topics t ON t.id=p.topic_id AND t.course=p.course_id
                 WHERE p.course_id=? AND p.parent_group_id=? ORDER BY p.topic_id""", (str(course), f"stage-{stage}")).fetchall()
-            if not rows:
-                fail("章节不存在，请刷新目录后重试。", 404)
             # Stage numbers can change after reordering. Never delete another chapter
             # or unseen members added/moved by a different administrator.
-            if {row["topic_id"] for row in rows} != set(topic_ids) or {row["group_title"] for row in rows} != {title}:
+            if {row["topic_id"] for row in rows} != set(topic_ids) or chapter["title"] != title:
                 fail("章节名称或知识点已变化，请刷新目录后重新确认删除。")
-            self._delete_topics(connection, [row["topic_id"] for row in rows])
+            if rows: self._delete_topics(connection, [row["topic_id"] for row in rows])
+            connection.execute("DELETE FROM course_chapters WHERE course_id=? AND stage=?", (str(course), stage))
             connection.execute("UPDATE courses SET updated_at=? WHERE id=?", (self._now(), str(course)))
         return self.outline(course)
 
@@ -228,23 +245,26 @@ class TopicManagement:
     def rename_stage(self, course, stage, title):
         with self.database.connect() as connection:
             self._course(connection, course, lock=True)
-            result = connection.execute("UPDATE topic_placements SET group_title=? WHERE course_id=? AND parent_group_id=? RETURNING topic_id", (title, str(course), f"stage-{stage}")).fetchone()
+            result = connection.execute("UPDATE course_chapters SET title=? WHERE course_id=? AND stage=? RETURNING stage", (title, str(course), stage)).fetchone()
             if not result: fail("章节不存在，请刷新后重试。", 404)
+            connection.execute("UPDATE topic_placements SET group_title=? WHERE course_id=? AND parent_group_id=?", (title, str(course), f"stage-{stage}"))
             connection.execute("UPDATE curriculum_topics SET stage_title=?,updated_at=? WHERE course=? AND stage=?", (title, self._now(), str(course), stage))
         return self.outline(course)
 
     def reorder_stages(self, course, ids):
         with self.database.connect() as connection:
             self._course(connection, course, lock=True)
-            groups = connection.execute("SELECT DISTINCT parent_group_id FROM topic_placements WHERE course_id=? AND parent_group_id ~ '^stage-[0-9]+$'", (str(course),)).fetchall()
-            if set(ids) != {group["parent_group_id"] for group in groups}:
+            groups = connection.execute("SELECT stage FROM course_chapters WHERE course_id=?", (str(course),)).fetchall()
+            if set(ids) != {f"stage-{group['stage']}" for group in groups}:
                 fail("章节已变化，请刷新后重新排序。")
             temporary = "reorder-" + uuid4().hex
             for position, group_id in enumerate(ids, 1):
                 old_stage = int(group_id.split('-')[1])
+                connection.execute("UPDATE course_chapters SET stage=? WHERE course_id=? AND stage=?", (10000 + position, str(course), old_stage))
                 connection.execute("UPDATE topic_placements SET parent_group_id=? WHERE course_id=? AND parent_group_id=?", (f"{temporary}-{position}", str(course), group_id))
                 connection.execute("UPDATE curriculum_topics SET stage=? WHERE course=? AND stage=?", (10000 + position, str(course), old_stage))
             for position in range(1, len(ids) + 1):
+                connection.execute("UPDATE course_chapters SET stage=? WHERE course_id=? AND stage=?", (position, str(course), 10000 + position))
                 connection.execute("UPDATE topic_placements SET parent_group_id=? WHERE course_id=? AND parent_group_id=?", (f"stage-{position}", str(course), f"{temporary}-{position}"))
                 connection.execute("UPDATE curriculum_topics SET stage=?,updated_at=? WHERE course=? AND stage=?", (position, self._now(), str(course), 10000 + position))
         return self.outline(course)

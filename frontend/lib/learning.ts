@@ -63,16 +63,21 @@ export function nextActionLabel(action?: NextAction | null): string {
 }
 
 export function statusMeta(status?: TopicStatus | string | null) {
-  return TOPIC_STATUS_META[(status ?? "not_started") as TopicStatus] ?? TOPIC_STATUS_META.not_started;
+  return (
+    TOPIC_STATUS_META[(status ?? "not_started") as TopicStatus] ??
+    TOPIC_STATUS_META.not_started
+  );
 }
 
 export function percent(value?: number | null): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "尚未评估";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "尚未评估";
   return `${Math.round(Math.min(1, Math.max(0, value)) * 100)}%`;
 }
 
 export function scoreLabel(value?: number | null): string {
-  if (value === null || value === undefined || !Number.isFinite(value)) return "—";
+  if (value === null || value === undefined || !Number.isFinite(value))
+    return "—";
   return `${Math.round(value)} 分`;
 }
 
@@ -88,13 +93,17 @@ export function hasValidTopicEvidence(
   if (topic.mastery_display?.trim() === "尚未评估") return false;
 
   const dimensionEvidence = topic.dimensions?.some(
-    (dimension) => typeof dimension.evidence_count === "number" && dimension.evidence_count > 0,
+    (dimension) =>
+      typeof dimension.evidence_count === "number" &&
+      dimension.evidence_count > 0,
   );
   if (dimensionEvidence) return true;
 
   if (
-    (topic.confidence === null || topic.confidence === undefined || topic.confidence <= 0)
-    && (topic.mastery === null || Math.abs(topic.mastery - 0.5) < 1e-9)
+    (topic.confidence === null ||
+      topic.confidence === undefined ||
+      topic.confidence <= 0) &&
+    (topic.mastery === null || Math.abs(topic.mastery - 0.5) < 1e-9)
   ) {
     return false;
   }

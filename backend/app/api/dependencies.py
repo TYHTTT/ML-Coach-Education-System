@@ -36,6 +36,7 @@ def require_student_from_header(
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         from app.core.exceptions import StudentNotFoundError
+
         raise StudentNotFoundError()
     return repository.student_from_token(token, touch=True)
 
@@ -53,6 +54,7 @@ def student_id_from_authorization(
     scheme, _, token = authorization.partition(" ")
     if scheme.lower() != "bearer" or not token:
         from app.core.exceptions import StudentNotFoundError
+
         raise StudentNotFoundError()
     return repository.student_from_token(token, touch=touch)["id"]
 

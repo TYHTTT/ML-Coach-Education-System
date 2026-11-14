@@ -33,7 +33,7 @@ def history(connection, student_id, topic_id, prefix):
         VALUES (?,?,'physics',?,'learning',?,?,?)""", (prefix + "-session", student_id, topic_id, now, now, now))
 
 
-TABLES = ("curriculum_topics", "topic_placements", "topic_relations", "student_topic_states", "student_dimension_states",
+TABLES = ("course_chapters", "curriculum_topics", "topic_placements", "topic_relations", "student_topic_states", "student_dimension_states",
           "practice_sets", "practice_questions", "practice_submissions", "practice_attempts", "misconception_events", "learning_sessions", "courses")
 
 
@@ -119,6 +119,6 @@ def test_restart_does_not_recreate_an_intentionally_empty_curriculum(api):
     assert client.delete(BASE + "/" + target, headers=headers).status_code == 200
     restarted_app = create_app(app.state.settings, llm_client=MockLLMClient())
     with TestClient(restarted_app) as restarted:
-        assert restarted.get(BASE, headers=headers).json()["groups"] == []
+        assert all(group["topics"] == [] for group in restarted.get(BASE, headers=headers).json()["groups"])
         with app.state.learning_repository._connect() as connection:
             assert connection.execute("SELECT count(*) AS n FROM curriculum_topics").fetchone()["n"] == 0

@@ -3,7 +3,7 @@
 - 前端：Next.js、React、TypeScript、Tailwind CSS。
 - 后端：FastAPI、Pydantic、Uvicorn、Python。
 - AI 能力：Dify Agent。问答、课程辅导、动态出题、评价和补救均通过后端调用 Dify。
-- 数据库：PostgreSQL，保存账户、课程目录、学习状态和历史成绩。课程资料与检索由 Dify 管理，不再需要 `pgvector`。
+- 数据库：PostgreSQL，保存账户、课程目录、学习状态和历史成绩。课程资料与检索由 Dify 管理，不需要 `pgvector`。
 
 # 启动方式
 
@@ -95,6 +95,8 @@ npm run build
 
 管理员可点击章节标题或箭头折叠、展开知识点列表，也可使用“展开全部／收起全部”。折叠后保留章节数量及操作按钮；当前页面内调整章节顺序、保存或刷新目录时会保留对应章节的折叠状态。
 
+顶部“新增章节”仅需填写章节名称，空章节会独立保存。每个章节内的“新增知识点”自动归入该章节；删除最后一个知识点后，章节仍保留，可继续添加知识点或单独删除章节。旧数据库升级时，运行 `./backend/.venv/Scripts/python.exe operations/database/enable_course_chapters.py`，脚本会自动备份、新建 `course_chapters` 表并从原目录迁入章节，校验原有表数据未变；可通过 `--pg-dump` 指定备份程序路径。新部署已由初始化脚本包含该表。
+
 ## 当前代码结构
 
 ```text
@@ -131,6 +133,7 @@ operations/database/ # 初始化、备份和恢复
 | `GET`、`PATCH`、`DELETE /api/v1/admin/courses/{course_id}` | 管理员查看、修改、删除课程 |
 | `GET /api/v1/admin/related-topics` | 搜索相关知识点候选，支持课程、当前节点排除和分页 |
 | `GET`、`POST /api/v1/admin/courses/{course_id}/topics` | 查询编排、新增知识点 |
+| `POST /api/v1/admin/courses/{course_id}/topics/groups` | 新增独立章节，提交 `title` |
 | `PUT`、`DELETE /api/v1/admin/courses/{course_id}/topics/{topic_id}` | 修改、永久删除所属知识点及数据库相关数据 |
 | `PUT /api/v1/admin/courses/{course_id}/topics/order` | 调整章内知识点顺序 |
 | `PATCH /api/v1/admin/courses/{course_id}/topics/groups/{stage}` | 重命名章节 |

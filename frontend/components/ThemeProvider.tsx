@@ -1,6 +1,12 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 
 type Theme = "light" | "dark";
 
@@ -10,6 +16,48 @@ interface ThemeContextValue {
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
+const THEME_STORAGE_KEY = "course-coach-theme";
+let fallbackTheme: Theme = "light";
+let memoryOnly = false;
+const themeListeners = new Set<() => void>();
+
+function storedTheme(value: string | null): Theme {
+  return value === "dark" ? "dark" : "light";
+}
+
+function getThemeSnapshot(): Theme {
+  if (memoryOnly) return fallbackTheme;
+  try { return storedTheme(window.localStorage.getItem(THEME_STORAGE_KEY)); }
+  catch { return fallbackTheme; }
+}
+
+function getServerThemeSnapshot(): Theme { return "light"; }
+
+function subscribeToTheme(listener: () => void) {
+  themeListeners.add(listener);
+  function onStorage(event: StorageEvent) {
+    if (event.key !== THEME_STORAGE_KEY && event.key !== null) return;
+    if (event.storageArea) {
+      try { if (event.storageArea !== window.localStorage) return; }
+      catch { return; }
+    }
+    fallbackTheme = storedTheme(event.newValue);
+    memoryOnly = false;
+    listener();
+  }
+  window.addEventListener("storage", onStorage);
+  return () => {
+    themeListeners.delete(listener);
+    window.removeEventListener("storage", onStorage);
+  };
+}
+
+function updateTheme(nextTheme: Theme) {
+  fallbackTheme = nextTheme;
+  try { window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme); memoryOnly = false; }
+  catch { memoryOnly = true; }
+  for (const listener of themeListeners) listener();
+}
 
 function applyTheme(theme: Theme) {
   document.documentElement.dataset.theme = theme;
@@ -17,23 +65,17 @@ function applyTheme(theme: Theme) {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<Theme>("light");
+  const theme = useSyncExternalStore(subscribeToTheme, getThemeSnapshot, getServerThemeSnapshot);
 
   useEffect(() => {
-    const savedTheme = window.localStorage.getItem("course-coach-theme");
-    if (savedTheme === "dark" || savedTheme === "light") {
-      setTheme(savedTheme);
-      applyTheme(savedTheme);
-    }
-  }, []);
+    applyTheme(theme);
+  }, [theme]);
 
-  function updateTheme(nextTheme: Theme) {
-    setTheme(nextTheme);
-    window.localStorage.setItem("course-coach-theme", nextTheme);
-    applyTheme(nextTheme);
-  }
-
-  return <ThemeContext.Provider value={{ theme, setTheme: updateTheme }}>{children}</ThemeContext.Provider>;
+  return (
+    <ThemeContext.Provider value={{ theme, setTheme: updateTheme }}>
+      {children}
+    </ThemeContext.Provider>
+  );
 }
 
 export function useTheme() {

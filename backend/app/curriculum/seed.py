@@ -37,13 +37,17 @@ def seed_curriculum(
 ) -> dict[str, int]:
     seeds = [load_seed(path) for path in (seed_paths or DEFAULT_SEED_PATHS)]
     if seed_paths is None:
-        configuration = json.loads((SEED_DIRECTORY / "content_curriculum.json").read_text(encoding="utf-8"))
+        configuration = json.loads(
+            (SEED_DIRECTORY / "content_curriculum.json").read_text(encoding="utf-8")
+        )
         by_course = {seed.course.value: seed for seed in seeds}
         for addition in configuration["additional_courses"]:
             extra = CurriculumSeed.model_validate(addition)
             if extra.course.value in by_course:
                 existing = by_course[extra.course.value]
-                by_course[extra.course.value] = existing.model_copy(update={"topics": existing.topics + extra.topics})
+                by_course[extra.course.value] = existing.model_copy(
+                    update={"topics": existing.topics + extra.topics}
+                )
             else:
                 by_course[extra.course.value] = extra
         seeds = list(by_course.values())
@@ -53,7 +57,4 @@ def seed_curriculum(
         raise CurriculumSeedError(str(exc)) from exc
 
     repository.upsert_curriculum(seeds)
-    return {
-        seed.course.value: len(seed.topics)
-        for seed in seeds
-    }
+    return {seed.course.value: len(seed.topics) for seed in seeds}

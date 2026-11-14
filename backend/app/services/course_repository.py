@@ -8,7 +8,7 @@ from app.db.database import PostgresDatabase
 
 COURSE_SELECT = """SELECT c.*,
     (SELECT count(*) FROM curriculum_topics t WHERE t.course=c.id AND t.active=1) AS topic_count,
-    (SELECT count(DISTINCT t.stage) FROM curriculum_topics t WHERE t.course=c.id AND t.active=1) AS stage_count
+    (SELECT count(*) FROM course_chapters ch WHERE ch.course_id=c.id) AS stage_count
     FROM courses c"""
 
 

@@ -4,7 +4,10 @@ from typing import Any
 
 from fastapi import APIRouter, Depends
 
-from app.api.dependencies import learning_service_from_request, require_student_from_header
+from app.api.dependencies import (
+    learning_service_from_request,
+    require_student_from_header,
+)
 from app.core.types import Course
 from app.services.learning_service import LearningService
 

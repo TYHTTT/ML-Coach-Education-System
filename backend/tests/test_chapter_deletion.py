@@ -19,7 +19,7 @@ def test_chapter_delete_requires_admin(protected_api, token):
     assert response.status_code == 401
 
 
-@pytest.mark.parametrize("payload", [{}, {"title": "力学", "topic_ids": []}, {"title": "力学", "topic_ids": ["physics.test", "physics.test"]},
+@pytest.mark.parametrize("payload", [{}, {"title": "力学", "topic_ids": ["physics.test", "physics.test"]},
     {"title": " ", "topic_ids": ["physics.test"]}, {"title": "力学", "topic_ids": ["unsafe"]}])
 def test_chapter_delete_requires_a_valid_reviewed_member_list(protected_api, payload):
     assert protected_api.request("DELETE", BASE + "/groups/1", headers={"Authorization": "Bearer admin-session"}, json=payload).status_code == 422
@@ -55,6 +55,8 @@ def test_chapter_deletes_all_members_and_data_including_legacy_and_cross_course_
     for table in before:
         if table == "courses":
             assert [{k: v for k, v in row["data"].items() if k != "updated_at"} for row in before[table]] == [{k: v for k, v in row["data"].items() if k != "updated_at"} for row in after[table]]
+        elif table == "course_chapters":
+            assert after[table] == [row for row in before[table] if not (row["data"]["course_id"] == "physics" and row["data"]["stage"] == 2)]
         else:
             expected = [row for row in before[table] if not any(topic in json.dumps(row["data"]) for topic in targets) and not any(str(value).startswith("drop-") for value in row["data"].values())]
             assert after[table] == expected, table

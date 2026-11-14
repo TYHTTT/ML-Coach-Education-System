@@ -17,5 +17,7 @@ def validate_curriculum(seeds: Sequence[CurriculumSeed]) -> None:
     for seed in seeds:
         for topic in seed.topics:
             if topic.id in seen:
-                raise CurriculumValidationError(f"知识点 ID {topic.id} 在多个课程中重复")
+                raise CurriculumValidationError(
+                    f"知识点 ID {topic.id} 在多个课程中重复"
+                )
             seen.add(topic.id)

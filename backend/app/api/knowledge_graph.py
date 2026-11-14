@@ -11,7 +11,9 @@ def service(request: Request):
     return KnowledgeGraph(request.app.state.settings.database_url)
 
 
-@router.get("/api/v1/knowledge-graph", dependencies=[Depends(require_student_from_header)])
+@router.get(
+    "/api/v1/knowledge-graph", dependencies=[Depends(require_student_from_header)]
+)
 def student_graph(graph=Depends(service)):
     return graph.read()
 

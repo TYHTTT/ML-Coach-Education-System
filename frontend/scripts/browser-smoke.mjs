@@ -5,17 +5,60 @@ import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 
-const { chromium } = createRequire(import.meta.url)(process.env.COURSE_PLAYWRIGHT_MODULE || "playwright");
+const { chromium } = createRequire(import.meta.url)(
+  process.env.COURSE_PLAYWRIGHT_MODULE || "playwright",
+);
 const baseUrl = process.env.COURSE_UI_BASE_URL || "http://127.0.0.1:3030";
-const browser = await chromium.launch({ headless: true, ...(process.env.COURSE_BROWSER_PATH ? { executablePath: process.env.COURSE_BROWSER_PATH } : {}) });
-const context = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
+const browser = await chromium.launch({
+  headless: true,
+  ...(process.env.COURSE_BROWSER_PATH
+    ? { executablePath: process.env.COURSE_BROWSER_PATH }
+    : {}),
+});
+const context = await browser.newContext({
+  viewport: { width: 1440, height: 1000 },
+});
 await context.addInitScript(() => {
   localStorage.setItem("course_coach_access_token", "browser-test-token");
-  localStorage.setItem("course_coach_student_profile", JSON.stringify({ student_id: "browser-student", username: "test", display_name: "测试" }));
-  localStorage.setItem("course-coach:assessment:browser-student:ml.machine_learning_basics", JSON.stringify({ id: "old-checkpoint", answers: {} }));
+  localStorage.setItem(
+    "course_coach_student_profile",
+    JSON.stringify({
+      student_id: "browser-student",
+      username: "test",
+      display_name: "测试",
+    }),
+  );
+  localStorage.setItem(
+    "course-coach:assessment:browser-student:ml.machine_learning_basics",
+    JSON.stringify({ id: "old-checkpoint", answers: {} }),
+  );
   if (!localStorage.getItem("course-coach:chat-state:v1")) {
-    const conversation = (id, course, title) => ({ id, course, title, messages: [{ id: `msg-${id}`, role: "user", content: title, createdAt: "2026-11-01T10:00:00Z" }], createdAt: "2026-11-01T10:00:00Z", updatedAt: "2026-11-01T10:00:00Z" });
-    localStorage.setItem("course-coach:chat-state:v1", JSON.stringify({ selectedCourse: "advanced_mathematics", activeConversationId: "legacy-math", conversations: [conversation("legacy-ml", "machine_learning", "保留的旧对话一"), conversation("legacy-math", "advanced_mathematics", "保留的旧对话二")] }));
+    const conversation = (id, course, title) => ({
+      id,
+      course,
+      title,
+      messages: [
+        {
+          id: `msg-${id}`,
+          role: "user",
+          content: title,
+          createdAt: "2026-11-01T10:00:00Z",
+        },
+      ],
+      createdAt: "2026-11-01T10:00:00Z",
+      updatedAt: "2026-11-01T10:00:00Z",
+    });
+    localStorage.setItem(
+      "course-coach:chat-state:v1",
+      JSON.stringify({
+        selectedCourse: "advanced_mathematics",
+        activeConversationId: "legacy-math",
+        conversations: [
+          conversation("legacy-ml", "machine_learning", "保留的旧对话一"),
+          conversation("legacy-math", "advanced_mathematics", "保留的旧对话二"),
+        ],
+      }),
+    );
   }
 });
 const page = await context.newPage();
@@ -25,28 +68,125 @@ page.on("pageerror", (error) => problems.push(error.message));
 const topics = [
   { id: "ml.machine_learning_basics", title: "机器学习基础" },
   { id: "ml.supervised_learning", title: "监督学习与无监督学习" },
-].map((item, index) => ({ ...item, topic_id: item.id, course: "machine_learning", description: "理解数据驱动建模的流程与基本概念。", learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"], stage: 1, stage_title: "机器学习基础", order_index: index, status: "learning", mastery: null, confidence: null, evidence_count: 0, required_dimensions: ["concept"], dimensions: [] }));
+].map((item, index) => ({
+  ...item,
+  topic_id: item.id,
+  course: "machine_learning",
+  description: "理解数据驱动建模的流程与基本概念。",
+  learning_objectives: ["理解训练数据与模型的关系", "区分分类与回归任务"],
+  stage: 1,
+  stage_title: "机器学习基础",
+  order_index: index,
+  status: "learning",
+  mastery: null,
+  confidence: null,
+  evidence_count: 0,
+  required_dimensions: ["concept"],
+  dimensions: [],
+}));
 let chatFailure = false;
 let practiceGate = null;
 let releasePractice;
 const answer = "监督学习使用带标签的数据训练模型。";
-const lecture = answer + "\n\n" + Array.from({ length: 20 }, (_, index) => `### 讲解 ${index + 1}\n\n模型从训练数据中学习特征与目标之间的关系。`).join("\n\n");
-const practiceQuestion = "练习：请解释监督学习中标签的作用。\n\n<details open><summary>参考思路</summary>不应提前出现的参考内容：标签是目标结果。</details>\n\n## 参考答案与解析\n不应提前出现的 Markdown 解析。";
+const lecture =
+  answer +
+  "\n\n" +
+  Array.from(
+    { length: 20 },
+    (_, index) =>
+      `### 讲解 ${index + 1}\n\n模型从训练数据中学习特征与目标之间的关系。`,
+  ).join("\n\n");
+const practiceQuestion =
+  "练习：请解释监督学习中标签的作用。\n\n<details open><summary>参考思路</summary>不应提前出现的参考内容：标签是目标结果。</details>\n\n## 参考答案与解析\n不应提前出现的 Markdown 解析。";
 const feedback = "回答正确，标签是训练样本对应的目标结果。";
-const json = (route, payload, status = 200) => route.fulfill({ status, contentType: "application/json", headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "*", "Access-Control-Allow-Methods": "*" }, body: JSON.stringify(payload) });
+const json = (route, payload, status = 200) =>
+  route.fulfill({
+    status,
+    contentType: "application/json",
+    headers: {
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Headers": "*",
+      "Access-Control-Allow-Methods": "*",
+    },
+    body: JSON.stringify(payload),
+  });
 await page.route("**/api/v1/**", async (route) => {
   const request = route.request();
   const endpoint = new URL(request.url()).pathname;
   const body = request.postDataJSON() || {};
   requests.push({ endpoint, body });
   if (request.method() === "OPTIONS") return json(route, {});
-  if (endpoint === "/api/v1/courses") return json(route, [{ id: "machine_learning", title: "机器学习", description: "模型、算法与实践", active: true, sort_order: 1, topic_count: 30, stage_count: 7, created_at: "2026-11-12T08:00:00Z", updated_at: "2026-11-12T08:00:00Z" }]);
-  if (endpoint.endsWith("/outline")) return json(route, { course: "machine_learning", title: "机器学习", recommended_topic_id: topics[0].id, groups: [{ id: "stage-1", title: "机器学习基础", parent_group_id: null, order_index: 1, topics }] });
-  if (endpoint.includes("/curriculum/topics/")) return json(route, topics.find((topic) => endpoint.endsWith(topic.id)) || topics[0]);
+  if (endpoint === "/api/v1/courses")
+    return json(route, [
+      {
+        id: "machine_learning",
+        title: "机器学习",
+        description: "模型、算法与实践",
+        active: true,
+        sort_order: 1,
+        topic_count: 30,
+        stage_count: 7,
+        created_at: "2026-11-12T08:00:00Z",
+        updated_at: "2026-11-12T08:00:00Z",
+      },
+    ]);
+  if (endpoint.endsWith("/outline"))
+    return json(route, {
+      course: "machine_learning",
+      title: "机器学习",
+      recommended_topic_id: topics[0].id,
+      groups: [
+        {
+          id: "stage-1",
+          title: "机器学习基础",
+          parent_group_id: null,
+          order_index: 1,
+          topics,
+        },
+      ],
+    });
+  if (endpoint.includes("/curriculum/topics/"))
+    return json(
+      route,
+      topics.find((topic) => endpoint.endsWith(topic.id)) || topics[0],
+    );
   if (endpoint.endsWith("/chat")) {
-    if (body.learning_mode === "free_qa") return json(route, { answer: "这是不限定课程的回答。", course: null, sources: [], retrieval_count: 0, conversation_token: body.conversation_token || "browser-free-conversation" });
-    if (body.learning_mode === "topic_practice" && practiceGate) await practiceGate;
-    return chatFailure ? json(route, { error: { code: "LLM_SERVICE_UNAVAILABLE", message: "测试服务暂不可用" } }, 502) : json(route, { answer: body.learning_mode === "topic_practice" ? practiceQuestion : body.learning_mode === "topic_answer" ? feedback : body.learning_mode === "topic_teaching" ? lecture : answer, course: "machine_learning", sources: [], retrieval_count: 0, conversation_token: `browser-topic-${body.topic_id}` });
+    if (body.learning_mode === "free_qa")
+      return json(route, {
+        answer: "这是不限定课程的回答。",
+        course: null,
+        sources: [],
+        retrieval_count: 0,
+        conversation_token:
+          body.conversation_token || "browser-free-conversation",
+      });
+    if (body.learning_mode === "topic_practice" && practiceGate)
+      await practiceGate;
+    return chatFailure
+      ? json(
+          route,
+          {
+            error: {
+              code: "LLM_SERVICE_UNAVAILABLE",
+              message: "测试服务暂不可用",
+            },
+          },
+          502,
+        )
+      : json(route, {
+          answer:
+            body.learning_mode === "topic_practice"
+              ? practiceQuestion
+              : body.learning_mode === "topic_answer"
+                ? feedback
+                : body.learning_mode === "topic_teaching"
+                  ? lecture
+                  : answer,
+          course: "machine_learning",
+          sources: [],
+          retrieval_count: 0,
+          conversation_token: `browser-topic-${body.topic_id}`,
+        });
   }
   problems.push(`Unhandled API: ${endpoint}`);
   return json(route, {}, 500);
@@ -56,47 +196,101 @@ const start = page.getByRole("button", { name: "开始学习", exact: true });
 try {
   await page.goto(`${baseUrl}/learn/machine_learning/${topics[0].id}`);
   await start.waitFor();
-  assert.equal(requests.filter((request) => request.endpoint.endsWith("/chat")).length, 0, "Opening a topic must not generate a lesson automatically");
-  assert.equal(await page.locator("#topic-tutor textarea, #topic-tutor form").count(), 0);
+  assert.equal(
+    requests.filter((request) => request.endpoint.endsWith("/chat")).length,
+    0,
+    "Opening a topic must not generate a lesson automatically",
+  );
+  assert.equal(
+    await page.locator("#topic-tutor textarea, #topic-tutor form").count(),
+    0,
+  );
   assert.equal(await page.getByRole("dialog").count(), 0);
-  for (const name of ["知识点资料", "练习与测试", "学习记录"]) assert.equal(await page.getByRole("button", { name, exact: true }).count(), 0);
-  assert(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight + 1));
+  for (const name of ["知识点资料", "练习与测试", "学习记录"])
+    assert.equal(
+      await page.getByRole("button", { name, exact: true }).count(),
+      0,
+    );
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollHeight <= innerHeight + 1,
+    ),
+  );
   await start.click();
   await page.getByRole("article", { name: "知识点讲解" }).waitFor();
   await page.getByText(answer, { exact: true }).waitFor();
-  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "自由问答", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("link", { name: "自由问答", exact: true })
+    .click();
   await page.getByRole("region", { name: "自由问答", exact: true }).waitFor();
-  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "课程学习", exact: true }).click();
-  await page.getByRole("article", { name: "知识点讲解", exact: true }).waitFor();
-  assert.equal(requests.filter((item) => item.endpoint.endsWith("/chat")).length, 1, "Navigation must restore the lecture without starting again");
-  const request = requests.find((request) => request.endpoint.endsWith("/chat"));
+  await page
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("link", { name: "课程学习", exact: true })
+    .click();
+  await page
+    .getByRole("article", { name: "知识点讲解", exact: true })
+    .waitFor();
+  assert.equal(
+    requests.filter((item) => item.endpoint.endsWith("/chat")).length,
+    1,
+    "Navigation must restore the lecture without starting again",
+  );
+  const request = requests.find((request) =>
+    request.endpoint.endsWith("/chat"),
+  );
   assert.equal(request.body.topic_id, topics[0].id);
   assert.equal(request.body.learning_mode, "topic_teaching");
-  assert.equal(request.body.message, `当前课程是机器学习，我要开始学习${topics[0].title}`);
+  assert.equal(
+    request.body.message,
+    `当前课程是机器学习，我要开始学习${topics[0].title}`,
+  );
   assert.deepEqual(request.body.history, []);
-  assert.equal(await page.getByRole("article", { name: "你的消息" }).count(), 0);
+  assert.equal(
+    await page.getByRole("article", { name: "你的消息" }).count(),
+    0,
+  );
   await page.getByRole("button", { name: "没看懂", exact: true }).click();
   const questionForm = page.getByRole("form", { name: "追问", exact: true });
   await questionForm.waitFor();
   assert.equal(await page.getByRole("dialog").count(), 0);
   await questionForm.getByRole("textbox").fill("标签是什么意思？");
   chatFailure = true;
-  await questionForm.getByRole("button", { name: "继续讲解", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "测试服务暂不可用" }).waitFor();
-  assert.equal(await questionForm.getByRole("textbox").inputValue(), "标签是什么意思？");
+  await questionForm
+    .getByRole("button", { name: "继续讲解", exact: true })
+    .click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "测试服务暂不可用" })
+    .waitFor();
+  assert.equal(
+    await questionForm.getByRole("textbox").inputValue(),
+    "标签是什么意思？",
+  );
   chatFailure = false;
-  await questionForm.getByRole("button", { name: "继续讲解", exact: true }).click();
+  await questionForm
+    .getByRole("button", { name: "继续讲解", exact: true })
+    .click();
   await page.getByRole("article", { name: "补充讲解" }).waitFor();
   await questionForm.waitFor({ state: "hidden" });
-  const clarification = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
+  const clarification = requests
+    .filter((item) => item.endpoint.endsWith("/chat"))
+    .at(-1).body;
   assert.equal(clarification.learning_mode, "topic_clarification");
   assert.equal(clarification.message, "我没看懂：标签是什么意思？");
   assert.deepEqual(clarification.history, []);
-  assert.equal(clarification.conversation_token, `browser-topic-${topics[0].id}`);
+  assert.equal(
+    clarification.conversation_token,
+    `browser-topic-${topics[0].id}`,
+  );
   chatFailure = true;
-  practiceGate = new Promise((resolve) => { releasePractice = resolve; });
+  practiceGate = new Promise((resolve) => {
+    releasePractice = resolve;
+  });
   await page.getByRole("button", { name: "做练习", exact: true }).click();
-  const pendingStatus = page.getByRole("status").filter({ hasText: "正在出题…" });
+  const pendingStatus = page
+    .getByRole("status")
+    .filter({ hasText: "正在出题…" });
   await pendingStatus.waitFor();
   await page.waitForFunction(() => {
     const status = document.querySelector('#topic-tutor [role="status"]');
@@ -104,110 +298,263 @@ try {
     const bounds = status.getBoundingClientRect();
     return bounds.top >= 0 && bounds.bottom <= innerHeight;
   });
-  assert.equal(await page.getByRole("article", { name: "等待课程助手回复" }).count(), 1);
-  assert.equal(await page.locator("#topic-tutor").getByText(/^当前课程是/).count(), 0);
-  releasePractice(); practiceGate = null;
-  await page.getByRole("alert").filter({ hasText: "测试服务暂不可用" }).waitFor();
+  assert.equal(
+    await page.getByRole("article", { name: "等待课程助手回复" }).count(),
+    1,
+  );
+  assert.equal(
+    await page
+      .locator("#topic-tutor")
+      .getByText(/^当前课程是/)
+      .count(),
+    0,
+  );
+  releasePractice();
+  practiceGate = null;
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "测试服务暂不可用" })
+    .waitFor();
   chatFailure = false;
   await page.getByRole("button", { name: "重试", exact: true }).click();
   await page.getByRole("article", { name: "练习题", exact: true }).waitFor();
-  const exerciseForm = page.getByRole("form", { name: "练习作答", exact: true });
+  const exerciseForm = page.getByRole("form", {
+    name: "练习作答",
+    exact: true,
+  });
   await exerciseForm.waitFor();
   assert.equal(await page.getByRole("dialog").count(), 0);
-  const practiceRequest = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
-  assert.equal(practiceRequest.message, `当前课程是机器学习，我要做${topics[0].title}的练习。请只出题，不要给答案或解析，等我提交答案后再评价。`);
+  const practiceRequest = requests
+    .filter((item) => item.endpoint.endsWith("/chat"))
+    .at(-1).body;
+  assert.equal(
+    practiceRequest.message,
+    `当前课程是机器学习，我要做${topics[0].title}的练习。请只出题，不要给答案或解析，等我提交答案后再评价。`,
+  );
   assert.deepEqual(practiceRequest.history, []);
-  assert.equal(practiceRequest.conversation_token, clarification.conversation_token);
-  assert.equal(requests.filter((item) => item.endpoint.includes("/practice/sets")).length, 0);
+  assert.equal(
+    practiceRequest.conversation_token,
+    clarification.conversation_token,
+  );
+  assert.equal(
+    requests.filter((item) => item.endpoint.includes("/practice/sets")).length,
+    0,
+  );
   assert.equal(await page.getByText(/不应提前出现/).count(), 0);
-  assert.equal(await page.locator('details[aria-label="练习参考答案"]').count(), 0);
-  assert.equal(await page.locator("#topic-tutor").getByText(/^当前课程是/).count(), 0);
+  assert.equal(
+    await page.locator('details[aria-label="练习参考答案"]').count(),
+    0,
+  );
+  assert.equal(
+    await page
+      .locator("#topic-tutor")
+      .getByText(/^当前课程是/)
+      .count(),
+    0,
+  );
   await exerciseForm.getByRole("textbox").fill("标签是样本的目标结果。");
-  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "自由问答", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("link", { name: "自由问答", exact: true })
+    .click();
   await page.getByRole("region", { name: "自由问答", exact: true }).waitFor();
-  await page.getByRole("navigation", { name: "主导航" }).getByRole("link", { name: "课程学习", exact: true }).click();
+  await page
+    .getByRole("navigation", { name: "主导航" })
+    .getByRole("link", { name: "课程学习", exact: true })
+    .click();
   await exerciseForm.waitFor();
-  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
+  assert.equal(
+    await exerciseForm.getByRole("textbox").inputValue(),
+    "标签是样本的目标结果。",
+  );
   await page.reload();
   await exerciseForm.waitFor();
-  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
-  assert.equal(await page.getByRole("article", { name: "练习题", exact: true }).count(), 1);
+  assert.equal(
+    await exerciseForm.getByRole("textbox").inputValue(),
+    "标签是样本的目标结果。",
+  );
+  assert.equal(
+    await page.getByRole("article", { name: "练习题", exact: true }).count(),
+    1,
+  );
   assert.equal(await page.getByText(/不应提前出现/).count(), 0);
   await exerciseForm.getByRole("button", { name: "收起", exact: true }).click();
   await page.getByRole("button", { name: "继续作答", exact: true }).click();
-  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
+  assert.equal(
+    await exerciseForm.getByRole("textbox").inputValue(),
+    "标签是样本的目标结果。",
+  );
   chatFailure = true;
-  await exerciseForm.getByRole("button", { name: "提交答案", exact: true }).click();
-  await page.getByRole("alert").filter({ hasText: "测试服务暂不可用" }).waitFor();
-  assert.equal(await exerciseForm.getByRole("textbox").inputValue(), "标签是样本的目标结果。");
+  await exerciseForm
+    .getByRole("button", { name: "提交答案", exact: true })
+    .click();
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "测试服务暂不可用" })
+    .waitFor();
+  assert.equal(
+    await exerciseForm.getByRole("textbox").inputValue(),
+    "标签是样本的目标结果。",
+  );
   assert.equal(await page.getByText(/不应提前出现/).count(), 0);
   chatFailure = false;
-  await exerciseForm.getByRole("button", { name: "提交答案", exact: true }).click();
+  await exerciseForm
+    .getByRole("button", { name: "提交答案", exact: true })
+    .click();
   await page.getByRole("article", { name: "作答反馈", exact: true }).waitFor();
   const reference = page.locator('details[aria-label="练习参考答案"]');
   assert.equal(await reference.getAttribute("open"), null);
   await reference.getByText("查看参考答案与解析", { exact: true }).click();
   await reference.getByText(/不应提前出现的参考内容/).waitFor();
   await reference.getByText(/不应提前出现的 Markdown 解析/).waitFor();
-  assert.equal(requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body.message, "我的答案是：标签是样本的目标结果。");
+  assert.equal(
+    requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body
+      .message,
+    "我的答案是：标签是样本的目标结果。",
+  );
   assert.equal(await page.locator("#topic-tutor textarea").count(), 0);
-  await page.getByRole("link", { name: `下一个：${topics[1].title}`, exact: true }).click();
-  await page.getByRole("heading", { name: topics[1].title, exact: true }).waitFor();
+  await page
+    .getByRole("link", { name: `下一个：${topics[1].title}`, exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: topics[1].title, exact: true })
+    .waitFor();
   await start.waitFor();
-  assert.equal(await page.getByText(answer, { exact: true }).count(), 0, "Topics must have independent lectures");
+  assert.equal(
+    await page.getByText(answer, { exact: true }).count(),
+    0,
+    "Topics must have independent lectures",
+  );
   chatFailure = true;
   await start.click();
-  await page.getByRole("alert").filter({ hasText: "测试服务暂不可用" }).waitFor();
-  assert.equal(await page.getByRole("article", { name: "知识点讲解" }).count(), 0);
+  await page
+    .getByRole("alert")
+    .filter({ hasText: "测试服务暂不可用" })
+    .waitFor();
+  assert.equal(
+    await page.getByRole("article", { name: "知识点讲解" }).count(),
+    0,
+  );
   chatFailure = false;
   await start.click();
   await page.getByText(answer, { exact: true }).waitFor();
-  assert.equal(requests.filter((request) => request.endpoint.endsWith("/chat")).at(-1).body.topic_id, topics[1].id);
-  const artifacts = path.resolve(".browser-artifacts"); await mkdir(artifacts, { recursive: true });
-  await page.screenshot({ path: path.join(artifacts, "topic-learning-desktop.png") });
+  assert.equal(
+    requests.filter((request) => request.endpoint.endsWith("/chat")).at(-1).body
+      .topic_id,
+    topics[1].id,
+  );
+  const artifacts = path.resolve(".browser-artifacts");
+  await mkdir(artifacts, { recursive: true });
+  await page.screenshot({
+    path: path.join(artifacts, "topic-learning-desktop.png"),
+  });
   await page.setViewportSize({ width: 390, height: 844 });
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   assert.equal(await page.locator("#topic-tutor textarea:visible").count(), 0);
   await page.getByRole("button", { name: "没看懂", exact: true }).click();
   await questionForm.waitFor();
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth));
+  assert(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   await questionForm.getByRole("button", { name: "收起", exact: true }).click();
   await page.getByRole("button", { name: "☰ 课程目录", exact: true }).click();
-  await page.getByRole("button", { name: "关闭课程目录", exact: true }).waitFor();
+  await page
+    .getByRole("button", { name: "关闭课程目录", exact: true })
+    .waitFor();
   await page.keyboard.press("Escape");
-  await page.screenshot({ path: path.join(artifacts, "topic-learning-mobile.png") });
+  await page.screenshot({
+    path: path.join(artifacts, "topic-learning-mobile.png"),
+  });
   assert.deepEqual(problems, []);
   await page.goto(`${baseUrl}/?view=chat`);
   await page.getByRole("button", { name: "打开对话历史", exact: true }).click();
-  const historyDialog = page.getByRole("dialog", { name: "对话历史", exact: true });
+  const historyDialog = page.getByRole("dialog", {
+    name: "对话历史",
+    exact: true,
+  });
   await historyDialog.getByRole("button", { name: /保留的旧对话一/ }).waitFor();
   await historyDialog.getByRole("button", { name: /保留的旧对话二/ }).waitFor();
-  await historyDialog.getByRole("button", { name: "新建对话", exact: true }).click();
-  await page.getByRole("heading", { name: "有什么想聊的？", exact: true }).waitFor();
-  await page.getByRole("textbox", { name: "你的问题", exact: true }).fill("请解释梯度和导数的关系");
+  await historyDialog
+    .getByRole("button", { name: "新建对话", exact: true })
+    .click();
+  await page
+    .getByRole("heading", { name: "有什么想聊的？", exact: true })
+    .waitFor();
+  await page
+    .getByRole("textbox", { name: "你的问题", exact: true })
+    .fill("请解释梯度和导数的关系");
   await page.getByRole("button", { name: "发送问题", exact: true }).click();
   await page.getByRole("article", { name: "AI 回答", exact: true }).waitFor();
-  const freeRequest = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
+  const freeRequest = requests
+    .filter((item) => item.endpoint.endsWith("/chat"))
+    .at(-1).body;
   assert.equal(freeRequest.course, undefined);
   assert.equal(freeRequest.topic_id, undefined);
-  await page.getByRole("textbox", { name: "你的问题", exact: true }).fill("再举一个例子");
+  await page
+    .getByRole("textbox", { name: "你的问题", exact: true })
+    .fill("再举一个例子");
   await page.getByRole("button", { name: "发送问题", exact: true }).click();
-  await page.waitForFunction(() => document.querySelectorAll('article[aria-label="AI 回答"]').length === 2);
-  const followup = requests.filter((item) => item.endpoint.endsWith("/chat")).at(-1).body;
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('article[aria-label="AI 回答"]').length === 2,
+  );
+  const followup = requests
+    .filter((item) => item.endpoint.endsWith("/chat"))
+    .at(-1).body;
   assert.equal(followup.conversation_token, "browser-free-conversation");
   assert.deepEqual(followup.history, []);
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1));
-  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem("course-coach:chat-state:v1")));
+  assert(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= innerWidth &&
+        document.documentElement.scrollHeight <= innerHeight + 1,
+    ),
+  );
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("course-coach:chat-state:v1")),
+  );
   assert.equal("selectedCourse" in saved, false);
-  assert(saved.conversations.every((conversation) => !("course" in conversation)));
-  assert(saved.conversations.some((conversation) => conversation.id === "legacy-ml"));
+  assert(
+    saved.conversations.every((conversation) => !("course" in conversation)),
+  );
+  assert(
+    saved.conversations.some((conversation) => conversation.id === "legacy-ml"),
+  );
   await page.reload();
-  await page.waitForFunction(() => document.querySelectorAll('article[aria-label="AI 回答"]').length === 2);
+  await page.waitForFunction(
+    () =>
+      document.querySelectorAll('article[aria-label="AI 回答"]').length === 2,
+  );
   await page.setViewportSize({ width: 1440, height: 1000 });
-  await page.getByRole("complementary", { name: "对话历史", exact: true }).waitFor();
-  assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && document.documentElement.scrollHeight <= innerHeight + 1));
-  await page.screenshot({ path: path.join(artifacts, "free-chat-desktop.png") });
+  await page
+    .getByRole("complementary", { name: "对话历史", exact: true })
+    .waitFor();
+  assert(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <= innerWidth &&
+        document.documentElement.scrollHeight <= innerHeight + 1,
+    ),
+  );
+  await page.screenshot({
+    path: path.join(artifacts, "free-chat-desktop.png"),
+  });
   assert.deepEqual(problems, []);
-  assert.equal(requests.filter((item) => /\/(lesson|examples|history|assessments)(\/|$)/.test(item.endpoint)).length, 0);
-  process.stdout.write("PASS removed tools, no background test restoration, real clicks, visible practice loading after long lecture, inline questions and answers, retry, draft preservation, topic scope and mobile layout. All API calls mocked.\n");
-} finally { await browser.close(); }
+  assert.equal(
+    requests.filter((item) =>
+      /\/(lesson|examples|history|assessments)(\/|$)/.test(item.endpoint),
+    ).length,
+    0,
+  );
+  process.stdout.write(
+    "PASS removed tools, no background test restoration, real clicks, visible practice loading after long lecture, inline questions and answers, retry, draft preservation, topic scope and mobile layout. All API calls mocked.\n",
+  );
+} finally {
+  await browser.close();
+}

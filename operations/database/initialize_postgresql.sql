@@ -55,6 +55,13 @@ INSERT INTO courses(id, title, description, sort_order) VALUES
     ('probability_statistics', '概率论与统计基础', '概率、分布与统计', 4)
 ON CONFLICT (id) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS course_chapters (
+    course_id TEXT NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+    stage INTEGER NOT NULL CHECK (stage > 0),
+    title TEXT NOT NULL CHECK (length(btrim(title)) BETWEEN 1 AND 100),
+    PRIMARY KEY(course_id, stage)
+);
+
 CREATE TABLE IF NOT EXISTS curriculum_topics (
     id TEXT PRIMARY KEY,
     course TEXT NOT NULL REFERENCES courses(id),

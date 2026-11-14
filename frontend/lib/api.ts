@@ -57,7 +57,11 @@ function errorMessage(payload: unknown, fallback: string): string {
   };
   if (typeof body.error?.message === "string") return body.error.message;
   if (typeof body.detail === "string") return body.detail;
-  if (body.detail && typeof body.detail === "object" && "message" in body.detail) {
+  if (
+    body.detail &&
+    typeof body.detail === "object" &&
+    "message" in body.detail
+  ) {
     const message = (body.detail as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
@@ -89,7 +93,8 @@ export async function request<T>(
       },
     });
   } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") throw error;
+    if (error instanceof DOMException && error.name === "AbortError")
+      throw error;
     throw new ApiError("无法连接课程服务，请确认后端已经启动。", 0);
   }
 
@@ -125,10 +130,17 @@ function studentHeaders(studentId: string): HeadersInit {
 }
 
 export function isStudentNotFound(error: unknown): boolean {
-  return error instanceof ApiError && error.code?.toUpperCase() === "STUDENT_NOT_FOUND";
+  return (
+    error instanceof ApiError &&
+    error.code?.toUpperCase() === "STUDENT_NOT_FOUND"
+  );
 }
 
-export function registerStudent(payload: { username: string; password: string; display_name: string }): Promise<AuthenticatedStudent> {
+export function registerStudent(payload: {
+  username: string;
+  password: string;
+  display_name: string;
+}): Promise<AuthenticatedStudent> {
   return request<AuthenticatedStudent>("/api/v1/students/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -136,7 +148,10 @@ export function registerStudent(payload: { username: string; password: string; d
   });
 }
 
-export function loginStudent(payload: { username: string; password: string }): Promise<AuthenticatedStudent> {
+export function loginStudent(payload: {
+  username: string;
+  password: string;
+}): Promise<AuthenticatedStudent> {
   return request<AuthenticatedStudent>("/api/v1/students/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -151,7 +166,12 @@ export function logoutStudent(accessToken: string): Promise<void> {
   });
 }
 
-export function registerAdmin(payload: { username: string; password: string; display_name: string; authcode: string }): Promise<AuthenticatedAdmin> {
+export function registerAdmin(payload: {
+  username: string;
+  password: string;
+  display_name: string;
+  authcode: string;
+}): Promise<AuthenticatedAdmin> {
   return request<AuthenticatedAdmin>("/api/v1/admins/register", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -159,7 +179,10 @@ export function registerAdmin(payload: { username: string; password: string; dis
   });
 }
 
-export function loginAdmin(payload: { username: string; password: string }): Promise<AuthenticatedAdmin> {
+export function loginAdmin(payload: {
+  username: string;
+  password: string;
+}): Promise<AuthenticatedAdmin> {
   return request<AuthenticatedAdmin>("/api/v1/admins/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -167,41 +190,86 @@ export function loginAdmin(payload: { username: string; password: string }): Pro
   });
 }
 
-export function getCurrentAdmin(token: string, signal?: AbortSignal): Promise<Administrator> {
-  return request<Administrator>("/api/v1/admins/me", { headers: studentHeaders(token), signal });
+export function getCurrentAdmin(
+  token: string,
+  signal?: AbortSignal,
+): Promise<Administrator> {
+  return request<Administrator>("/api/v1/admins/me", {
+    headers: studentHeaders(token),
+    signal,
+  });
 }
 
 export function logoutAdmin(token: string): Promise<void> {
-  return request<void>("/api/v1/admins/logout", { method: "POST", headers: studentHeaders(token) });
+  return request<void>("/api/v1/admins/logout", {
+    method: "POST",
+    headers: studentHeaders(token),
+  });
 }
 
 export function getCourses(signal?: AbortSignal): Promise<CourseRecord[]> {
   return request<CourseRecord[]>("/api/v1/courses", { signal });
 }
 
-export function getAdminCourses(token: string, filters: { q: string; status: string; page: number }, signal?: AbortSignal): Promise<CourseList> {
-  const params = new URLSearchParams({ q: filters.q, status: filters.status, page: String(filters.page), page_size: "20" });
-  return request<CourseList>(`/api/v1/admin/courses?${params}`, { headers: studentHeaders(token), signal });
+export function getAdminCourses(
+  token: string,
+  filters: { q: string; status: string; page: number },
+  signal?: AbortSignal,
+): Promise<CourseList> {
+  const params = new URLSearchParams({
+    q: filters.q,
+    status: filters.status,
+    page: String(filters.page),
+    page_size: "20",
+  });
+  return request<CourseList>(`/api/v1/admin/courses?${params}`, {
+    headers: studentHeaders(token),
+    signal,
+  });
 }
 
-export function getAdminCourse(token: string, id: string, signal?: AbortSignal): Promise<CourseDetail> {
-  return request<CourseDetail>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { headers: studentHeaders(token), signal });
+export function getAdminCourse(
+  token: string,
+  id: string,
+  signal?: AbortSignal,
+): Promise<CourseDetail> {
+  return request<CourseDetail>(
+    `/api/v1/admin/courses/${encodeURIComponent(id)}`,
+    { headers: studentHeaders(token), signal },
+  );
 }
 
-export function createCourse(token: string, payload: CourseInput): Promise<CourseRecord> {
+export function createCourse(
+  token: string,
+  payload: CourseInput,
+): Promise<CourseRecord> {
   return request<CourseRecord>("/api/v1/admin/courses", {
-    method: "POST", headers: { "Content-Type": "application/json", ...studentHeaders(token) }, body: JSON.stringify(payload),
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...studentHeaders(token) },
+    body: JSON.stringify(payload),
   });
 }
 
-export function updateCourse(token: string, id: string, payload: Omit<CourseInput, "id">): Promise<CourseRecord> {
-  return request<CourseRecord>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, {
-    method: "PATCH", headers: { "Content-Type": "application/json", ...studentHeaders(token) }, body: JSON.stringify(payload),
-  });
+export function updateCourse(
+  token: string,
+  id: string,
+  payload: Omit<CourseInput, "id">,
+): Promise<CourseRecord> {
+  return request<CourseRecord>(
+    `/api/v1/admin/courses/${encodeURIComponent(id)}`,
+    {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", ...studentHeaders(token) },
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export function deleteCourse(token: string, id: string): Promise<void> {
-  return request<void>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, { method: "DELETE", headers: studentHeaders(token) });
+  return request<void>(`/api/v1/admin/courses/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+    headers: studentHeaders(token),
+  });
 }
 
 export function getCurriculum(
@@ -222,19 +290,34 @@ function normalizeTopic(payload: unknown): CurriculumTopic {
         const dimension = asRecord(item);
         return {
           dimension: String(dimension.dimension ?? ""),
-          label: typeof dimension.label === "string" ? dimension.label : undefined,
-          mastery: typeof dimension.mastery === "number" ? dimension.mastery : null,
-          confidence: typeof dimension.confidence === "number" ? dimension.confidence : null,
-          evidence_count: typeof dimension.evidence_count === "number" ? dimension.evidence_count : 0,
+          label:
+            typeof dimension.label === "string" ? dimension.label : undefined,
+          mastery:
+            typeof dimension.mastery === "number" ? dimension.mastery : null,
+          confidence:
+            typeof dimension.confidence === "number"
+              ? dimension.confidence
+              : null,
+          evidence_count:
+            typeof dimension.evidence_count === "number"
+              ? dimension.evidence_count
+              : 0,
         };
       })
     : Object.entries(asRecord(rawDimensions)).map(([name, value]) => {
         const dimension = asRecord(value);
         return {
           dimension: name,
-          mastery: typeof dimension.mastery === "number" ? dimension.mastery : null,
-          confidence: typeof dimension.confidence === "number" ? dimension.confidence : null,
-          evidence_count: typeof dimension.evidence_count === "number" ? dimension.evidence_count : 0,
+          mastery:
+            typeof dimension.mastery === "number" ? dimension.mastery : null,
+          confidence:
+            typeof dimension.confidence === "number"
+              ? dimension.confidence
+              : null,
+          evidence_count:
+            typeof dimension.evidence_count === "number"
+              ? dimension.evidence_count
+              : 0,
         };
       });
   return {
@@ -244,24 +327,34 @@ function normalizeTopic(payload: unknown): CurriculumTopic {
     title: String(body.title ?? ""),
     stage: Number(body.stage ?? 0),
     stage_title: String(body.stage_title ?? ""),
-    order_index: typeof body.order_index === "number" ? body.order_index : undefined,
-    description: typeof body.description === "string" ? body.description : undefined,
+    order_index:
+      typeof body.order_index === "number" ? body.order_index : undefined,
+    description:
+      typeof body.description === "string" ? body.description : undefined,
     learning_objectives: strings(body.learning_objectives),
     aliases: strings(body.aliases),
     retrieval_keywords: strings(body.retrieval_keywords),
     difficulty: String(body.difficulty ?? "medium"),
     required_dimensions: strings(body.required_dimensions),
-    status: (typeof body.status === "string" ? body.status : "not_started") as CurriculumTopic["status"],
+    status: (typeof body.status === "string"
+      ? body.status
+      : "not_started") as CurriculumTopic["status"],
     mastery: typeof body.mastery === "number" ? body.mastery : null,
-    mastery_display: typeof body.mastery_display === "string" ? body.mastery_display : null,
+    mastery_display:
+      typeof body.mastery_display === "string" ? body.mastery_display : null,
     confidence: typeof body.confidence === "number" ? body.confidence : null,
-    evidence_count: typeof body.evidence_count === "number" ? body.evidence_count : undefined,
-    attempt_count: typeof body.attempt_count === "number" ? body.attempt_count : undefined,
-    latest_score: typeof body.latest_score === "number" ? body.latest_score : null,
+    evidence_count:
+      typeof body.evidence_count === "number" ? body.evidence_count : undefined,
+    attempt_count:
+      typeof body.attempt_count === "number" ? body.attempt_count : undefined,
+    latest_score:
+      typeof body.latest_score === "number" ? body.latest_score : null,
     dimensions,
     active: typeof body.active === "boolean" ? body.active : undefined,
-    created_at: typeof body.created_at === "string" ? body.created_at : undefined,
-    updated_at: typeof body.updated_at === "string" ? body.updated_at : undefined,
+    created_at:
+      typeof body.created_at === "string" ? body.created_at : undefined,
+    updated_at:
+      typeof body.updated_at === "string" ? body.updated_at : undefined,
   };
 }
 
@@ -296,30 +389,48 @@ export async function getLearningDashboard(
     mastered_count: Number(body.mastered_count ?? 0),
     learning_count: Number(body.learning_count ?? 0),
     not_started_count: Number(body.not_started_count ?? 0),
-    current_topic: body.current_topic && typeof body.current_topic === "object"
-      ? body.current_topic as LearningDashboard["current_topic"]
-      : null,
-    recommended_topic_id: typeof body.recommended_topic_id === "string" ? body.recommended_topic_id : null,
-    next_action: typeof body.next_action === "string" ? body.next_action : "start_learning",
+    current_topic:
+      body.current_topic && typeof body.current_topic === "object"
+        ? (body.current_topic as LearningDashboard["current_topic"])
+        : null,
+    recommended_topic_id:
+      typeof body.recommended_topic_id === "string"
+        ? body.recommended_topic_id
+        : null,
+    next_action:
+      typeof body.next_action === "string"
+        ? body.next_action
+        : "start_learning",
     reasons: strings(body.reasons),
     recent_practice: rawRecent.map((item) => {
       const attempt = asRecord(item);
       return {
         id: typeof attempt.id === "string" ? attempt.id : undefined,
-        attempt_id: typeof attempt.attempt_id === "string" ? attempt.attempt_id : undefined,
+        attempt_id:
+          typeof attempt.attempt_id === "string"
+            ? attempt.attempt_id
+            : undefined,
         topic_id: String(attempt.topic_id ?? ""),
-        topic_title: String(attempt.topic_title ?? attempt.title ?? attempt.topic_id ?? "练习记录"),
+        topic_title: String(
+          attempt.topic_title ??
+            attempt.title ??
+            attempt.topic_id ??
+            "练习记录",
+        ),
         mode: attempt.mode === "checkpoint" ? "checkpoint" : "practice",
-        score: typeof attempt.score === "number"
-          ? attempt.score
-          : typeof attempt.total_score === "number"
-            ? attempt.total_score
-            : null,
+        score:
+          typeof attempt.score === "number"
+            ? attempt.score
+            : typeof attempt.total_score === "number"
+              ? attempt.total_score
+              : null,
         status: typeof attempt.status === "string" ? attempt.status : undefined,
         created_at: String(attempt.created_at ?? attempt.submitted_at ?? ""),
       };
     }),
-    stages: Array.isArray(body.stages) ? body.stages as LearningDashboard["stages"] : [],
+    stages: Array.isArray(body.stages)
+      ? (body.stages as LearningDashboard["stages"])
+      : [],
   };
 }
 
@@ -332,11 +443,15 @@ export async function startTopic(
     { method: "POST", headers: studentHeaders(studentId) },
   );
   const body = asRecord(response);
-  return normalizeTopic(body.topic && typeof body.topic === "object" ? body.topic : body);
+  return normalizeTopic(
+    body.topic && typeof body.topic === "object" ? body.topic : body,
+  );
 }
 
 function asRecord(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object"
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function strings(value: unknown): string[] {
@@ -345,7 +460,10 @@ function strings(value: unknown): string[] {
     : [];
 }
 
-export function getCourseOutline(course: Course, studentId?: string): Promise<CourseOutline> {
+export function getCourseOutline(
+  course: Course,
+  studentId?: string,
+): Promise<CourseOutline> {
   return request<CourseOutline>(
     `/api/v1/courses/${encodeURIComponent(course)}/outline`,
     studentId ? { headers: studentHeaders(studentId) } : {},

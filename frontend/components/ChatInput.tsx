@@ -13,7 +13,13 @@ interface ChatInputProps {
   onStop?: () => void;
 }
 
-export default function ChatInput({ onSend, disabled = false, placeholder, isLoading = false, onStop }: ChatInputProps) {
+export default function ChatInput({
+  onSend,
+  disabled = false,
+  placeholder,
+  isLoading = false,
+  onStop,
+}: ChatInputProps) {
   const [value, setValue] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -26,7 +32,11 @@ export default function ChatInput({ onSend, disabled = false, placeholder, isLoa
   }
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
-    if (event.key === "Enter" && !event.shiftKey && !event.nativeEvent.isComposing) {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.nativeEvent.isComposing
+    ) {
       event.preventDefault();
       submit();
     }
@@ -59,12 +69,20 @@ export default function ChatInput({ onSend, disabled = false, placeholder, isLoa
             className="mb-1 grid size-10 shrink-0 place-items-center rounded-xl bg-indigo-600 text-white transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400"
             aria-label={isLoading ? "停止生成" : "发送问题"}
           >
-            {isLoading ? <span className="size-3 rounded-sm bg-current" /> : <ArrowUpIcon className="size-5" />}
+            {isLoading ? (
+              <span className="size-3 rounded-sm bg-current" />
+            ) : (
+              <ArrowUpIcon className="size-5" />
+            )}
           </button>
         </div>
         <div className="flex items-center justify-between px-3 pb-1 pt-1 text-[11px] text-slate-400">
           <span>Enter 发送 · Shift + Enter 换行</span>
-          {value.length > MAX_LENGTH * 0.8 && <span>{value.length}/{MAX_LENGTH}</span>}
+          {value.length > MAX_LENGTH * 0.8 && (
+            <span>
+              {value.length}/{MAX_LENGTH}
+            </span>
+          )}
         </div>
       </div>
     </div>

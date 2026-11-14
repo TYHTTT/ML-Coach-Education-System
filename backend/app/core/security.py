@@ -1,4 +1,5 @@
 """Password and opaque session-token hashing shared by account types."""
+
 import hashlib
 import hmac
 import secrets
@@ -15,7 +16,9 @@ def verify_password(password: str, encoded: str) -> bool:
         algorithm, rounds, salt_hex, digest_hex = encoded.split("$", 3)
         if algorithm != "pbkdf2_sha256":
             return False
-        calculated = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(rounds))
+        calculated = hashlib.pbkdf2_hmac(
+            "sha256", password.encode("utf-8"), bytes.fromhex(salt_hex), int(rounds)
+        )
         return hmac.compare_digest(calculated.hex(), digest_hex)
     except (TypeError, ValueError):
         return False

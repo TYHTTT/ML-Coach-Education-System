@@ -21,12 +21,20 @@ export const viewport: Viewport = {
   themeColor: "#f6f8fc",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
+export default function RootLayout({
+  children,
+}: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="zh-CN">
       <body>
         <ThemeProvider>
-          <AdminProvider><StudentProvider><AuthGate><TopicSessionsProvider>{children}</TopicSessionsProvider></AuthGate></StudentProvider></AdminProvider>
+          <AdminProvider>
+            <StudentProvider>
+              <AuthGate>
+                <TopicSessionsProvider>{children}</TopicSessionsProvider>
+              </AuthGate>
+            </StudentProvider>
+          </AdminProvider>
         </ThemeProvider>
       </body>
     </html>

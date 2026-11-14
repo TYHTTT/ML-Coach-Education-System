@@ -31,7 +31,9 @@ class UpdateCourseRequest(BaseModel):
 
     @model_validator(mode="after")
     def check_update(self):
-        if not self.model_fields_set or any(getattr(self, name) is None for name in self.model_fields_set):
+        if not self.model_fields_set or any(
+            getattr(self, name) is None for name in self.model_fields_set
+        ):
             raise ValueError("请提供需要修改的课程信息，字段不能为 null")
         if self.title is not None:
             if not self.title.strip():

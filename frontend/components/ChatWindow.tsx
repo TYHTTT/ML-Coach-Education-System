@@ -14,7 +14,11 @@ interface ChatWindowProps {
 
 function ThinkingIndicator() {
   return (
-    <div className="flex animate-fade-up items-start gap-3" role="status" aria-label="正在整理回答">
+    <div
+      className="flex animate-fade-up items-start gap-3"
+      role="status"
+      aria-label="正在整理回答"
+    >
       <div className="mt-0.5 hidden size-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 text-white shadow-sm sm:grid">
         <SparklesIcon className="size-4.5" />
       </div>
@@ -69,8 +73,18 @@ export default function ChatWindow({
                 onClick={() => onExample(question)}
                 className="group rounded-xl border border-slate-200/80 bg-white p-4 text-left text-sm leading-6 transition hover:border-indigo-300 hover:bg-indigo-50/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
               >
-                <span className="block text-xs font-medium text-slate-400">{title}</span>
-                <span className="mt-1 block text-slate-700">{question}<span className="ml-2 inline-block text-indigo-400" aria-hidden="true">↗</span></span>
+                <span className="block text-xs font-medium text-slate-400">
+                  {title}
+                </span>
+                <span className="mt-1 block text-slate-700">
+                  {question}
+                  <span
+                    className="ml-2 inline-block text-indigo-400"
+                    aria-hidden="true"
+                  >
+                    ↗
+                  </span>
+                </span>
               </button>
             ))}
           </div>
@@ -80,7 +94,10 @@ export default function ChatWindow({
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-8 px-4 py-7 sm:px-6 sm:py-9" aria-live="polite">
+    <div
+      className="mx-auto w-full max-w-3xl space-y-8 px-4 py-7 sm:px-6 sm:py-9"
+      aria-live="polite"
+    >
       {messages.map((message) => (
         <ChatMessage key={message.id} message={message} />
       ))}

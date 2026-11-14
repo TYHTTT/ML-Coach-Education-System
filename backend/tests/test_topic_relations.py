@@ -125,12 +125,12 @@ def test_relation_schema_migration_preserves_old_rows_and_existing_edges(api, mo
     monkeypatch.setattr(migration, "_create_backup", backup)
     with app.state.learning_repository._connect() as connection:
         connection.execute("DROP TABLE topic_relations")
-    assert migration.enable_topic_relations(url)["retained_tables"] == 14
+    assert migration.enable_topic_relations(url)["retained_tables"] == 15
     client.post("/api/v1/admin/courses", headers=headers, json=COURSE)
     a = create(client, headers, "位置", related_topic_ids=["la.vectors"])
     with psycopg.connect(url, row_factory=dict_row) as connection:
         before = migration._retained_snapshot(connection)
-    assert migration.enable_topic_relations(url)["retained_tables"] == 15
+    assert migration.enable_topic_relations(url)["retained_tables"] == 16
     with psycopg.connect(url, row_factory=dict_row) as connection:
         assert migration._retained_snapshot(connection) == before
     assert point(client, headers, a)["related_topic_ids"] == ["la.vectors"]

@@ -6,7 +6,9 @@ class AppError(Exception):
     code = "internal_error"
     public_message = "服务器暂时无法处理请求"
 
-    def __init__(self, message: str | None = None, *, internal_message: str | None = None) -> None:
+    def __init__(
+        self, message: str | None = None, *, internal_message: str | None = None
+    ) -> None:
         super().__init__(internal_message or message or self.public_message)
         self.message = message or self.public_message
         self.internal_message = internal_message or self.message

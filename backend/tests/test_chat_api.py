@@ -307,6 +307,7 @@ def test_openapi_exposes_only_current_features(api):
         "/api/v1/admin/courses/{course_id}/topics",
         "/api/v1/admin/courses/{course_id}/topics/order",
         "/api/v1/admin/courses/{course_id}/topics/groups/{stage}",
+        "/api/v1/admin/courses/{course_id}/topics/groups",
         "/api/v1/admin/courses/{course_id}/topics/groups/order",
         "/api/v1/admin/courses/{course_id}/topics/{topic_id}",
         "/api/v1/curriculum/topics", "/api/v1/curriculum/topics/{topic_id}",

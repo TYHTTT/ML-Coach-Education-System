@@ -85,7 +85,12 @@ export function loadChatState(): StoredChatState {
         createdAt: conversation.createdAt,
         updatedAt: conversation.updatedAt,
         // A legacy token may be course-scoped; rebuild context from its transcript.
-        conversationToken: "course" in conversation ? undefined : typeof conversation.conversationToken === "string" ? conversation.conversationToken : undefined,
+        conversationToken:
+          "course" in conversation
+            ? undefined
+            : typeof conversation.conversationToken === "string"
+              ? conversation.conversationToken
+              : undefined,
         messages: conversation.messages.slice(-MAX_MESSAGES_PER_CONVERSATION),
       }))
       .slice(0, MAX_CONVERSATIONS);
@@ -112,7 +117,8 @@ export function saveChatState(state: StoredChatState): void {
     const sorted = [...state.conversations]
       .sort(
         (left, right) =>
-          new Date(right.updatedAt).getTime() - new Date(left.updatedAt).getTime(),
+          new Date(right.updatedAt).getTime() -
+          new Date(left.updatedAt).getTime(),
       )
       .slice(0, MAX_CONVERSATIONS)
       .map((conversation) => ({

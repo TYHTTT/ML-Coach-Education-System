@@ -56,7 +56,7 @@ def test_migration_removes_all_foreign_placements_and_keeps_topics_history_and_o
     with psycopg.connect(url, row_factory=dict_row) as connection:
         before = migration.snapshot(connection)
     result = migration.remove_course_references(url, apply=True)
-    assert result["applied"] and Path(result["backup"]).is_file() and result["retained_tables"] == 15
+    assert result["applied"] and Path(result["backup"]).is_file() and result["retained_tables"] == 16
     with psycopg.connect(url, row_factory=dict_row) as connection:
         assert migration.snapshot(connection) == before
         assert migration.inspect(connection) == {"pending": 0, "reference_column": False, "ownership_constraint": True}

@@ -44,8 +44,12 @@ class CurriculumSeed(BaseModel):
 
     @model_validator(mode="after")
     def validate_stable_identifiers(self) -> "CurriculumSeed":
-        prefix = {Course.MACHINE_LEARNING: "ml.", Course.ADVANCED_MATHEMATICS: "math.",
-                  Course.LINEAR_ALGEBRA: "la.", Course.PROBABILITY_STATISTICS: "prob."}.get(self.course, self.course.value + ".")
+        prefix = {
+            Course.MACHINE_LEARNING: "ml.",
+            Course.ADVANCED_MATHEMATICS: "math.",
+            Course.LINEAR_ALGEBRA: "la.",
+            Course.PROBABILITY_STATISTICS: "prob.",
+        }.get(self.course, self.course.value + ".")
         allowed_dimensions = (
             {"concept", "mathematics", "mechanism", "engineering", "application"}
             if self.course is Course.MACHINE_LEARNING

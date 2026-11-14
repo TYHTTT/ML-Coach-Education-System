@@ -124,7 +124,9 @@ def evaluate_mastery_gate(
 
     if passed:
         next_action = "continue_to_next_topic"
-    elif not misconceptions_passed or (checkpoint_completed and not checkpoint_score_passed):
+    elif not misconceptions_passed or (
+        checkpoint_completed and not checkpoint_score_passed
+    ):
         next_action = "remediate"
     elif attempts_passed and mastery_passed and not checkpoint_completed:
         next_action = "take_checkpoint"

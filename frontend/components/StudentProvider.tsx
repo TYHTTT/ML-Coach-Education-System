@@ -1,6 +1,15 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { isStudentNotFound, logoutStudent } from "@/lib/api";
 import type { AuthenticatedStudent } from "@/lib/types";
 
@@ -11,7 +20,10 @@ type StudentStatus = "initializing" | "ready" | "unauthenticated" | "error";
 
 interface StudentContextValue {
   studentId: string | null;
-  student: Pick<AuthenticatedStudent, "student_id" | "username" | "display_name"> | null;
+  student: Pick<
+    AuthenticatedStudent,
+    "student_id" | "username" | "display_name"
+  > | null;
   status: StudentStatus;
   error: string | null;
   withStudent: <T>(request: (studentId: string) => Promise<T>) => Promise<T>;
@@ -40,7 +52,9 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     try {
       window.localStorage.removeItem(STUDENT_STORAGE_KEY);
       window.localStorage.removeItem(STUDENT_PROFILE_STORAGE_KEY);
-    } catch { /* The UI still clears its in-memory session. */ }
+    } catch {
+      /* The UI still clears its in-memory session. */
+    }
   }, []);
 
   const initialize = useCallback(async () => {
@@ -51,7 +65,9 @@ export function StudentProvider({ children }: { children: ReactNode }) {
       let storedProfile: StudentContextValue["student"] = null;
       try {
         storedToken = window.localStorage.getItem(STUDENT_STORAGE_KEY);
-        const rawProfile = window.localStorage.getItem(STUDENT_PROFILE_STORAGE_KEY);
+        const rawProfile = window.localStorage.getItem(
+          STUDENT_PROFILE_STORAGE_KEY,
+        );
         storedProfile = rawProfile ? JSON.parse(rawProfile) : null;
       } catch {
         // Storage is optional; the user can still sign in for this session.
@@ -67,7 +83,11 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     } catch (cause) {
       clearSession();
       setStatus("error");
-      setError(cause instanceof Error ? cause.message : "登录状态恢复失败，请重新登录。");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : "登录状态恢复失败，请重新登录。",
+      );
     }
   }, [clearSession, rememberStudent]);
 
@@ -98,22 +118,41 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     [clearSession, ensureStudent],
   );
 
-  const completeLogin = useCallback((authenticated: AuthenticatedStudent) => {
-    const profile = { student_id: authenticated.student_id, username: authenticated.username, display_name: authenticated.display_name };
-    rememberStudent(authenticated.access_token);
-    setStudent(profile);
-    try {
-      window.localStorage.setItem(STUDENT_STORAGE_KEY, authenticated.access_token);
-      window.localStorage.setItem(STUDENT_PROFILE_STORAGE_KEY, JSON.stringify(profile));
-    } catch { /* Keep the active session in memory when storage is unavailable. */ }
-    setError(null);
-    setStatus("ready");
-  }, [rememberStudent]);
+  const completeLogin = useCallback(
+    (authenticated: AuthenticatedStudent) => {
+      const profile = {
+        student_id: authenticated.student_id,
+        username: authenticated.username,
+        display_name: authenticated.display_name,
+      };
+      rememberStudent(authenticated.access_token);
+      setStudent(profile);
+      try {
+        window.localStorage.setItem(
+          STUDENT_STORAGE_KEY,
+          authenticated.access_token,
+        );
+        window.localStorage.setItem(
+          STUDENT_PROFILE_STORAGE_KEY,
+          JSON.stringify(profile),
+        );
+      } catch {
+        /* Keep the active session in memory when storage is unavailable. */
+      }
+      setError(null);
+      setStatus("ready");
+    },
+    [rememberStudent],
+  );
 
   const logout = useCallback(async () => {
     const token = studentIdRef.current;
     if (token) {
-      try { await logoutStudent(token); } catch { /* Local logout remains valid if the server is unavailable. */ }
+      try {
+        await logoutStudent(token);
+      } catch {
+        /* Local logout remains valid if the server is unavailable. */
+      }
     }
     clearSession();
     setStatus("unauthenticated");
@@ -132,7 +171,9 @@ export function StudentProvider({ children }: { children: ReactNode }) {
     [completeLogin, error, logout, status, student, studentId, withStudent],
   );
 
-  return <StudentContext.Provider value={value}>{children}</StudentContext.Provider>;
+  return (
+    <StudentContext.Provider value={value}>{children}</StudentContext.Provider>
+  );
 }
 
 export function useStudent(): StudentContextValue {

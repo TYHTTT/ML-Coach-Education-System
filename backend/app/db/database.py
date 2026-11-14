@@ -30,9 +30,7 @@ class PostgresConnection:
     def _adapt_query(query: str) -> str:
         return query.replace("?", "%s")
 
-    def execute(
-        self, query: str, params: Sequence[Any] | None = None
-    ) -> Any:
+    def execute(self, query: str, params: Sequence[Any] | None = None) -> Any:
         return self._connection.execute(self._adapt_query(query), params)
 
     def executemany(self, query: str, params_seq: Sequence[Sequence[Any]]) -> Any:

@@ -57,7 +57,9 @@ class LearningOrchestratorInput:
         if not self.current_topic_id.strip():
             raise ValueError("current_topic_id must not be empty")
         if self.current_topic_status not in _VALID_STATUSES:
-            raise ValueError(f"unsupported learning status: {self.current_topic_status}")
+            raise ValueError(
+                f"unsupported learning status: {self.current_topic_status}"
+            )
         if self.current_stage < 0:
             raise ValueError("current_stage must not be negative")
 
@@ -76,11 +78,7 @@ def recommend_topic(
         return current.topic_id
 
     started = sorted(
-        (
-            item
-            for item in topics
-            if item.status in _STARTED_INCOMPLETE
-        ),
+        (item for item in topics if item.status in _STARTED_INCOMPLETE),
         key=lambda item: (item.stage, item.order_index, item.topic_id),
     )
     if started:
@@ -90,8 +88,7 @@ def recommend_topic(
         (
             item
             for item in topics
-            if item.status == "not_started"
-            and item.stage == current_stage
+            if item.status == "not_started" and item.stage == current_stage
         ),
         key=lambda item: (item.order_index, item.topic_id),
     )
@@ -102,8 +99,7 @@ def recommend_topic(
         (
             item
             for item in topics
-            if item.status == "not_started"
-            and item.stage > current_stage
+            if item.status == "not_started" and item.stage > current_stage
         ),
         key=lambda item: (item.stage, item.order_index, item.topic_id),
     )
